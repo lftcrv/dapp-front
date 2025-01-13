@@ -1,0 +1,99 @@
+@import url('https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@400;700&family=Freckle+Face&display=swap&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 255, 248, 242;
+  --background-end-rgb: 255, 248, 242;
+  --radius: 0.5rem;
+}
+
+@layer base {
+  body {
+    @apply text-black min-h-screen;
+    background: radial-gradient(
+      circle at center,
+      rgb(var(--background-end-rgb)) 0%,
+      rgb(var(--background-start-rgb)) 100%
+    );
+  }
+}
+
+@layer components {
+  .font-sketch {
+    font-family: 'Cabin Sketch', cursive;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sketch-border {
+    @apply relative border-2 border-black;
+    box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.2);
+  }
+
+  .sketch-border::after,
+  .sketch-border::before {
+    @apply absolute inset-[-2px] border-2 border-black opacity-10;
+    content: '';
+    border-radius: inherit;
+  }
+
+  .sketch-border::after {
+    transform: rotate(-1deg);
+  }
+
+  .sketch-border::before {
+    transform: rotate(1deg);
+  }
+
+  .glow {
+    @apply absolute pointer-events-none;
+    width: 60%;
+    height: 60%;
+    filter: blur(60px);
+    will-change: transform;
+    opacity: 0.15;
+  }
+
+  .glow-1 {
+    @apply -top-[20%] -left-[10%];
+    background: radial-gradient(
+      circle at center,
+      rgba(247, 107, 42, 1) 0%,
+      rgba(160, 71, 228, 0.8) 50%,
+      transparent 70%
+    );
+  }
+
+  .glow-2 {
+    @apply -bottom-[20%] -right-[10%];
+    background: radial-gradient(
+      circle at center,
+      rgba(255, 64, 129, 1) 0%,
+      rgba(255, 64, 129, 0.8) 25%,
+      transparent 70%
+    );
+  }
+}
+
+@layer utilities {
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient 8s linear infinite;
+  }
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}

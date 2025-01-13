@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Hood -->
+  <path d="M60 140C60 100 100 80 100 80C100 80 140 100 140 140C140 160 120 180 100 180C80 180 60 160 60 140Z" fill="white" stroke="black" stroke-width="4"/>
+  
+  <!-- Face shadow -->
+  <path d="M75 130C75 110 100 100 100 100C100 100 125 110 125 130C125 140 115 150 100 150C85 150 75 140 75 130Z" fill="black" fill-opacity="0.8"/>
+  
+  <!-- Eyes -->
+  <circle cx="90" cy="125" r="4" fill="white"/>
+  <circle cx="110" cy="125" r="4" fill="white"/>
+</svg> 
