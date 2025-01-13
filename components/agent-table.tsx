@@ -51,10 +51,12 @@ export function AgentTable({ agents }: AgentTableProps) {
   const [searchTerm, setSearchTerm] = useState('')
 
   const sortedAgents = [...agents].sort((a, b) => {
-    if (a[sortConfig.key] < b[sortConfig.key]) {
+    const aVal = a[sortConfig.key] ?? '';
+    const bVal = b[sortConfig.key] ?? '';
+    if (aVal < bVal) {
       return sortConfig.direction === 'asc' ? -1 : 1
     }
-    if (a[sortConfig.key] > b[sortConfig.key]) {
+    if (aVal > bVal) {
       return sortConfig.direction === 'asc' ? 1 : -1
     }
     return 0
