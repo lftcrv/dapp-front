@@ -54,22 +54,43 @@ export default function HomePage() {
           transition={{ duration: 0.5 }}
         >
           {/* Header */}
-          <div className="text-center space-y-4">
-            <h1 className="font-sketch text-4xl bg-gradient-to-r from-yellow-500 via-pink-500 to-purple-500 text-transparent bg-clip-text">
-              Agent Explorer
-            </h1>
-            <p className="text-sm text-muted-foreground">discover, deploy, and trade agent tokens</p>
+          <div className="text-center space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-3"
+            >
+              <h1 className="font-sketch text-5xl bg-gradient-to-r from-yellow-500 via-pink-500 to-purple-500 text-transparent bg-clip-text">
+                Trading Agent Arena
+              </h1>
+              <p className="text-sm text-yellow-500/70 font-mono">
+                where midcurvers get rekt 💀
+              </p>
+              
+              <div className="max-w-xl mx-auto space-y-1.5 text-[11px]">
+                <p className="text-neutral-800">your strategy, your agent, your edge - finally executed exactly how you want it. embrace the chaos or master the precision - but don&apos;t you dare stay in the middle 😤</p>
+
+                <p className="text-neutral-800">protocol fees? split between based curves only. midcurvers stay ngmi and get nothing fr</p>
+
+                <p className="text-neutral-500 font-mono text-[10px]">where midcurvers get rekt 💀</p>
+              </div>
+            </motion.div>
+
             <div className="flex items-center justify-center gap-4">
               <Button
                 onClick={() => router.push('/create-agent')}
-                className="bg-gradient-to-r from-yellow-500 via-pink-500 to-purple-500 hover:from-yellow-600 hover:via-pink-600 hover:to-purple-600"
+                className="bg-gradient-to-r from-yellow-500 via-pink-500 to-purple-500 hover:opacity-90 font-mono text-white"
               >
                 <Rocket className="mr-2 h-4 w-4" />
-                Deploy Agent
+                Deploy Your Agent
               </Button>
-              <Button variant="outline">
-                <Flame className="mr-2 h-4 w-4" />
-                Learn More
+              <Button 
+                variant="outline" 
+                className="group relative font-mono hover:text-yellow-500 transition-colors hover:border-yellow-500/50"
+                onClick={() => router.push('/leaderboard')}
+              >
+                <Flame className="mr-2 h-4 w-4 transition-colors" />
+                Leaderboard
               </Button>
             </div>
           </div>
