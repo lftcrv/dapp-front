@@ -9,18 +9,25 @@ import { useWallet } from '@/lib/wallet-context'
 import { useChat } from '@/hooks/use-chat'
 import type { ChatMessage } from '@/lib/types'
 import { toast } from 'sonner'
+import { Loading } from "@/components/ui/loading"
+import { useAgentTheme } from '@/contexts/agent-theme-context'
 
 interface AgentChatProps {
   agentId: string
 }
 
 export function AgentChat({ agentId }: AgentChatProps) {
+  const theme = useAgentTheme()
   const { isConnected } = useWallet()
   const { messages, setMessages, isLoading, error } = useChat({ agentId })
   const [input, setInput] = useState('')
 
   if (isLoading) {
-    return <div>Loading chat...</div>
+    return (
+      <div className="flex items-center justify-center h-[300px]">
+        <Loading variant={theme.mode as "leftcurve" | "rightcurve"} size="sm" />
+      </div>
+    )
   }
 
   if (error) {

@@ -5,6 +5,7 @@ import { PriceChart } from '@/components/price-chart'
 import { isInBondingPhase } from '@/lib/utils'
 import { useAgentTheme } from '@/contexts/agent-theme-context'
 import { usePrices } from '@/hooks/use-prices'
+import { Loading } from "@/components/ui/loading"
 
 interface PriceActionCardProps {
   agent: Agent
@@ -12,9 +13,14 @@ interface PriceActionCardProps {
 
 export function PriceActionCard({ agent }: PriceActionCardProps) {
   const { prices, isLoading, error } = usePrices({ symbol: agent.symbol })
+  const theme = useAgentTheme()
 
   if (isLoading) {
-    return <div>Loading price data...</div>
+    return (
+      <div className="flex items-center justify-center h-[300px]">
+        <Loading variant={theme.mode as "leftcurve" | "rightcurve"} />
+      </div>
+    )
   }
 
   if (error) {
@@ -25,7 +31,7 @@ export function PriceActionCard({ agent }: PriceActionCardProps) {
     <AgentCard
       title="Price Action"
       icon={TrendingUp}
-      badge={useAgentTheme().mode}
+      badge={theme.mode}
     >
       <PriceChart 
         data={prices} 
