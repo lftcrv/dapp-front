@@ -2,6 +2,7 @@
 
 import { Agent } from '@/lib/types'
 import Image from 'next/image'
+import Link from 'next/link'
 import {
   Carousel,
   CarouselContent,
@@ -45,34 +46,36 @@ export function AgentAvatar({ src, alt }: { src?: string; alt: string }) {
 
 function AgentCard({ agent }: { agent: Agent }) {
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="p-3 bg-white/5 rounded-xl border border-white/10 h-full"
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-    >
-      <div className="flex flex-col items-center text-center">
-        <motion.div 
-          className="mb-2"
-          whileHover={{ scale: 1.05 }}
-        >
-          <AgentAvatar src={agent.avatar} alt={agent.name} />
-        </motion.div>
-        <h4 className="font-medium text-sm truncate w-full mb-1">{agent.name}</h4>
-        <div className="flex items-center gap-1">
-          <span className="text-sm font-mono">${agent.price}</span>
-          <motion.span 
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="text-xs text-green-500 font-mono"
+    <Link href={`/agent/${agent.id}`}>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="p-3 bg-white/5 rounded-xl border border-white/10 h-full"
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+      >
+        <div className="flex flex-col items-center text-center">
+          <motion.div 
+            className="mb-2"
+            whileHover={{ scale: 1.05 }}
           >
-            +12%
-          </motion.span>
+            <AgentAvatar src={agent.avatar} alt={agent.name} />
+          </motion.div>
+          <h4 className="font-medium text-sm truncate w-full mb-1">{agent.name}</h4>
+          <div className="flex items-center gap-1">
+            <span className="text-sm font-mono">${agent.price}</span>
+            <motion.span 
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="text-xs text-green-500 font-mono"
+            >
+              +12%
+            </motion.span>
+          </div>
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+    </Link>
   )
 }
 

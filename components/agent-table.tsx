@@ -15,6 +15,7 @@ import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { ArrowUpDown, Search } from "lucide-react"
+import Link from "next/link"
 
 interface AgentTableProps {
   agents: Agent[]
@@ -143,7 +144,7 @@ export function AgentTable({ agents }: AgentTableProps) {
               <TableRow key={agent.id} className="group hover:bg-white/5">
                 <TableCell className="font-mono text-xs">{index + 1}</TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-3">
+                  <Link href={`/agent/${agent.id}`} className="flex items-center gap-3 hover:opacity-80">
                     <AgentAvatar src={agent.avatar} alt={agent.name} />
                     <div>
                       <div className="font-medium text-sm group-hover:text-primary transition-colors">
@@ -153,7 +154,7 @@ export function AgentTable({ agents }: AgentTableProps) {
                         #{agent.id}
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 </TableCell>
                 <TableCell>
                   <span className="inline-flex items-center text-xs">
