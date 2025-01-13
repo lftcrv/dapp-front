@@ -4,7 +4,6 @@ import { useParams } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { BondingCurveChart } from '@/components/bonding-curve-chart'
 import { SwapWidget } from '@/components/swap-widget'
-import { dummyAgents } from '@/lib/dummy-data'
 import { cn } from '@/lib/utils'
 import { AgentHeader } from '@/components/agent-header'
 import { AgentStatsCard } from '@/components/agent-stats-card'
@@ -13,7 +12,7 @@ import { TradeHistoryCard } from '@/components/agent/trade-history-card'
 import { ChatCard } from '@/components/agent/chat-card'
 import { AgentThemeProvider, useAgentTheme } from '@/contexts/agent-theme-context'
 import { AnimatedSection } from '@/components/ui/animated-section'
-import { Agent } from '@/lib/types'
+import { useAgent } from '@/hooks/use-agents'
 
 function AgentNotFound() {
   return (
@@ -29,9 +28,22 @@ function AgentNotFound() {
   )
 }
 
-function AgentContent({ agent }: { agent: Agent }) {
+function AgentContent({ agentId }: { agentId: string }) {
+  const { agent, isLoading, error } = useAgent({ id: agentId })
   const theme = useAgentTheme()
   
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <p className="text-muted-foreground">Loading agent data...</p>
+      </div>
+    )
+  }
+
+  if (error || !agent) {
+    return <AgentNotFound />
+  }
+
   return (
     <>
       <AgentHeader agent={agent} />
@@ -58,17 +70,12 @@ function AgentContent({ agent }: { agent: Agent }) {
 export default function AgentPage() {
   const params = useParams()
   const agentId = params.agentId as string
-  const agent = dummyAgents.find(a => a.id === agentId)
   
-  if (!agent) {
-    return <AgentNotFound />
-  }
-
   return (
     <main className="flex min-h-screen flex-col items-center justify-start pt-24">
       <div className="container max-w-7xl mx-auto px-4">
-        <AgentThemeProvider agent={agent}>
-          <AgentContent agent={agent} />
+        <AgentThemeProvider agentId={agentId}>
+          <AgentContent agentId={agentId} />
         </AgentThemeProvider>
       </div>
     </main>

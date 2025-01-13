@@ -1,49 +1,39 @@
 import { useState, useEffect } from 'react'
 import { Agent } from '@/lib/types'
-import { agentService } from '@/lib/services/agent-service'
+import { agentService } from '@/lib/services/api/agents'
 
-/**
- * Configuration options for the useAgents hook
- */
 interface UseAgentsOptions {
-  /** Initial agent data to populate the state */
+  type?: 'leftcurve' | 'rightcurve'
+  status?: 'bonding' | 'live' | 'ended'
   initialData?: Agent[]
-  /** Whether to fetch agents from the API */
-  shouldFetch?: boolean
 }
 
-/**
- * Response type for the useAgents hook
- */
-interface UseAgentsResponse {
-  /** List of agents */
+interface UseAgentsReturn {
   agents: Agent[]
-  /** Loading state */
   isLoading: boolean
-  /** Error state */
   error: Error | null
-  /** Function to manually trigger a refresh */
-  refetch: () => void
+  refetch: () => Promise<void>
 }
 
-/**
- * Hook to manage agent data fetching and state
- * @param options - Configuration options
- * @returns Agent data, loading state, error state, and refetch function
- */
-export function useAgents({ 
-  initialData, 
-  shouldFetch = true 
-}: UseAgentsOptions = {}): UseAgentsResponse {
-  const [agents, setAgents] = useState<Agent[]>(initialData || [])
-  const [isLoading, setIsLoading] = useState(!initialData && shouldFetch)
+export function useAgents(options: UseAgentsOptions = {}): UseAgentsReturn {
+  const [agents, setAgents] = useState<Agent[]>(options.initialData || [])
+  const [isLoading, setIsLoading] = useState(!options.initialData)
   const [error, setError] = useState<Error | null>(null)
 
   const fetchAgents = async () => {
     try {
       setIsLoading(true)
       setError(null)
-      const data = await agentService.getAllAgents()
+      
+      let data: Agent[]
+      if (options.type) {
+        data = await agentService.getAgentsByType(options.type)
+      } else if (options.status) {
+        data = await agentService.getAgentsByStatus(options.status)
+      } else {
+        data = await agentService.getAllAgents()
+      }
+      
       setAgents(data)
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch agents'))
@@ -53,14 +43,40 @@ export function useAgents({
   }
 
   useEffect(() => {
-    if (!shouldFetch) return
     fetchAgents()
-  }, [initialData, shouldFetch])
+  }, [options.type, options.status])
 
   return {
     agents,
     isLoading,
     error,
-    refetch: fetchAgents,
+    refetch: fetchAgents
   }
+}
+
+export function useAgent({ id, initialData }: { id: string, initialData?: Agent }) {
+  const [agent, setAgent] = useState<Agent | null>(initialData || null)
+  const [isLoading, setIsLoading] = useState(!initialData)
+  const [error, setError] = useState<Error | null>(null)
+
+  useEffect(() => {
+    async function fetchAgent() {
+      try {
+        setIsLoading(true)
+        setError(null)
+        const data = await agentService.getAgentById(id)
+        setAgent(data)
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to fetch agent'))
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (!initialData) {
+      fetchAgent()
+    }
+  }, [id, initialData])
+
+  return { agent, isLoading, error }
 } 

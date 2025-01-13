@@ -5,17 +5,19 @@ import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Lock, Unlock, Rocket, Sparkles } from 'lucide-react'
 import { cn, calculateBondingProgress, isInBondingPhase } from '@/lib/utils'
+import { getLatestPrice } from '@/lib/dummy-prices'
 
 interface BondingCurveChartProps {
   agent: Agent
 }
 
 export function BondingCurveChart({ agent }: BondingCurveChartProps) {
-  const progress = calculateBondingProgress(agent.price, agent.holders)
-  const isInBonding = isInBondingPhase(agent.price, agent.holders)
+  const currentPrice = getLatestPrice(agent.symbol) || agent.price
+  const progress = calculateBondingProgress(currentPrice, agent.holders)
+  const isInBonding = isInBondingPhase(currentPrice, agent.holders)
   const isLeftCurve = agent.type === 'leftcurve'
-  const nextPrice = (agent.price * 1.1).toFixed(3)
-  const remainingLiquidity = 10000 - (agent.holders * agent.price * 1000)
+  const nextPrice = (currentPrice * 1.1).toFixed(3)
+  const remainingLiquidity = 10000 - (agent.holders * currentPrice * 1000)
   const progressColor = isLeftCurve 
     ? 'bg-gradient-to-r from-yellow-500 via-orange-500 to-pink-500 animate-gradient'
     : 'bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 animate-gradient'
@@ -70,7 +72,7 @@ export function BondingCurveChart({ agent }: BondingCurveChartProps) {
             <p className={cn(
               "font-bold font-mono",
               isLeftCurve ? "text-yellow-500" : "text-purple-500"
-            )}>${agent.price}</p>
+            )}>${currentPrice.toFixed(4)}</p>
           </div>
           <div className="text-right space-y-1">
             <p className="text-muted-foreground">Target Price</p>
@@ -96,7 +98,7 @@ export function BondingCurveChart({ agent }: BondingCurveChartProps) {
                 "font-mono font-bold",
                 isLeftCurve ? "text-yellow-500" : "text-purple-500"
               )}>
-                {(agent.holders * agent.price * 1000).toLocaleString()} / 10,000 LEFT
+                {(agent.holders * currentPrice * 1000).toLocaleString()} / 10,000 LEFT
               </span>
             </div>
             <div className={cn(
