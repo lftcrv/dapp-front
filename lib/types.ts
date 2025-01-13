@@ -12,4 +12,5 @@ export interface Agent {
   creator: string
   createdAt: string
   lore?: string
+  symbol: string
 } 

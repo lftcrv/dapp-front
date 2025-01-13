@@ -24,3 +24,23 @@ export function formatAmount(amount: number) {
 export function formatPrice(price: number) {
   return `${formatAmount(price)} LEFT`
 }
+
+/**
+ * Calculate bonding progress based on current price and holders
+ * @param price Current price of the agent token
+ * @param holders Number of token holders
+ * @returns Progress percentage (0-100)
+ */
+export function calculateBondingProgress(price: number, holders: number): number {
+  return Math.min((holders * price * 1000) / 10000 * 100, 100)
+}
+
+/**
+ * Check if agent is still in bonding phase
+ * @param price Current price of the agent token
+ * @param holders Number of token holders
+ * @returns true if still in bonding phase
+ */
+export function isInBondingPhase(price: number, holders: number): boolean {
+  return calculateBondingProgress(price, holders) < 100
+}

@@ -10,9 +10,10 @@ import { AgentChat } from '@/components/agent-chat'
 import { dummyAgents } from '@/lib/dummy-data'
 import { Badge } from '@/components/ui/badge'
 import { Brain, Rocket, MessageCircle, TrendingUp, Zap, Flame, ChevronUp, ChevronDown } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, isInBondingPhase } from '@/lib/utils'
 import { PriceChart } from '@/components/price-chart'
 import Image from 'next/image'
+import { getDummyPriceData } from '@/lib/dummy-prices'
 
 export default function AgentPage() {
   const params = useParams()
@@ -187,7 +188,12 @@ export default function AgentPage() {
                   {isLeftCurve ? "DEGEN MODE" : "GALAXY MODE"}
                 </Badge>
               </div>
-              <PriceChart symbol={`${agent.name}USD`} />
+              <PriceChart 
+                data={getDummyPriceData(agent.symbol, agent.price)} 
+                symbol={agent.symbol}
+                baseToken={agent.symbol}
+                inBondingCurve={isInBondingPhase(agent.price, agent.holders)}
+              />
             </Card>
 
             {/* Trade History */}

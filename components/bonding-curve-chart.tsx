@@ -3,17 +3,18 @@
 import { Agent } from '@/lib/types'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { cn } from '@/lib/utils'
-import { Sparkles, Rocket, Lock, Unlock } from 'lucide-react'
+import { Lock, Unlock, Rocket, Sparkles } from 'lucide-react'
+import { cn, calculateBondingProgress, isInBondingPhase } from '@/lib/utils'
 
 interface BondingCurveChartProps {
   agent: Agent
 }
 
 export function BondingCurveChart({ agent }: BondingCurveChartProps) {
-  const progress = Math.min((agent.holders * agent.price * 1000) / 10000 * 100, 100)
-  const nextPrice = (agent.price * 1.1).toFixed(3)
+  const progress = calculateBondingProgress(agent.price, agent.holders)
+  const isInBonding = isInBondingPhase(agent.price, agent.holders)
   const isLeftCurve = agent.type === 'leftcurve'
+  const nextPrice = (agent.price * 1.1).toFixed(3)
   const remainingLiquidity = 10000 - (agent.holders * agent.price * 1000)
   const progressColor = isLeftCurve 
     ? 'bg-gradient-to-r from-yellow-500 via-orange-500 to-pink-500 animate-gradient'
@@ -84,7 +85,7 @@ export function BondingCurveChart({ agent }: BondingCurveChartProps) {
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center text-xs">
               <div className="flex items-center gap-1.5">
-                {progress >= 100 ? (
+                {!isInBonding ? (
                   <Unlock className="h-3 w-3 text-green-500" />
                 ) : (
                   <Lock className="h-3 w-3 text-muted-foreground" />
@@ -100,13 +101,13 @@ export function BondingCurveChart({ agent }: BondingCurveChartProps) {
             </div>
             <div className={cn(
               "text-xs px-2 py-1.5 rounded-md border-2 flex items-center justify-center gap-1.5 font-medium",
-              progress >= 100 
+              !isInBonding 
                 ? "bg-green-500/20 border-green-500/30 text-green-500" 
                 : isLeftCurve
                   ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-500"
                   : "bg-purple-500/10 border-purple-500/20 text-purple-500"
             )}>
-              {progress >= 100 ? (
+              {!isInBonding ? (
                 <>🚀 Trading Now Live!</>
               ) : remainingLiquidity <= 1000 ? (
                 <>✨ Only {remainingLiquidity.toLocaleString()} LEFT until launch!</>

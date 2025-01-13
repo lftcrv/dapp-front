@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Agent } from "@/lib/types"
-import { cn } from "@/lib/utils"
+import { cn, isInBondingPhase } from "@/lib/utils"
 import { AgentAvatar } from "./top-agents"
 import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
@@ -179,13 +179,13 @@ export function AgentTable({ agents }: AgentTableProps) {
                     className={cn(
                       "inline-flex rounded-full px-2 py-0.5 text-xs font-semibold",
                       {
-                        "bg-green-500/10 text-green-500": agent.status === "live",
-                        "bg-yellow-500/10 text-yellow-500": agent.status === "bonding",
+                        "bg-green-500/10 text-green-500": !isInBondingPhase(agent.price, agent.holders),
+                        "bg-yellow-500/10 text-yellow-500": isInBondingPhase(agent.price, agent.holders),
                         "bg-gray-500/10 text-gray-500": agent.status === "ended",
                       }
                     )}
                   >
-                    {agent.status === 'bonding' ? '🔥' : agent.status === 'live' ? '🚀' : '💀'} {agent.status}
+                    {isInBondingPhase(agent.price, agent.holders) ? '🔥 bonding' : agent.status === 'ended' ? '💀 ended' : '🚀 live'}
                   </span>
                 </TableCell>
               </TableRow>
