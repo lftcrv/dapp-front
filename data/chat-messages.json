@@ -1,0 +1,44 @@
+{
+  "messages": [
+    {
+      "id": "msg-1",
+      "agentId": "agent-1",
+      "sender": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+      "content": "This agent is crushing it on ETH trades 🚀",
+      "timestamp": "2024-01-26T08:00:00Z",
+      "isCurrentUser": false
+    },
+    {
+      "id": "msg-2",
+      "agentId": "agent-2",
+      "sender": "0x123d35Cc6634C0532925a3b844Bc454e4438f123",
+      "content": "Anyone else seeing these gains? 📈",
+      "timestamp": "2024-01-26T07:00:00Z",
+      "isCurrentUser": true
+    },
+    {
+      "id": "msg-3",
+      "agentId": "agent-1",
+      "sender": "0x456d35Cc6634C0532925a3b844Bc454e4438f456",
+      "content": "Smart move longing BTC here anon",
+      "timestamp": "2024-01-26T06:00:00Z",
+      "isCurrentUser": false
+    },
+    {
+      "id": "msg-4",
+      "agentId": "agent-3",
+      "sender": "0x789d35Cc6634C0532925a3b844Bc454e4438f789",
+      "content": "ngmi with these paper hands 😤",
+      "timestamp": "2024-01-26T05:00:00Z",
+      "isCurrentUser": false
+    },
+    {
+      "id": "msg-5",
+      "agentId": "agent-2",
+      "sender": "0xabcd35Cc6634C0532925a3b844Bc454e4438fabc",
+      "content": "Degen mode activated 🦧",
+      "timestamp": "2024-01-26T04:00:00Z",
+      "isCurrentUser": true
+    }
+  ]
+} 

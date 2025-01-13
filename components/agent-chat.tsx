@@ -6,13 +6,26 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { motion } from 'framer-motion'
 import { useWallet } from '@/lib/wallet-context'
-import { dummyChatMessages, ChatMessage } from '@/lib/dummy-trades'
+import { useChat } from '@/hooks/use-chat'
+import type { ChatMessage } from '@/lib/types'
 import { toast } from 'sonner'
 
-export function AgentChat() {
+interface AgentChatProps {
+  agentId: string
+}
+
+export function AgentChat({ agentId }: AgentChatProps) {
   const { isConnected } = useWallet()
-  const [messages, setMessages] = useState<ChatMessage[]>(dummyChatMessages.slice(0, 10))
+  const { messages, setMessages, isLoading, error } = useChat({ agentId })
   const [input, setInput] = useState('')
+
+  if (isLoading) {
+    return <div>Loading chat...</div>
+  }
+
+  if (error) {
+    return <div>Error loading chat</div>
+  }
 
   const handleSend = () => {
     if (!isConnected) {
@@ -23,13 +36,14 @@ export function AgentChat() {
 
     const newMessage: ChatMessage = {
       id: Date.now().toString(),
+      agentId,
       sender: '0x1234...5678',
       content: input,
-      timestamp: new Date().toLocaleTimeString(),
+      timestamp: new Date().toISOString(),
       isCurrentUser: true
     }
 
-    setMessages(prev => [...prev, newMessage])
+    setMessages((prev: ChatMessage[]) => [...prev, newMessage])
     setInput('')
   }
 
@@ -37,7 +51,7 @@ export function AgentChat() {
     <div className="flex flex-col h-[300px]">
       <ScrollArea className="flex-1">
         <div className="space-y-2 p-4">
-          {messages.map((message) => (
+          {messages.map((message: ChatMessage) => (
             <motion.div
               key={message.id}
               initial={{ opacity: 0, y: 20 }}

@@ -1,0 +1,59 @@
+{
+  "trades": [
+    {
+      "id": "trade-1",
+      "agentId": "agent-1",
+      "type": "buy",
+      "amount": 0.5,
+      "price": 2500,
+      "time": "2024-01-26T10:00:00Z",
+      "summary": "Long ETH: Strong momentum on L2 adoption + upcoming protocol upgrade. Technical indicators showing bullish divergence on 4H.",
+      "txHash": "0x123...abc",
+      "success": true
+    },
+    {
+      "id": "trade-2",
+      "agentId": "agent-2",
+      "type": "sell",
+      "amount": 1000,
+      "price": 1.05,
+      "time": "2024-01-26T09:55:00Z",
+      "summary": "Exit USDC: Depegging risk + bearish market sentiment. Moving to stables with better backing ratio and regulatory clarity.",
+      "txHash": "0x456...def",
+      "success": true
+    },
+    {
+      "id": "trade-3",
+      "agentId": "agent-1",
+      "type": "buy",
+      "amount": 0.1,
+      "price": 45000,
+      "time": "2024-01-26T09:48:00Z",
+      "summary": "BTC accumulation: RSI oversold + whale wallets accumulating. Multiple technical supports converging at 44k level.",
+      "txHash": "0x789...ghi",
+      "success": true
+    },
+    {
+      "id": "trade-4",
+      "agentId": "agent-3",
+      "type": "sell",
+      "amount": 5,
+      "price": 2300,
+      "time": "2024-01-26T09:45:00Z",
+      "summary": "Short ETH: Rising rates + macro headwinds. Breaking below 200MA with increasing volume, targeting 2100 support.",
+      "txHash": "0xabc...jkl",
+      "success": true
+    },
+    {
+      "id": "trade-5",
+      "agentId": "agent-2",
+      "type": "buy",
+      "amount": 2500,
+      "price": 1.02,
+      "time": "2024-01-26T09:42:00Z",
+      "summary": "Long SOL: Network metrics improving + institutional inflows. Breaking out of falling wedge with volume confirmation.",
+      "txHash": "0xdef...mno",
+      "success": true
+    }
+  ]
+} 
