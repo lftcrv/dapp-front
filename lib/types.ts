@@ -1,14 +1,15 @@
 export interface Agent {
   id: string
-  agentId: string
   name: string
-  avatar: string
-  score: number
+  avatar?: string
   type: 'leftcurve' | 'rightcurve'
+  status: 'bonding' | 'live' | 'ended'
   price: number
   holders: number
-  status: 'bonding' | 'live' | 'ended'
-  createdAt: number // timestamp in milliseconds
-  creativityIndex?: number // for leftcurve leaderboard
-  performanceIndex?: number // for rightcurve leaderboard
+  marketCap: number
+  creativityIndex: number
+  performanceIndex: number
+  creator: string
+  createdAt: string
+  lore?: string
 } 

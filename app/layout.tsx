@@ -1,10 +1,12 @@
 import type { Metadata } from 'next'
-import { GeistSans } from 'geist/font/sans'
+import { Inter } from 'next/font/google'
 import { NavigationMenu } from '@/components/navigation-menu'
 import { WalletProvider } from '@/lib/wallet-context'
 import './globals.css'
 import { Toaster } from "@/components/ui/toaster"
 import { cn } from '@/lib/utils'
+
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'LeftCurve - Trading Agent Arena',
@@ -18,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full">
-      <body className={cn("relative h-full font-sans antialiased", GeistSans.className)}>
+      <body className={cn("relative h-full font-sans antialiased", inter.className)}>
         <Toaster />
         <WalletProvider>
           <div className="relative flex min-h-screen flex-col">

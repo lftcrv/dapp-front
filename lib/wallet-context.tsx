@@ -4,7 +4,6 @@ import {
   createContext,
   useContext,
   useCallback,
-  useEffect,
   useState,
   ReactNode,
 } from 'react'
@@ -15,6 +14,7 @@ import { shortAddress } from '@/lib/utils'
 interface WalletContextType {
   address: string
   isConnecting: boolean
+  isConnected: boolean
   walletType: string | null
   connect: () => Promise<void>
   disconnect: () => Promise<void>
@@ -48,71 +48,38 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         dappName: 'LeftCurve',
       }) as ConnectResult
 
-      console.log("Connection result:", result)
-
       if (result?.connectorData?.account) {
-        const addr = result.connectorData.account
-        const wallet = result.connector?._wallet?.id || 'Unknown'
-        setAddress(addr)
-        setWalletType(wallet)
-        console.log("🚀 Connected to address:", addr, "with wallet:", wallet)
+        setAddress(result.connectorData.account)
+        setWalletType(result.connector?._wallet?.id || null)
         toast({
-          title: `${wallet === 'braavos' ? '🦧' : '🔵'} Wallet Connected`,
-          description: `GM fren! Connected to ${shortAddress(addr)}`,
-          className: "bg-green-500/10 text-green-500 border-green-500/20",
-          duration: 5000,
+          title: 'Wallet Connected',
+          description: `Connected to ${shortAddress(result.connectorData.account)}`,
         })
       }
     } catch (error) {
       console.error('Error connecting wallet:', error)
       toast({
-        title: "❌ Connection Failed",
-        description: "Could not connect to wallet. Please try again.",
-        variant: "destructive",
-        duration: 5000,
+        title: 'Connection Failed',
+        description: 'Failed to connect wallet. Please try again.',
+        variant: 'destructive',
       })
+    } finally {
+      setIsConnecting(false)
     }
-    setIsConnecting(false)
   }, [toast])
 
   const disconnectWallet = useCallback(async () => {
-    console.log("👋 Disconnecting wallet...")
-    await disconnect()
-    setAddress('')
-    setWalletType(null)
-    toast({
-      title: "👋 Wallet Disconnected",
-      description: "Successfully disconnected wallet",
-      className: "bg-orange-500/10 text-orange-500 border-orange-500/20",
-      duration: 5000,
-    })
-  }, [toast])
-
-  useEffect(() => {
-    const checkConnection = async () => {
-      console.log("🔍 Checking existing connection...")
-      const result = await connect({
-        modalMode: 'neverAsk',
-        dappName: 'LeftCurve',
-      }) as ConnectResult
-
-      console.log("Check connection result:", result)
-
-      if (result?.connectorData?.account) {
-        const addr = result.connectorData.account
-        const wallet = result.connector?._wallet?.id || 'Unknown'
-        setAddress(addr)
-        setWalletType(wallet)
-        console.log("🔄 Reconnected to address:", addr, "with wallet:", wallet)
-        toast({
-          title: `${wallet === 'braavos' ? '🦧' : '🔵'} Welcome Back!`,
-          description: `Connected to ${shortAddress(addr)}`,
-          className: "bg-green-500/10 text-green-500 border-green-500/20",
-          duration: 5000,
-        })
-      }
+    try {
+      await disconnect()
+      setAddress('')
+      setWalletType(null)
+      toast({
+        title: 'Wallet Disconnected',
+        description: 'Your wallet has been disconnected.',
+      })
+    } catch (error) {
+      console.error('Error disconnecting wallet:', error)
     }
-    checkConnection()
   }, [toast])
 
   return (
@@ -120,6 +87,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       value={{
         address,
         isConnecting,
+        isConnected: !!address,
         walletType,
         connect: connectWallet,
         disconnect: disconnectWallet,
