@@ -15,6 +15,7 @@ import { motion } from "framer-motion"
 import { useEffect, useState } from 'react'
 import { UserCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useRouter } from 'next/navigation'
 
 interface TopAgentsProps {
   leftCurveAgents: Agent[]
@@ -47,9 +48,11 @@ export function AgentAvatar({ src, alt }: { src?: string; alt: string }) {
 
 function AgentCard({ agent }: { agent: Agent }) {
   const isLeftCurve = agent.type === 'leftcurve'
+  const router = useRouter()
   
-  const handleClick = () => {
-    window.location.href = `/agent/${agent.id}`
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    router.push(`/agent/${agent.id}`)
   }
 
   const performanceColor = agent.performanceIndex > 0 ? 'text-green-500/90' : 'text-red-500/90'
@@ -63,7 +66,7 @@ function AgentCard({ agent }: { agent: Agent }) {
       transition={{ duration: 0.3 }}
       onClick={handleClick}
       className={cn(
-        "p-3 rounded-lg border h-full w-full cursor-pointer",
+        "p-3 rounded-lg border h-full w-full cursor-pointer relative z-10",
         isLeftCurve 
           ? "bg-yellow-500/5 border-yellow-500/10 hover:border-yellow-500/20" 
           : "bg-purple-500/5 border-purple-500/10 hover:border-purple-500/20"
@@ -146,7 +149,9 @@ function TopAgentBox({ title, agents, type }: { title: string; agents: Agent[]; 
           opts={{
             align: "start",
             loop: true,
-            dragFree: false
+            dragFree: false,
+            skipSnaps: false,
+            containScroll: "keepSnaps"
           }}
           className="w-full"
         >
@@ -154,22 +159,24 @@ function TopAgentBox({ title, agents, type }: { title: string; agents: Agent[]; 
             {loopedAgents.map((agent, index) => (
               <CarouselItem 
                 key={`${agent.id}-${index}`} 
-                className="pl-2 basis-1/2 sm:basis-1/3 lg:basis-1/5"
+                className="pl-2 basis-1/2 sm:basis-1/3 lg:basis-1/5 pointer-events-auto"
               >
-                <AgentCard agent={agent} />
+                <div className="h-full relative">
+                  <AgentCard agent={agent} />
+                </div>
               </CarouselItem>
             ))}
           </CarouselContent>
 
-          <div className="absolute -left-3 right-3 top-0 bottom-0 flex items-center justify-between z-20">
+          <div className="absolute -left-3 right-3 top-0 bottom-0 flex items-center justify-between z-20 pointer-events-none">
             <CarouselPrevious variant="ghost" size="sm" className={cn(
-              "h-7 w-7 rounded-sm border-0 opacity-0 group-hover:opacity-100 transition-opacity relative -left-2",
+              "h-7 w-7 rounded-sm border-0 opacity-0 group-hover:opacity-100 transition-opacity relative -left-2 pointer-events-auto",
               isLeft 
                 ? "hover:bg-yellow-500/5 text-yellow-500/70" 
                 : "hover:bg-purple-500/5 text-purple-500/70"
             )} />
             <CarouselNext variant="ghost" size="sm" className={cn(
-              "h-7 w-7 rounded-sm border-0 opacity-0 group-hover:opacity-100 transition-opacity relative -right-2",
+              "h-7 w-7 rounded-sm border-0 opacity-0 group-hover:opacity-100 transition-opacity relative -right-2 pointer-events-auto",
               isLeft 
                 ? "hover:bg-yellow-500/5 text-yellow-500/70" 
                 : "hover:bg-purple-500/5 text-purple-500/70"

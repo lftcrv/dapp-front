@@ -11,6 +11,7 @@ import type { ChatMessage } from '@/lib/types'
 import { toast } from 'sonner'
 import { Loading } from "@/components/ui/loading"
 import { useAgentTheme } from '@/contexts/agent-theme-context'
+import { cn } from '@/lib/utils'
 
 interface AgentChatProps {
   agentId: string
@@ -36,7 +37,26 @@ export function AgentChat({ agentId }: AgentChatProps) {
 
   const handleSend = () => {
     if (!isConnected) {
-      toast.error('Please connect your wallet to chat')
+      toast.error(
+        <div className="flex flex-col gap-1">
+          <span className="font-bold tracking-tight">🚫 ngmi without wallet</span>
+          <span className="text-xs opacity-80">connect wallet to start the degen chat frfr</span>
+        </div>,
+        {
+          style: {
+            background: theme.mode === "leftcurve" 
+              ? "linear-gradient(to right, rgba(234, 179, 8, 0.2), rgba(202, 138, 4, 0.2))"
+              : "linear-gradient(to right, rgba(168, 85, 247, 0.2), rgba(147, 51, 234, 0.2))",
+            border: "1px solid " + (theme.mode === "leftcurve" ? "rgba(234, 179, 8, 0.3)" : "rgba(168, 85, 247, 0.3)"),
+            color: theme.mode === "leftcurve" ? "#eab308" : "#a855f7",
+            fontFamily: "monospace",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)"
+          },
+          className: "font-mono",
+          duration: 4000
+        }
+      )
       return
     }
     if (!input.trim()) return

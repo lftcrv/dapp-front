@@ -8,8 +8,8 @@ import {
   ReactNode,
 } from 'react'
 import { connect, disconnect } from 'starknetkit'
-import { useToast } from "@/hooks/use-toast"
 import { shortAddress } from '@/lib/utils'
+import { showToast } from '@/lib/toast-config'
 
 interface WalletContextType {
   address: string
@@ -37,7 +37,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string>('')
   const [walletType, setWalletType] = useState<string | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
-  const { toast } = useToast()
 
   const connectWallet = useCallback(async () => {
     console.log("🦧 Connecting wallet...")
@@ -51,36 +50,35 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (result?.connectorData?.account) {
         setAddress(result.connectorData.account)
         setWalletType(result.connector?._wallet?.id || null)
-        toast({
-          title: 'Wallet Connected',
-          description: `Connected to ${shortAddress(result.connectorData.account)}`,
-        })
+        showToast.leftcurve(
+          "🚀 WAGMI DETECTED",
+          `based wallet ${shortAddress(result.connectorData.account)} just aped in`
+        )
       }
     } catch (error) {
       console.error('Error connecting wallet:', error)
-      toast({
-        title: 'Connection Failed',
-        description: 'Failed to connect wallet. Please try again.',
-        variant: 'destructive',
-      })
+      showToast.error(
+        "💀 NGMI MOMENT",
+        "wallet connection rugged ser"
+      )
     } finally {
       setIsConnecting(false)
     }
-  }, [toast])
+  }, [])
 
   const disconnectWallet = useCallback(async () => {
     try {
       await disconnect()
       setAddress('')
       setWalletType(null)
-      toast({
-        title: 'Wallet Disconnected',
-        description: 'Your wallet has been disconnected.',
-      })
+      showToast.rightcurve(
+        "😴 PAPER HANDS",
+        "bye ngmi fr fr"
+      )
     } catch (error) {
       console.error('Error disconnecting wallet:', error)
     }
-  }, [toast])
+  }, [])
 
   return (
     <WalletContext.Provider
