@@ -8,6 +8,7 @@ import { useWallet } from '@/lib/wallet-context'
 import { Button } from '@/components/ui/button'
 import { shortAddress } from '@/lib/utils'
 import { usePathname } from 'next/navigation'
+import { DepositButton } from './deposit-button'
 
 const navigation = [
   { name: 'Home', href: '/' },
@@ -73,6 +74,7 @@ export function NavigationMenu() {
                 {item.name}
               </Link>
             ))}
+            <DepositButton />
             <WalletButton />
           </div>
 
@@ -121,7 +123,8 @@ export function NavigationMenu() {
                   {item.name}
                 </Link>
               ))}
-              <div className="px-3 py-2">
+              <div className="px-3 py-2 space-y-2">
+                <DepositButton />
                 <WalletButton />
               </div>
             </div>

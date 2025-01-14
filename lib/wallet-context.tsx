@@ -5,15 +5,27 @@ import {
   useContext,
   useCallback,
   useState,
-  useEffect,
   ReactNode,
+  useEffect,
 } from 'react'
-import { connect, disconnect } from 'starknetkit'
-import { useAccount, useConnect, useDisconnect } from 'wagmi'
+import { connect as connectStarknet, disconnect } from 'starknetkit'
+import { useConnect, useDisconnect, useAccount } from 'wagmi'
 import { injected } from 'wagmi/connectors'
 import { shortAddress } from '@/lib/utils'
 import { showToast } from '@/lib/toast-config'
 import { WalletModal } from '@/components/wallet-modal'
+
+// Add StarkNet types
+interface StarknetWallet {
+  enable: () => Promise<void>
+  account?: {
+    address: string
+  }
+}
+
+interface StarknetResult {
+  wallet?: StarknetWallet
+}
 
 interface WalletContextType {
   address: string
@@ -24,17 +36,6 @@ interface WalletContextType {
   disconnect: () => Promise<void>
 }
 
-interface ConnectResult {
-  connector?: {
-    _wallet?: {
-      id?: string
-    }
-  }
-  connectorData?: {
-    account?: string
-  }
-}
-
 const WalletContext = createContext<WalletContextType | undefined>(undefined)
 
 export function WalletProvider({ children }: { children: ReactNode }) {
@@ -42,207 +43,94 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [walletType, setWalletType] = useState<string | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [hasShownConnectToast, setHasShownConnectToast] = useState(false)
 
   // Wagmi hooks
   const { connectAsync } = useConnect()
   const { disconnectAsync } = useDisconnect()
   const { address: ethAddress, isConnected: isEthConnected } = useAccount()
 
-  // Handle wagmi connection state changes
+  // Debug log for initial state
+  console.log('WalletProvider state:', { address, walletType, isConnecting, ethAddress, isEthConnected })
+
+  // Sync MetaMask connection state
   useEffect(() => {
-    if (isEthConnected && ethAddress && !hasShownConnectToast) {
-      setHasShownConnectToast(true)
-      showToast.leftcurve(
-        "Connected to MetaMask",
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <span className="font-medium">Account</span>
-            <span className="font-mono text-sm">{shortAddress(ethAddress)}</span>
-          </div>
-          <div className="text-sm text-gray-500">
-            Select "Disconnect wallet" to use a different wallet
-          </div>
-        </div>
-      )
-    } else if (!isEthConnected && hasShownConnectToast) {
-      setHasShownConnectToast(false)
-    }
-  }, [isEthConnected, ethAddress, hasShownConnectToast])
-
-  const connectStarknet = async () => {
-    console.log("🦧 Connecting StarkNet...")
-    if (isConnecting) return // Prevent multiple connection attempts
-    
-    setIsConnecting(true)
-    try {
-      // If MetaMask is connected, disconnect it first
-      if (isEthConnected) {
-        console.log("Disconnecting MetaMask first...")
-        await disconnectAsync()
-      }
-
-      // Always clean up previous state before new connection
-      if (walletType) {
-        console.log("Cleaning up previous wallet state...")
-        
-        // First reset the state
-        setAddress('')
-        setWalletType(null)
-        
-        // Then disconnect if it's a StarkNet wallet
-        if (walletType === 'starknet') {
-          try {
-            await disconnect()
-          } catch (e) {
-            console.log("Disconnect error (expected):", e)
-          }
-        }
-
-        // Wait for cleanup to complete
-        await new Promise(resolve => setTimeout(resolve, 2000))
-      }
-
-      // Close our custom modal first before opening starknetkit's modal
-      setIsModalOpen(false)
-      
-      // Wait a bit before trying to connect
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      const result = await connect({
-        modalMode: 'alwaysAsk',
-        dappName: 'LeftCurve',
-      })
-
-      console.log("StarkNet connection result:", result)
-
-      // If user cancelled or closed the modal
-      if (!result || !result.wallet) {
-        console.log("Connection cancelled or no wallet selected")
-        return
-      }
-
-      // Try to get the account
+    const syncMetaMaskState = async () => {
+      console.log('Syncing MetaMask state:', { isEthConnected, ethAddress, walletType })
       try {
-        // Wait a bit before enabling
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
-        await result.wallet.enable() // Enable the wallet first
-        
-        // Wait a bit after enabling
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
-        // Get the account address after enabling
-        const address = result.wallet.account?.address
-        if (!address) {
-          throw new Error('No account found')
+        if (isEthConnected && ethAddress) {
+          console.log('Setting MetaMask connection:', ethAddress)
+          setAddress(ethAddress)
+          setWalletType('metamask')
+        } else if (!isEthConnected && walletType === 'metamask') {
+          // If MetaMask disconnected externally
+          console.log('MetaMask disconnected externally')
+          setAddress('')
+          setWalletType(null)
         }
-
-        console.log("Got StarkNet address:", address)
-        setAddress(address)
-        setWalletType(result.wallet.name || 'starknet')
-        showToast.leftcurve(
-          "WAGMI DETECTED",
-          <div className="flex items-center gap-2">
-            <span>BASED STARKNET DEGEN</span>
-            <span className="font-mono">{shortAddress(address)}</span>
-            <span>APED IN SER</span>
-          </div>
-        )
-      } catch (enableError) {
-        console.error("Enable error:", enableError)
-        if (enableError instanceof Error && enableError.message?.includes('reject')) {
-          console.log("User rejected the connection")
+      } catch (error) {
+        // Ignore authorization errors
+        if (error instanceof Error && error.message?.includes('not been authorized')) {
           return
         }
-        throw enableError
+        console.error('Error syncing MetaMask state:', error)
       }
-    } catch (error) {
-      console.error('Error connecting StarkNet:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Connection failed'
-      
-      // Don't show error toast for user rejections
-      if (!errorMessage.toLowerCase().includes('reject')) {
-        showToast.error(
-          "NGMI MOMENT",
-          <div className="flex items-center gap-2">
-            <span>{errorMessage}</span>
-          </div>
-        )
-      }
-    } finally {
-      setIsConnecting(false)
     }
-  }
 
-  const handleConnectMetamask = async () => {
-    console.log("🦧 Connecting MetaMask...")
-    if (isConnecting) {
-      console.log("Connection already in progress...")
-      return
+    syncMetaMaskState()
+  }, [isEthConnected, ethAddress, walletType])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (walletType === 'metamask') {
+        try {
+          // Don't await the disconnect - just fire and forget on cleanup
+          disconnectAsync().catch(() => {
+            // Ignore any errors during cleanup
+          })
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
     }
-    
-    setIsConnecting(true)
+  }, [walletType])
+
+  // Clean up Starknet state
+  const cleanupStarknet = async () => {
     try {
-      // If StarkNet is connected, disconnect it first
-      if (walletType === 'starknet') {
-        console.log("Disconnecting StarkNet first...")
-        await disconnect()
-        setAddress('')
-        setWalletType(null)
-      }
-
-      // Close our modal first
-      setIsModalOpen(false)
-
-      // Check if already connected
-      if (isEthConnected && ethAddress) {
-        setAddress(ethAddress)
-        setWalletType('metamask')
-        return
-      }
-
-      const result = await connectAsync({
-        connector: injected()
-      })
-
-      if (!result?.accounts?.[0]) {
-        throw new Error('No account found')
-      }
-
-      setAddress(result.accounts[0])
-      setWalletType('metamask')
-      showToast.leftcurve(
-        "WAGMI DETECTED",
-        <div className="flex items-center gap-2 text-xs">
-          <span>BASED METAMASK DEGEN</span>
-          <span className="font-mono">{shortAddress(result.accounts[0])}</span>
-          <span>APED IN SER</span>
-        </div>
-      )
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'METAMASK CONNECTION RUGGED SER'
-      console.error('Error connecting MetaMask:', errorMessage)
-      showToast.error(
-        "NGMI MOMENT",
-        <div className="flex items-center gap-2">
-          <span>{errorMessage}</span>
-        </div>
-      )
+      // First try to disconnect
+      await disconnect()
+    } catch (e) {
+      console.log("StarkNet disconnect error (expected):", e)
     } finally {
+      // Always clear state, even if disconnect fails
+      setAddress('')
+      setWalletType(null)
       setIsConnecting(false)
+      setIsModalOpen(false)
+      
+      // Force a delay to ensure cleanup is complete
+      await new Promise(resolve => setTimeout(resolve, 1000))
     }
   }
 
   const disconnectWallet = useCallback(async () => {
     try {
       if (walletType === 'metamask') {
-        await disconnectAsync()
-      } else {
-        await disconnect()
+        // First reset the state to ensure UI updates immediately
+        setAddress('')
+        setWalletType(null)
+        
+        try {
+          await disconnectAsync()
+        } catch (e) {
+          // Ignore MetaMask disconnect errors as they're usually UI-related
+          console.log("MetaMask disconnect error (expected):", e)
+        }
+      } else if (walletType === 'starknet') {
+        await cleanupStarknet()
       }
-      setAddress('')
-      setWalletType(null)
+
       showToast.rightcurve(
         "PAPER HANDS",
         <div className="flex items-center gap-2">
@@ -250,9 +138,127 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         </div>
       )
     } catch (error) {
-      console.error('Error disconnecting wallet:', error)
+      console.error('Error in disconnect flow:', error)
+      // Even if there's an error, ensure the state is reset
+      await cleanupStarknet()
     }
-  }, [walletType, disconnectAsync])
+  }, [walletType])
+
+  const connectStarknetWallet = async () => {
+    console.log("🦧 Connecting StarkNet...")
+    if (isConnecting) {
+      console.log("Connection already in progress...")
+      return
+    }
+    
+    try {
+      setIsConnecting(true)
+      setIsModalOpen(false) // Close modal first
+
+      // Ensure we're starting fresh
+      await cleanupStarknet()
+
+      // Try to connect to Starknet
+      const result = await connectStarknet({
+        modalMode: 'alwaysAsk',
+        dappName: 'LeftCurve',
+      }) as StarknetResult
+
+      console.log("StarkNet connection result:", result)
+
+      // If user cancelled or closed the modal
+      if (!result?.wallet) {
+        console.log("Connection cancelled or no wallet selected")
+        return
+      }
+
+      try {
+        // Wait for wallet to be enabled
+        await result.wallet.enable()
+
+        // Get the account address
+        const starkAddress = result.wallet.account?.address
+        if (!starkAddress) {
+          throw new Error('No account found')
+        }
+
+        // Set state only after we have everything we need
+        console.log("Got StarkNet address:", starkAddress)
+        setAddress(starkAddress)
+        setWalletType('starknet')
+        
+        showToast.leftcurve(
+          "WAGMI DETECTED",
+          <div className="flex items-center gap-2">
+            <span>BASED STARKNET DEGEN</span>
+            <span className="font-mono">{shortAddress(starkAddress)}</span>
+            <span>APED IN SER</span>
+          </div>
+        )
+      } catch (enableError) {
+        console.log("Error enabling wallet:", enableError)
+        await cleanupStarknet()
+        throw enableError
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      if (!errorMessage.toLowerCase().includes('reject')) {
+        console.error('Error connecting StarkNet:', error)
+      }
+      // Always cleanup on any error
+      await cleanupStarknet()
+    } finally {
+      setIsConnecting(false)
+    }
+  }
+
+  // Handle MetaMask connection flow
+  const handleMetaMaskConnection = async () => {
+    console.log("🦧 Connecting MetaMask...")
+    if (isConnecting) {
+      console.log("Connection already in progress...")
+      return
+    }
+    
+    setIsConnecting(true)
+    setIsModalOpen(false) // Close modal first
+
+    try {
+      // Reset state before attempting new connection
+      setAddress('')
+      setWalletType(null)
+
+      // Connect using wagmi
+      const result = await connectAsync({
+        connector: injected()
+      })
+
+      if (result?.accounts?.[0]) {
+        setAddress(result.accounts[0])
+        setWalletType('metamask')
+        showToast.leftcurve(
+          "WAGMI DETECTED",
+          <div className="flex items-center gap-2 text-xs">
+            <span>BASED METAMASK DEGEN</span>
+            <span className="font-mono">{shortAddress(result.accounts[0])}</span>
+            <span>APED IN SER</span>
+          </div>
+        )
+      }
+    } catch (error: unknown) {
+      // Reset state on error
+      setAddress('')
+      setWalletType(null)
+      
+      // Only log non-rejection errors
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      if (!errorMessage.toLowerCase().includes('reject') && !errorMessage.includes('not been authorized')) {
+        console.error('Error connecting MetaMask:', error)
+      }
+    } finally {
+      setIsConnecting(false)
+    }
+  }
 
   return (
     <WalletContext.Provider
@@ -269,8 +275,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       <WalletModal 
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onConnectStarknet={connectStarknet}
-        onConnectMetamask={handleConnectMetamask}
+        onConnectStarknet={connectStarknetWallet}
+        onConnectMetamask={handleMetaMaskConnection}
       />
     </WalletContext.Provider>
   )
