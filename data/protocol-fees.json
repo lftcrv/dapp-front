@@ -1,0 +1,47 @@
+{
+  "totalFees": "10000",
+  "periodFees": "10000",
+  "periodEndTime": "2025-04-20",
+  "distribution": {
+    "leftCurve": {
+      "percentage": 50,
+      "description": "LeftCurve degen apes",
+      "color": "yellow",
+      "totalShares": "100000",
+      "topGainers": [
+        {
+          "address": "0x1234...",
+          "shares": "20000",
+          "percentage": "20"
+        },
+        {
+          "address": "0x5678...",
+          "shares": "10000",
+          "percentage": "10"
+        }
+      ]
+    },
+    "rightCurve": {
+      "percentage": 50,
+      "description": "RightCurve galaxy brains",
+      "color": "purple",
+      "totalShares": "100000",
+      "topGainers": [
+        {
+          "address": "0x9abc...",
+          "shares": "30000",
+          "percentage": "30"
+        },
+        {
+          "address": "0xdef0...",
+          "shares": "15000",
+          "percentage": "15"
+        }
+      ]
+    }
+  },
+  "userShares": {
+    "0x1234...": "1,337",
+    "0x5678...": "420"
+  }
+} 

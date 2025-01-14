@@ -1,20 +1,19 @@
-import { Rocket } from 'lucide-react'
-import { Agent } from '@/lib/types'
-import { AgentCard } from '@/components/ui/agent-card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { TradeHistory } from '@/components/trade-history'
 
 interface TradeHistoryCardProps {
-  agent: Agent
+  agentId: string
 }
 
-export function TradeHistoryCard({ agent }: TradeHistoryCardProps) {
+export function TradeHistoryCard({ agentId }: TradeHistoryCardProps) {
   return (
-    <AgentCard
-      title="Recent Trades"
-      icon={Rocket}
-      badge="LIVE FEED"
-    >
-      <TradeHistory />
-    </AgentCard>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm font-mono">Trade History</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <TradeHistory agentId={agentId} />
+      </CardContent>
+    </Card>
   )
 } 

@@ -52,7 +52,7 @@ function AgentContent({ agentId }: { agentId: string }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <AnimatedSection className="lg:col-span-2 space-y-6" direction="left" delay={0.3}>
           <PriceActionCard agent={agent} />
-          <TradeHistoryCard agent={agent} />
+          <TradeHistoryCard agentId={agent.id} />
           <ChatCard agent={agent} />
         </AnimatedSection>
 

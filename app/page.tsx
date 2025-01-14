@@ -11,18 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 
 export default function HomePage() {
   const router = useRouter()
-  
-  // Fetch all agents at once
-  const { 
-    agents, 
-    isLoading, 
-    error,
-    refetch 
-  } = useAgents()
-
-  // Filter agents client-side to avoid multiple API calls
-  const leftCurveAgents = agents.filter(agent => agent.type === 'leftcurve')
-  const rightCurveAgents = agents.filter(agent => agent.type === 'rightcurve')
+  const { agents, isLoading, error, refetch } = useAgents()
 
   if (error) {
     return (
@@ -48,7 +37,7 @@ export default function HomePage() {
     <main className="flex min-h-screen flex-col items-center justify-start pt-24">
       <div className="container max-w-7xl mx-auto px-4">
         <motion.div
-          className="space-y-8"
+          className="space-y-8 pb-20"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -102,10 +91,7 @@ export default function HomePage() {
               <div className="flex-1 p-4 bg-white/5 rounded-xl border border-white/10 h-48 animate-pulse" />
             </div>
           ) : (
-            <TopAgents
-              leftCurveAgents={leftCurveAgents}
-              rightCurveAgents={rightCurveAgents}
-            />
+            <TopAgents />
           )}
 
           {/* Agent Table */}
