@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { createChart, ColorType, UTCTimestamp, IChartApi, CrosshairMode, SeriesDataItemTypeMap, Time } from 'lightweight-charts'
 import { cn } from '@/lib/utils'
 import { Button } from './ui/button'
@@ -8,6 +8,15 @@ import { Badge } from './ui/badge'
 import { Rocket, LineChart } from 'lucide-react'
 
 type Interval = '15m' | '1h' | '4h' | '1d'
+
+interface CandleData {
+  time: number
+  open: number
+  high: number
+  low: number
+  close: number
+  volume: number
+}
 
 interface PriceChartProps {
   data: {
@@ -36,10 +45,11 @@ export function PriceChart({
   const legendRef = useRef<HTMLDivElement>(null)
   const [interval, setInterval] = useState<Interval>('15m')
   const [showMarketCap, setShowMarketCap] = useState(false)
+  const [chartData, setChartData] = useState<CandleData[]>([])
   const tradingPair = `${baseToken}/${quoteToken}`
 
   // Aggregate data based on interval
-  const aggregateData = (rawData: typeof data, intervalType: Interval) => {
+  const aggregateData = useCallback((rawData: CandleData[], intervalType: Interval) => {
     if (intervalType === '15m') return rawData
 
     const intervalMinutes = {
@@ -48,7 +58,7 @@ export function PriceChart({
       '1d': 1440
     }[intervalType] || 15
 
-    const groupedData = new Map()
+    const groupedData = new Map<number, CandleData>()
     
     rawData.forEach(candle => {
       const timestamp = candle.time
@@ -64,7 +74,7 @@ export function PriceChart({
           volume: candle.volume
         })
       } else {
-        const existing = groupedData.get(intervalIndex)
+        const existing = groupedData.get(intervalIndex)!
         existing.high = Math.max(existing.high, candle.high)
         existing.low = Math.min(existing.low, candle.low)
         existing.close = candle.close
@@ -73,10 +83,16 @@ export function PriceChart({
     })
 
     return Array.from(groupedData.values())
-  }
+  }, [])
 
   useEffect(() => {
-    if (!chartContainerRef.current || !data.length) return
+    if (!data) return
+    const aggregated = aggregateData(data, interval)
+    setChartData(aggregated)
+  }, [data, interval, aggregateData])
+
+  useEffect(() => {
+    if (!chartContainerRef.current || !chartData.length) return
 
     const chart = createChart(chartContainerRef.current, {
       layout: {
@@ -192,7 +208,7 @@ export function PriceChart({
       window.removeEventListener('resize', handleResize)
       chart.remove()
     }
-  }, [data, interval, showMarketCap, tradingPair])
+  }, [chartData, interval, showMarketCap, aggregateData, tradingPair])
 
   return (
     <div className="space-y-2">

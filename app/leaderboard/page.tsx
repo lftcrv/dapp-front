@@ -1,5 +1,6 @@
 'use client'
 
+import { ProtocolFees } from '@/components/protocol-fees'
 import { LeaderboardTables } from "@/components/leaderboard-tables"
 import { motion } from "framer-motion"
 import { useAgents } from "@/hooks/use-agents"
@@ -46,11 +47,13 @@ export default function LeaderboardPage() {
             transition={{ duration: 0.5 }}
           >
             <h1 className="font-sketch text-3xl">
-              🏆 Agent Leaderboards
+              🏆 Agent Leaderboards</h1>
               <span className="text-sm font-normal text-gray-400 ml-2">who&apos;s the most based?</span>
-            </h1>
-            <p className="text-sm text-gray-400 mt-1">Updated every 5 minutes</p>
+            
+            <p className="text-xs text-gray-400 mt-1">Updated every 5 minutes</p>
           </motion.div>
+
+          <ProtocolFees />
 
           {isLoading ? (
             <div className="w-full h-[600px] rounded-xl border border-white/10 bg-white/5 animate-pulse" />

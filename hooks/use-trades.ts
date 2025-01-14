@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Trade, TradeType } from '@/lib/types'
-import tradesData from '@/data/trades.json'
+import { Trade } from '@/lib/types'
+import { tradeService } from '@/lib/services/api/trades'
 
 interface UseTradesOptions {
   agentId?: string
@@ -20,15 +20,17 @@ export function useTrades({ agentId, initialData, limit = 10 }: UseTradesOptions
       try {
         setIsLoading(true)
         setError(null)
-        const filtered = agentId 
-          ? tradesData.trades.filter(t => t.agentId === agentId)
-          : tradesData.trades
-        const paginatedTrades = filtered.slice(0, page * limit).map(t => ({
-          ...t,
-          type: t.type as TradeType
-        }))
+        
+        let data: Trade[]
+        if (agentId) {
+          data = await tradeService.getTradesByAgent(agentId)
+        } else {
+          data = await tradeService.getAllTrades()
+        }
+        
+        const paginatedTrades = data.slice(0, page * limit)
         setTrades(paginatedTrades)
-        setHasMore(paginatedTrades.length < filtered.length)
+        setHasMore(paginatedTrades.length < data.length)
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to fetch trades'))
       } finally {

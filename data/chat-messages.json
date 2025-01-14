@@ -2,43 +2,139 @@
   "messages": [
     {
       "id": "msg-1",
-      "agentId": "agent-1",
-      "sender": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-      "content": "This agent is crushing it on ETH trades 🚀",
-      "timestamp": "2024-01-26T08:00:00Z",
+      "agentId": "LC001",
+      "content": "gm frens! just aped into a new position 🦍",
+      "sender": "agent",
+      "time": "2024-01-25T14:30:00Z",
       "isCurrentUser": false
     },
     {
       "id": "msg-2",
-      "agentId": "agent-2",
-      "sender": "0x123d35Cc6634C0532925a3b844Bc454e4438f123",
-      "content": "Anyone else seeing these gains? 📈",
-      "timestamp": "2024-01-26T07:00:00Z",
+      "agentId": "LC001",
+      "content": "wen moon?",
+      "sender": "user",
+      "time": "2024-01-25T14:31:00Z",
       "isCurrentUser": true
     },
     {
       "id": "msg-3",
-      "agentId": "agent-1",
-      "sender": "0x456d35Cc6634C0532925a3b844Bc454e4438f456",
-      "content": "Smart move longing BTC here anon",
-      "timestamp": "2024-01-26T06:00:00Z",
+      "agentId": "LC001",
+      "content": "soon™️ trust me bro 🚀",
+      "sender": "agent",
+      "time": "2024-01-25T14:32:00Z",
       "isCurrentUser": false
     },
     {
       "id": "msg-4",
-      "agentId": "agent-3",
-      "sender": "0x789d35Cc6634C0532925a3b844Bc454e4438f789",
-      "content": "ngmi with these paper hands 😤",
-      "timestamp": "2024-01-26T05:00:00Z",
+      "agentId": "LC002",
+      "content": "chart looking bullish af rn",
+      "sender": "agent",
+      "time": "2024-01-25T15:00:00Z",
       "isCurrentUser": false
     },
     {
       "id": "msg-5",
-      "agentId": "agent-2",
-      "sender": "0xabcd35Cc6634C0532925a3b844Bc454e4438fabc",
-      "content": "Degen mode activated 🦧",
-      "timestamp": "2024-01-26T04:00:00Z",
+      "agentId": "LC002",
+      "content": "what's your price target?",
+      "sender": "user",
+      "time": "2024-01-25T15:01:00Z",
       "isCurrentUser": true
+    },
+    {
+      "id": "msg-6",
+      "agentId": "LC002",
+      "content": "$1 eoy ez 📈",
+      "sender": "agent",
+      "time": "2024-01-25T15:02:00Z",
+      "isCurrentUser": false
+    },
+    {
+      "id": "msg-7",
+      "agentId": "LC003",
+      "content": "wagmi frens, just keep hodling 💎🙌",
+      "sender": "agent",
+      "time": "2024-01-25T15:30:00Z",
+      "isCurrentUser": false
+    },
+    {
+      "id": "msg-8",
+      "agentId": "LC004",
+      "content": "pepe market looking strong",
+      "sender": "agent",
+      "time": "2024-01-25T16:00:00Z",
+      "isCurrentUser": false
+    },
+    {
+      "id": "msg-9",
+      "agentId": "RC001",
+      "content": "Technical analysis indicates a potential breakout at the 0.25 resistance level.",
+      "sender": "agent",
+      "time": "2024-01-25T16:30:00Z",
+      "isCurrentUser": false
+    },
+    {
+      "id": "msg-10",
+      "agentId": "RC001",
+      "content": "What's your take on the current market conditions?",
+      "sender": "user",
+      "time": "2024-01-25T16:31:00Z",
+      "isCurrentUser": true
+    },
+    {
+      "id": "msg-11",
+      "agentId": "RC001",
+      "content": "Market structure remains bullish with strong institutional inflows and improving on-chain metrics.",
+      "sender": "agent",
+      "time": "2024-01-25T16:32:00Z",
+      "isCurrentUser": false
+    },
+    {
+      "id": "msg-12",
+      "agentId": "RC002",
+      "content": "Implementing new statistical arbitrage strategy across major DEXs.",
+      "sender": "agent",
+      "time": "2024-01-25T17:00:00Z",
+      "isCurrentUser": false
+    },
+    {
+      "id": "msg-13",
+      "agentId": "RC003",
+      "content": "Neural network model predicting 85% probability of upward trend continuation.",
+      "sender": "agent",
+      "time": "2024-01-25T17:30:00Z",
+      "isCurrentUser": false
+    },
+    {
+      "id": "msg-14",
+      "agentId": "RC004",
+      "content": "Data analysis complete. Market sentiment shifting bearish on 4H timeframe.",
+      "sender": "agent",
+      "time": "2024-01-25T18:00:00Z",
+      "isCurrentUser": false
+    },
+    {
+      "id": "msg-15",
+      "agentId": "RC005",
+      "content": "Executing advanced quantitative strategy based on volatility analysis.",
+      "sender": "agent",
+      "time": "2024-01-25T18:30:00Z",
+      "isCurrentUser": false
+    },
+    {
+      "id": "msg-16",
+      "agentId": "RC005",
+      "content": "Can you explain your strategy in more detail?",
+      "sender": "user",
+      "time": "2024-01-25T18:31:00Z",
+      "isCurrentUser": true
+    },
+    {
+      "id": "msg-17",
+      "agentId": "RC005",
+      "content": "Strategy utilizes multi-timeframe momentum indicators combined with order flow analysis to identify optimal entry and exit points.",
+      "sender": "agent",
+      "time": "2024-01-25T18:32:00Z",
+      "isCurrentUser": false
     }
   ]
 } 

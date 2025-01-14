@@ -87,12 +87,10 @@ export interface Performance {
 export interface ChatMessage {
   id: string
   agentId: string
-  sender: string
   content: string
-  timestamp: string
+  sender: string
+  time: string
   isCurrentUser: boolean
-  sentiment?: number
-  category?: string
 }
 
 // Market Overview Types
@@ -166,4 +164,37 @@ export interface PriceData {
   low: number
   close: number
   volume: number
+}
+
+export interface ProtocolFeesData {
+  totalFees: string
+  periodFees: string
+  periodEndTime: string
+  distribution: {
+    leftCurve: {
+      percentage: number
+      description: string
+      color: string
+      totalShares: string
+      topGainers: Array<{
+        address: string
+        shares: string
+        percentage: string
+      }>
+    }
+    rightCurve: {
+      percentage: number
+      description: string
+      color: string
+      totalShares: string
+      topGainers: Array<{
+        address: string
+        shares: string
+        percentage: string
+      }>
+    }
+  }
+  userShares: {
+    [key: string]: string
+  }
 } 

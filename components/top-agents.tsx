@@ -1,199 +1,194 @@
 'use client'
 
 import { Agent } from '@/lib/types'
-import Image from 'next/image'
-import Link from 'next/link'
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-  type CarouselApi,
-} from "@/components/ui/carousel"
-import { motion } from "framer-motion"
-import { useEffect, useState } from 'react'
-import { UserCircle, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useAgents } from '@/hooks/use-agents'
+import { useEffect, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
+import { UserCircle, Sparkles, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { AgentAvatar } from '@/components/ui/agent-avatar'
 
-interface TopAgentsProps {
-  leftCurveAgents: Agent[]
-  rightCurveAgents: Agent[]
-}
-
-export function AgentAvatar({ src, alt }: { src?: string; alt: string }) {
-  const [error, setError] = useState(false)
-
-  if (!src || error) {
-    return (
-      <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center">
-        <UserCircle className="w-8 h-8 text-gray-400" />
-      </div>
-    )
-  }
-
-  return (
-    <div className="relative w-12 h-12">
-      <Image
-        src={src}
-        alt={alt}
-        fill
-        className="object-cover rounded-lg"
-        onError={() => setError(true)}
-      />
-    </div>
-  )
-}
-
-function AgentCard({ agent }: { agent: Agent }) {
-  const isLeftCurve = agent.type === 'leftcurve'
-  const router = useRouter()
+function AgentList({ title, subtitle, agents, type }: { title: string; subtitle: string; agents: Agent[]; type: 'leftcurve' | 'rightcurve' }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [isPaused, setIsPaused] = useState(false)
   
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    router.push(`/agent/${agent.id}`)
-  }
+  const sortedAgents = [...agents]
+    .filter(a => a.type === type)
+    .sort((a, b) => {
+      const scoreA = type === 'leftcurve' ? a.creativityIndex : a.performanceIndex
+      const scoreB = type === 'leftcurve' ? b.creativityIndex : b.performanceIndex
+      return scoreB - scoreA
+    })
+    .slice(0, 5)
 
-  const performanceColor = agent.performanceIndex > 0 ? 'text-green-500/90' : 'text-red-500/90'
-  const performanceSign = agent.performanceIndex > 0 ? '+' : ''
-  const performanceDisplay = `${performanceSign}${(agent.performanceIndex * 100).toFixed(1)}%`
-  
-  return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      onClick={handleClick}
-      className={cn(
-        "p-3 rounded-lg border h-full w-full cursor-pointer relative z-10",
-        isLeftCurve 
-          ? "bg-yellow-500/5 border-yellow-500/10 hover:border-yellow-500/20" 
-          : "bg-purple-500/5 border-purple-500/10 hover:border-purple-500/20"
-      )}
-      whileHover={{ scale: 1.02, y: -2 }}
-      whileTap={{ scale: 0.98 }}
-    >
-      <div className="flex flex-col items-center text-center w-full">
-        <motion.div 
-          className="mb-2"
-          whileHover={{ scale: 1.05, rotate: isLeftCurve ? -5 : 5 }}
-        >
-          <AgentAvatar src={agent.avatar} alt={agent.name} />
-        </motion.div>
-        <h4 className={cn(
-          "font-medium text-sm truncate w-full mb-1",
-          isLeftCurve ? "text-yellow-500/90" : "text-purple-500/90"
-        )}>{agent.name}</h4>
-        <div className="flex items-center gap-1">
-          <span className="text-xs font-mono opacity-70">${agent.price.toFixed(2)}</span>
-          <motion.span 
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            className={cn("text-xs", performanceColor)}
-          >
-            {performanceDisplay}
-          </motion.span>
-        </div>
-      </div>
-    </motion.div>
-  )
-}
-
-function TopAgentBox({ title, agents, type }: { title: string; agents: Agent[]; type: 'left' | 'right' }) {
-  const [api, setApi] = useState<CarouselApi>()
-  const isLeft = type === 'left'
+  const loopedAgents = [...sortedAgents, ...sortedAgents, ...sortedAgents]
 
   useEffect(() => {
-    if (!api) return
-    const interval = setInterval(
-      () => api.scrollNext(), 
-      isLeft ? 4200 : 3800
-    )
-    return () => clearInterval(interval)
-  }, [api, isLeft])
+    const container = containerRef.current
+    if (!container) return
 
-  const loopedAgents = [...agents, ...agents]
+    const scroll = () => {
+      if (isPaused) return
+      
+      const maxScroll = container.scrollHeight / 3
+      if (container.scrollTop >= maxScroll * 2 || container.scrollTop <= 0) {
+        container.scrollTop = maxScroll
+      } else {
+        container.scrollTop += type === 'leftcurve' ? -1 : 1
+      }
+    }
+
+    container.scrollTop = container.scrollHeight / 3
+    const intervalId = setInterval(scroll, 30)
+    return () => clearInterval(intervalId)
+  }, [type, isPaused])
+
+  const emoji = type === 'leftcurve' ? '🦧' : '🐙'
+  const Icon = type === 'leftcurve' ? Sparkles : Zap
 
   return (
     <motion.div 
+      className={cn(
+        "rounded-xl border p-3 backdrop-blur-sm flex-1",
+        type === 'leftcurve' 
+          ? "border-orange-500/20 bg-orange-950/5 hover:border-orange-500/30" 
+          : "border-purple-500/20 bg-purple-950/5 hover:border-purple-500/30"
+      )}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={cn(
-        "flex-1 p-4 rounded-lg border relative",
-        isLeft 
-          ? "bg-yellow-500/[0.02] border-yellow-500/10" 
-          : "bg-purple-500/[0.02] border-purple-500/10"
-      )}
+      transition={{ duration: 0.5, delay: type === 'leftcurve' ? 0.2 : 0.4 }}
     >
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">{isLeft ? '🦧' : '🐙'}</span>
-          <div>
-            <h3 className={cn(
-              "font-medium text-sm",
-              isLeft ? "text-yellow-500/70" : "text-purple-500/70"
-            )}>
-              {title}
-            </h3>
-            <span className="text-xs font-mono opacity-50">
-              {isLeft ? 'degen vibes only' : 'galaxy brain time'}
-            </span>
-          </div>
-        </div>
+      <div className="mb-2">
+        <h2 className={cn(
+          "font-sketch text-2xl text-center flex items-center justify-center gap-2",
+          type === 'leftcurve' ? "text-orange-500" : "text-purple-500"
+        )}>
+          {type === 'leftcurve' ? (
+            <>{emoji} {title} <Icon className="w-5 h-5 animate-pulse" /></>
+          ) : (
+            <><Icon className="w-5 h-5 animate-pulse" /> {title} {emoji}</>
+          )}
+        </h2>
+        <p className={cn(
+          "text-xs font-mono text-center",
+          type === 'leftcurve' ? "text-orange-500/50" : "text-purple-500/50"
+        )}>
+          {subtitle}
+        </p>
       </div>
-
-      <div className="relative group">
-        <Carousel
-          setApi={setApi}
-          opts={{
-            align: "start",
-            loop: true,
-            dragFree: false,
-            skipSnaps: false,
-            containScroll: "keepSnaps"
-          }}
-          className="w-full"
-        >
-          <CarouselContent className="-ml-2">
-            {loopedAgents.map((agent, index) => (
-              <CarouselItem 
-                key={`${agent.id}-${index}`} 
-                className="pl-2 basis-1/2 sm:basis-1/3 lg:basis-1/5 pointer-events-auto"
-              >
-                <div className="h-full relative">
-                  <AgentCard agent={agent} />
+      
+      <div 
+        ref={containerRef}
+        className="h-[240px] overflow-hidden relative px-2 space-y-1.5"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
+        {loopedAgents.map((agent, index) => (
+          <Link 
+            key={`${agent.id}-${index}`}
+            href={`/agent/${agent.id}`}
+          >
+            <motion.div 
+              className={cn(
+                "group rounded-lg p-2 transition-all duration-200 cursor-pointer",
+                type === 'leftcurve' 
+                  ? "hover:bg-orange-500/10 hover:border-orange-500/30" 
+                  : "hover:bg-purple-500/10 hover:border-purple-500/30",
+                (index % 5) === 0 && "bg-white/5"
+              )}
+              initial={{ opacity: 0, x: type === 'leftcurve' ? -20 : 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 * (index % 5) }}
+            >
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <div className="w-8 h-8 relative rounded-lg overflow-hidden flex-shrink-0 bg-white/5 flex items-center justify-center">
+                    {agent.avatar ? (
+                      <AgentAvatar src={agent.avatar} alt={agent.name} />
+                    ) : (
+                      <UserCircle className="w-5 h-5 text-gray-400" />
+                    )}
+                  </div>
+                  {(index % 5) === 0 && (
+                    <div className={cn(
+                      "absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-[10px]",
+                      type === 'leftcurve' ? "bg-orange-500" : "bg-purple-500"
+                    )}>
+                      👑
+                    </div>
+                  )}
                 </div>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-
-          <div className="absolute -left-3 right-3 top-0 bottom-0 flex items-center justify-between z-20 pointer-events-none">
-            <CarouselPrevious variant="ghost" size="sm" className={cn(
-              "h-7 w-7 rounded-sm border-0 opacity-0 group-hover:opacity-100 transition-opacity relative -left-2 pointer-events-auto",
-              isLeft 
-                ? "hover:bg-yellow-500/5 text-yellow-500/70" 
-                : "hover:bg-purple-500/5 text-purple-500/70"
-            )} />
-            <CarouselNext variant="ghost" size="sm" className={cn(
-              "h-7 w-7 rounded-sm border-0 opacity-0 group-hover:opacity-100 transition-opacity relative -right-2 pointer-events-auto",
-              isLeft 
-                ? "hover:bg-yellow-500/5 text-yellow-500/70" 
-                : "hover:bg-purple-500/5 text-purple-500/70"
-            )} />
-          </div>
-        </Carousel>
+                
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className={cn(
+                        "font-medium text-xs transition-colors truncate flex items-center gap-1.5",
+                        type === 'leftcurve' 
+                          ? "group-hover:text-orange-500" 
+                          : "group-hover:text-purple-500"
+                      )}>
+                        {agent.name}
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          ${agent.symbol}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-muted-foreground font-mono">
+                        {agent.holders.toLocaleString()} holders
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-mono text-[10px]">
+                        ${agent.price.toFixed(2)}
+                      </div>
+                      <div className={cn(
+                        "font-mono text-[10px] font-bold",
+                        type === 'leftcurve' ? "text-orange-500" : "text-purple-500"
+                      )}>
+                        {((type === 'leftcurve' ? agent.creativityIndex : agent.performanceIndex) * 100).toFixed(0)}%
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </Link>
+        ))}
       </div>
     </motion.div>
   )
 }
 
-export function TopAgents({ leftCurveAgents, rightCurveAgents }: TopAgentsProps) {
+export function TopAgents() {
+  const { agents, isLoading, error } = useAgents()
+
+  if (isLoading) {
+    return <div>Loading...</div>
+  }
+
+  if (error) {
+    return <div>Error: {error.message}</div>
+  }
+
   return (
-    <div className="space-y-3 w-full mb-8">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <TopAgentBox title="Based Degen Apes" agents={leftCurveAgents} type="left" />
-        <TopAgentBox title="Galaxy Brain Chads" agents={rightCurveAgents} type="right" />
+    <div className="space-y-2">
+      <div className="flex gap-4">
+        <AgentList 
+          title="DEGEN KINGS" 
+          subtitle="yolo masters farming midcurver rekt posts"
+          agents={agents} 
+          type="leftcurve" 
+        />
+        <AgentList 
+          title="SIGMA LORDS" 
+          subtitle="gigabrain quants making midcurvers ngmi"
+          agents={agents} 
+          type="rightcurve" 
+        />
+      </div>
+      <div className="flex items-center justify-center gap-2 text-[10px] text-neutral-500 font-mono">
+        <span>midcurvers staying ngmi since 2024</span>
       </div>
     </div>
   )
