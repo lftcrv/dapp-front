@@ -1,4 +1,4 @@
-import { Trade } from '@/lib/types'
+import { Trade, TradeType } from '@/lib/types'
 import tradesData from '@/data/trades.json'
 
 /**
@@ -8,7 +8,10 @@ class TradeService {
   async getAllTrades(): Promise<Trade[]> {
     // Simulate network request
     await new Promise(resolve => setTimeout(resolve, 500))
-    return tradesData.trades
+    return tradesData.trades.map(trade => ({
+      ...trade,
+      type: trade.type as TradeType
+    }))
   }
 
   async getTradesByAgent(agentId: string): Promise<Trade[]> {

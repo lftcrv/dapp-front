@@ -14,6 +14,8 @@ import {
 import { motion } from "framer-motion"
 import { useEffect, useState } from 'react'
 import { UserCircle, ChevronLeft, ChevronRight } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { useRouter } from 'next/navigation'
 
 interface TopAgentsProps {
   leftCurveAgents: Agent[]
@@ -45,107 +47,154 @@ export function AgentAvatar({ src, alt }: { src?: string; alt: string }) {
 }
 
 function AgentCard({ agent }: { agent: Agent }) {
+  const isLeftCurve = agent.type === 'leftcurve'
+  const router = useRouter()
+  
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    router.push(`/agent/${agent.id}`)
+  }
+
+  const performanceColor = agent.performanceIndex > 0 ? 'text-green-500/90' : 'text-red-500/90'
+  const performanceSign = agent.performanceIndex > 0 ? '+' : ''
+  const performanceDisplay = `${performanceSign}${(agent.performanceIndex * 100).toFixed(1)}%`
+  
   return (
-    <Link href={`/agent/${agent.id}`}>
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="p-3 bg-white/5 rounded-xl border border-white/10 h-full"
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-      >
-        <div className="flex flex-col items-center text-center">
-          <motion.div 
-            className="mb-2"
-            whileHover={{ scale: 1.05 }}
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      onClick={handleClick}
+      className={cn(
+        "p-3 rounded-lg border h-full w-full cursor-pointer relative z-10",
+        isLeftCurve 
+          ? "bg-yellow-500/5 border-yellow-500/10 hover:border-yellow-500/20" 
+          : "bg-purple-500/5 border-purple-500/10 hover:border-purple-500/20"
+      )}
+      whileHover={{ scale: 1.02, y: -2 }}
+      whileTap={{ scale: 0.98 }}
+    >
+      <div className="flex flex-col items-center text-center w-full">
+        <motion.div 
+          className="mb-2"
+          whileHover={{ scale: 1.05, rotate: isLeftCurve ? -5 : 5 }}
+        >
+          <AgentAvatar src={agent.avatar} alt={agent.name} />
+        </motion.div>
+        <h4 className={cn(
+          "font-medium text-sm truncate w-full mb-1",
+          isLeftCurve ? "text-yellow-500/90" : "text-purple-500/90"
+        )}>{agent.name}</h4>
+        <div className="flex items-center gap-1">
+          <span className="text-xs font-mono opacity-70">${agent.price.toFixed(2)}</span>
+          <motion.span 
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            className={cn("text-xs", performanceColor)}
           >
-            <AgentAvatar src={agent.avatar} alt={agent.name} />
-          </motion.div>
-          <h4 className="font-medium text-sm truncate w-full mb-1">{agent.name}</h4>
-          <div className="flex items-center gap-1">
-            <span className="text-sm font-mono">${agent.price}</span>
-            <motion.span 
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="text-xs text-green-500 font-mono"
-            >
-              +12%
-            </motion.span>
-          </div>
+            {performanceDisplay}
+          </motion.span>
         </div>
-      </motion.div>
-    </Link>
+      </div>
+    </motion.div>
   )
 }
 
 function TopAgentBox({ title, agents, type }: { title: string; agents: Agent[]; type: 'left' | 'right' }) {
   const [api, setApi] = useState<CarouselApi>()
+  const isLeft = type === 'left'
 
   useEffect(() => {
     if (!api) return
+    const interval = setInterval(
+      () => api.scrollNext(), 
+      isLeft ? 4200 : 3800
+    )
+    return () => clearInterval(interval)
+  }, [api, isLeft])
 
-    const interval = setInterval(() => {
-      api.scrollNext()
-    }, 3000)
-
-    return () => {
-      clearInterval(interval)
-    }
-  }, [api])
-
-  // Double the agents array to create an infinite loop effect
   const loopedAgents = [...agents, ...agents]
 
   return (
-    <div className="flex-1 p-4 bg-white/5 rounded-xl border border-white/10">
-      <h3 className="font-sketch text-lg mb-4">
-        {type === 'left' ? '🦧 ' : '🐙 '}
-        <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-500 to-pink-500">
-          {title}
-        </span>
-      </h3>
-      <div className="relative">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={cn(
+        "flex-1 p-4 rounded-lg border relative",
+        isLeft 
+          ? "bg-yellow-500/[0.02] border-yellow-500/10" 
+          : "bg-purple-500/[0.02] border-purple-500/10"
+      )}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">{isLeft ? '🦧' : '🐙'}</span>
+          <div>
+            <h3 className={cn(
+              "font-medium text-sm",
+              isLeft ? "text-yellow-500/70" : "text-purple-500/70"
+            )}>
+              {title}
+            </h3>
+            <span className="text-xs font-mono opacity-50">
+              {isLeft ? 'degen vibes only' : 'galaxy brain time'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="relative group">
         <Carousel
           setApi={setApi}
           opts={{
             align: "start",
             loop: true,
+            dragFree: false,
+            skipSnaps: false,
+            containScroll: "keepSnaps"
           }}
           className="w-full"
         >
-          <div className="absolute right-0 -top-12 flex gap-1 z-10">
-            <CarouselPrevious variant="ghost" size="sm" className="h-6 w-6 rounded-full">
-              <ChevronLeft className="h-4 w-4" />
-            </CarouselPrevious>
-            <CarouselNext variant="ghost" size="sm" className="h-6 w-6 rounded-full">
-              <ChevronRight className="h-4 w-4" />
-            </CarouselNext>
-          </div>
           <CarouselContent className="-ml-2">
             {loopedAgents.map((agent, index) => (
-              <CarouselItem key={`${agent.id}-${index}`} className="pl-2 basis-1/3 sm:basis-1/4 lg:basis-1/5">
-                <motion.div
-                  initial={{ opacity: 0, x: 50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
+              <CarouselItem 
+                key={`${agent.id}-${index}`} 
+                className="pl-2 basis-1/2 sm:basis-1/3 lg:basis-1/5 pointer-events-auto"
+              >
+                <div className="h-full relative">
                   <AgentCard agent={agent} />
-                </motion.div>
+                </div>
               </CarouselItem>
             ))}
           </CarouselContent>
+
+          <div className="absolute -left-3 right-3 top-0 bottom-0 flex items-center justify-between z-20 pointer-events-none">
+            <CarouselPrevious variant="ghost" size="sm" className={cn(
+              "h-7 w-7 rounded-sm border-0 opacity-0 group-hover:opacity-100 transition-opacity relative -left-2 pointer-events-auto",
+              isLeft 
+                ? "hover:bg-yellow-500/5 text-yellow-500/70" 
+                : "hover:bg-purple-500/5 text-purple-500/70"
+            )} />
+            <CarouselNext variant="ghost" size="sm" className={cn(
+              "h-7 w-7 rounded-sm border-0 opacity-0 group-hover:opacity-100 transition-opacity relative -right-2 pointer-events-auto",
+              isLeft 
+                ? "hover:bg-yellow-500/5 text-yellow-500/70" 
+                : "hover:bg-purple-500/5 text-purple-500/70"
+            )} />
+          </div>
         </Carousel>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
 export function TopAgents({ leftCurveAgents, rightCurveAgents }: TopAgentsProps) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full mb-8">
-      <TopAgentBox title="Left Curve Degens" agents={leftCurveAgents} type="left" />
-      <TopAgentBox title="Right Curve Chads" agents={rightCurveAgents} type="right" />
+    <div className="space-y-3 w-full mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <TopAgentBox title="Based Degen Apes" agents={leftCurveAgents} type="left" />
+        <TopAgentBox title="Galaxy Brain Chads" agents={rightCurveAgents} type="right" />
+      </div>
     </div>
   )
 } 

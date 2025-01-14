@@ -18,7 +18,7 @@ export function ChatCard({ agent }: ChatCardProps) {
       icon={MessageCircle}
       badge={badge}
     >
-      <AgentChat />
+      <AgentChat agentId={agent.id} />
     </AgentCard>
   )
 } 

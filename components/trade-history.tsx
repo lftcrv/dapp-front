@@ -3,6 +3,8 @@
 import { motion } from 'framer-motion'
 import { useTrades } from '@/hooks/use-trades'
 import { cn } from '@/lib/utils'
+import { Loading } from "@/components/ui/loading"
+import { useAgentTheme } from '@/contexts/agent-theme-context'
 
 function formatTimeAgo(timestamp: string): string {
   const date = new Date(timestamp)
@@ -23,10 +25,15 @@ interface TradeHistoryProps {
 }
 
 export function TradeHistory({ agentId }: TradeHistoryProps) {
+  const theme = useAgentTheme()
   const { trades, isLoading, error, hasMore, loadMore } = useTrades({ agentId })
 
   if (isLoading) {
-    return <div>Loading trades...</div>
+    return (
+      <div className="flex items-center justify-center h-[300px]">
+        <Loading variant={theme.mode as "leftcurve" | "rightcurve"} />
+      </div>
+    )
   }
 
   if (error) {

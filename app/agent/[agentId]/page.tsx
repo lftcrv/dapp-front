@@ -13,6 +13,7 @@ import { ChatCard } from '@/components/agent/chat-card'
 import { AgentThemeProvider, useAgentTheme } from '@/contexts/agent-theme-context'
 import { AnimatedSection } from '@/components/ui/animated-section'
 import { useAgent } from '@/hooks/use-agents'
+import { Loading } from "@/components/ui/loading"
 
 function AgentNotFound() {
   return (
@@ -34,8 +35,8 @@ function AgentContent({ agentId }: { agentId: string }) {
   
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <p className="text-muted-foreground">Loading agent data...</p>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loading size="lg" />
       </div>
     )
   }
