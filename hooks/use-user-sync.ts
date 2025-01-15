@@ -3,7 +3,7 @@
 import { useEffect, useCallback } from 'react';
 import { useWallet } from '@/lib/wallet-context';
 import { usePrivy } from '@privy-io/react-auth';
-import { toast } from 'sonner';
+import { showToast } from '@/components/ui/custom-toast';
 
 export function useUserSync() {
   const { address: starknetAddress } = useWallet();
@@ -23,9 +23,18 @@ export function useUserSync() {
       if (!response.ok) {
         throw new Error('Failed to sync user data');
       }
+
+      // Show success toast for EVM connection
+      if (params.evmAddress) {
+        showToast('success', 'DEGEN DETECTED!', {
+          description: '🎯 Your EVM wallet is now connected! 📈'
+        });
+      }
     } catch (error) {
       console.error('Error syncing user:', error);
-      toast.error('Failed to sync user data');
+      showToast('error', '🤪 SMOL BRAIN MOMENT', {
+        description: '💀 Failed to sync your degen data... Try again or ask the MidCurve Support!'
+      });
     }
   }, []);
 

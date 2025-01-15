@@ -1,27 +1,35 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback } from 'react';
 import { connect, disconnect as starknetDisconnect } from 'starknetkit';
-import { toast } from 'sonner';
+import { showToast } from '@/components/ui/custom-toast';
 
 interface WalletContextType {
-  address: string | undefined;
+  address?: string;
   isConnecting: boolean;
-  walletType: 'argent' | 'braavos' | undefined;
+  walletType?: 'argent' | 'braavos';
   connectToStarknet: () => Promise<void>;
   disconnect: () => Promise<void>;
 }
 
-interface StarknetWallet {
-  id: string;
-  enable: () => Promise<void>;
-  isConnected: boolean;
-  account: {
-    address: string;
-  };
+const WalletContext = createContext<WalletContextType | undefined>(undefined);
+
+export function useWallet() {
+  const context = useContext(WalletContext);
+  if (!context) {
+    throw new Error('useWallet must be used within a WalletProvider');
+  }
+  return context;
 }
 
-const WalletContext = createContext<WalletContextType | undefined>(undefined);
+interface StarknetWallet {
+  id: string;
+  isConnected: boolean;
+  account?: {
+    address: string;
+  };
+  enable: () => Promise<void>;
+}
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [address, setAddress] = useState<string>();
@@ -42,7 +50,9 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('Error creating/updating user:', error);
-      toast.error('Failed to sync user data');
+      showToast('error', '🤪 SMOL BRAIN MOMENT', {
+        description: '💀 Failed to sync your degen data... Try again or ask the MidCurve Support!'
+      });
     }
   }, []);
 
@@ -105,13 +115,17 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           // Create or update user
           await createOrUpdateUser(wallet.account.address);
           
-          toast.success('Wallet connected successfully');
+          showToast('success', '🧠 WAGMI FRENS!', {
+            description: '↗️ Your brain is now connected to LeftCurve! 📈'
+          });
         }
       }
     } catch (error) {
       if (error instanceof Error && !error.message.includes('User rejected')) {
         console.error('Error connecting wallet:', error);
-        toast.error('Failed to connect wallet');
+        showToast('error', '😭 NGMI...', {
+          description: '↘️ MidCurver moment... Failed to connect. Try again ser! 📉'
+        });
       }
       // Ensure state is cleaned up on error
       await cleanupStarknet();
@@ -122,7 +136,9 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   const disconnect = useCallback(async () => {
     await cleanupStarknet();
-    toast.success('Wallet disconnected');
+    showToast('info', '👋 GM -> GN', {
+      description: '🌙 Paper hands ... See you soon!'
+    });
   }, [cleanupStarknet]);
 
   return (
@@ -138,12 +154,4 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       {children}
     </WalletContext.Provider>
   );
-}
-
-export function useWallet() {
-  const context = useContext(WalletContext);
-  if (context === undefined) {
-    throw new Error('useWallet must be used within a WalletProvider');
-  }
-  return context;
 } 
