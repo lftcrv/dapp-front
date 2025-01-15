@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { useState } from 'react';
 import { shortAddress } from '@/lib/utils';
+import { useWallets } from '@privy-io/react-auth';
 import {
   Select,
   SelectContent,
@@ -26,18 +27,26 @@ const TOKENS = [
   { id: 'dai', name: 'DAI', icon: '💵' },
 ] as const;
 
+// Map chain IDs to network names used by bridges
+const CHAIN_NAMES: Record<number, string> = {
+  1: 'ETHEREUM',
+  42161: 'ARBITRUM',
+  10: 'OPTIMISM',
+  137: 'POLYGON',
+} as const;
+
 const BRIDGES = [
   {
     id: 'rhino',
     name: 'Rhino.fi',
-    url: (params: { token: string; amount: string }) =>
-      `https://app.rhino.fi/bridge?token=${params.token.toUpperCase()}&amount=${params.amount}&chainId=1&destChainId=SN_MAIN`,
+    url: (params: { token: string; amount: string; sourceChain: string }) =>
+      `https://app.rhino.fi/bridge?token=${params.token.toUpperCase()}&amount=${params.amount}&chainId=1&destChainId=SN_MAIN&chain=${params.sourceChain}&chainOut=STARKNET`,
   },
   {
     id: 'layerswap',
     name: 'LayerSwap',
-    url: (params: { token: string; amount: string }) =>
-      `https://www.layerswap.io/?destNetwork=STARKNET&sourceNetwork=ETHEREUM&asset=${params.token.toUpperCase()}&amount=${params.amount}`,
+    url: (params: { token: string; amount: string; sourceChain: string }) =>
+      `https://www.layerswap.io/?destNetwork=STARKNET&sourceNetwork=${params.sourceChain}&asset=${params.token.toUpperCase()}&amount=${params.amount}`,
   },
   {
     id: 'starkgate',
@@ -53,11 +62,24 @@ export function DepositModal({ isOpen, onClose, walletType, address }: DepositMo
   const [amount, setAmount] = useState('');
   const [selectedToken, setSelectedToken] = useState<Token>('eth');
   const [selectedBridge, setSelectedBridge] = useState<Bridge>('rhino');
+  const { wallets } = useWallets();
+
+  // Get the current chain of the connected EVM wallet
+  const currentWallet = wallets.find(w => w.address.toLowerCase() === address.toLowerCase());
+  const chainId = currentWallet?.chainId ? Number(currentWallet.chainId) : undefined;
+  const networkName = chainId && chainId in CHAIN_NAMES ? CHAIN_NAMES[chainId] : 'ETHEREUM';
 
   const handleBridge = () => {
     const bridge = BRIDGES.find(b => b.id === selectedBridge);
     if (bridge && amount && parseFloat(amount) > 0) {
-      window.open(bridge.url({ token: selectedToken, amount }), '_blank');
+      window.open(
+        bridge.url({ 
+          token: selectedToken, 
+          amount,
+          sourceChain: networkName
+        }), 
+        '_blank'
+      );
       onClose();
     }
   };
@@ -73,11 +95,18 @@ export function DepositModal({ isOpen, onClose, walletType, address }: DepositMo
         <div className="grid gap-4 py-4">
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium">Connected Wallet</label>
-            <div className="flex items-center gap-2 text-sm font-mono">
-              {walletType === 'starknet' ? (
-                <span>🔵 Starknet: {shortAddress(address)}</span>
-              ) : (
-                <span>🦊 EVM: {shortAddress(address)}</span>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2 text-sm font-mono">
+                {walletType === 'starknet' ? (
+                  <span>🌟 Starknet: {shortAddress(address)}</span>
+                ) : (
+                  <span>⚡️ EVM: {shortAddress(address)}</span>
+                )}
+              </div>
+              {walletType === 'evm' && chainId && (
+                <div className="text-xs text-muted-foreground">
+                  Network: {CHAIN_NAMES[chainId] || 'Unknown'}
+                </div>
               )}
             </div>
           </div>
