@@ -5,11 +5,9 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function shortAddress(address: string, chars = 4): string {
-  if (!address) return ''
-  const start = address.slice(0, chars)
-  const end = address.slice(-chars)
-  return `${start}...${end}`
+export function shortAddress(address: string): string {
+  if (!address) return '';
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 export function truncateAddress(address: string) {

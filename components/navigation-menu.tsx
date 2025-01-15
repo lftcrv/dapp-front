@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
+import { showToast } from '@/components/ui/custom-toast'
 
 const navigation = [
   { name: 'Home', href: '/' },
@@ -45,19 +46,15 @@ export function NavigationMenu() {
     const fetchLinkedAddress = async () => {
       if (evmAddress) {
         try {
-          console.log('Fetching user data for EVM address:', evmAddress);
           const response = await fetch(`/api/users?address=${evmAddress}`);
           if (response.ok) {
             const userData = await response.json();
-            console.log('Fetched user data:', userData);
             if (userData.starknetAddress || userData.privateKey) {
               setLinkedStarknetAddress(userData.starknetAddress || userData.privateKey);
             } else {
-              console.log('No Starknet address found for user');
               setLinkedStarknetAddress(undefined);
             }
           } else {
-            console.log('Failed to fetch user data:', await response.text());
             setLinkedStarknetAddress(undefined);
           }
         } catch (error) {
@@ -76,6 +73,9 @@ export function NavigationMenu() {
       await disconnectStarknet()
     } else if (evmAddress) {
       await disconnectEVM()
+      showToast('info', '🦊 NGMI SER...', {
+        description: '📉 Paper handed your EVM wallet... Come back when you\'re ready to curve right! 🌙'
+      });
     }
   }
 
