@@ -24,6 +24,7 @@ import {
 const navigation = [
   { name: 'Home', href: '/' },
   { name: 'Create Agent', href: '/create-agent' },
+  { name: 'Leaderboard', href: '/leaderboard' }
 ]
 
 export function NavigationMenu() {
