@@ -1,32 +1,39 @@
-import * as React from 'react'
-import { Button } from '@/components/ui/button'
-import { useWallet } from '@/lib/wallet-context'
-import { DepositModal } from './deposit-modal'
+'use client';
+
+import { Button } from '@/components/ui/button';
+import { useWallet } from '@/lib/wallet-context';
+import { usePrivy } from '@privy-io/react-auth';
+import { DepositModal } from './deposit-modal';
+import { useState } from 'react';
 
 export function DepositButton() {
-  const { walletType, isConnected } = useWallet()
-  const [isModalOpen, setIsModalOpen] = React.useState(false)
+  const [showModal, setShowModal] = useState(false);
+  const { address: starknetAddress } = useWallet();
+  const { ready: privyReady, user } = usePrivy();
 
-  console.log('DepositButton render:', { walletType, isConnected }) // Debug log
+  const evmAddress = user?.wallet?.address;
+  const isConnected = Boolean(starknetAddress || (privyReady && evmAddress));
 
-  // Only show for MetaMask connections
-  if (!isConnected || walletType !== 'metamask') {
-    return null
+  if (!isConnected) {
+    return null;
   }
 
   return (
     <>
       <Button
+        onClick={() => setShowModal(true)}
         variant="outline"
-        onClick={() => setIsModalOpen(true)}
-        className="bg-gradient-to-r from-[#F76B2A] to-[#A047E4] text-white hover:opacity-90"
+        className="bg-gradient-to-r from-yellow-500 to-pink-500 text-white hover:opacity-90"
       >
         Deposit
       </Button>
+
       <DepositModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={showModal} 
+        onClose={() => setShowModal(false)}
+        walletType={starknetAddress ? 'starknet' : 'evm'}
+        address={starknetAddress || evmAddress || ''}
       />
     </>
-  )
+  );
 } 

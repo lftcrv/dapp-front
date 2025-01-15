@@ -1,88 +1,110 @@
-import * as React from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+'use client';
+
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Button } from './ui/button';
+import { useState } from 'react';
+import { shortAddress } from '@/lib/utils';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/ui/select';
 
 interface DepositModalProps {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
+  walletType: 'starknet' | 'evm';
+  address: string;
 }
 
 const TOKENS = [
   { id: 'eth', name: 'ETH', icon: '⟠' },
-  { id: 'usdc', name: 'USDC', icon: '$' },
-]
+  { id: 'usdc', name: 'USDC', icon: '💵' },
+  { id: 'usdt', name: 'USDT', icon: '💵' },
+  { id: 'dai', name: 'DAI', icon: '💵' },
+] as const;
 
 const BRIDGES = [
-  { 
-    id: 'orbiter', 
-    name: 'Orbiter Finance',
-    url: (token: string) => `https://www.orbiter.finance/?source=Ethereum&dest=Starknet&token=${token.toUpperCase()}`
+  {
+    id: 'rhino',
+    name: 'Rhino.fi',
+    url: (params: { token: string; amount: string }) =>
+      `https://app.rhino.fi/bridge?token=${params.token.toUpperCase()}&amount=${params.amount}&chainId=1&destChainId=SN_MAIN`,
   },
-  { 
-    id: 'layerswap', 
+  {
+    id: 'layerswap',
     name: 'LayerSwap',
-    url: (token: string) => `https://www.layerswap.io/?destNetwork=STARKNET&sourceNetwork=ETHEREUM&asset=${token.toUpperCase()}`
+    url: (params: { token: string; amount: string }) =>
+      `https://www.layerswap.io/?destNetwork=STARKNET&sourceNetwork=ETHEREUM&asset=${params.token.toUpperCase()}&amount=${params.amount}`,
   },
-]
+  {
+    id: 'starkgate',
+    name: 'StarkGate',
+    url: () => `https://starkgate.starknet.io/`,
+  },
+] as const;
 
-export function DepositModal({ isOpen, onClose }: DepositModalProps) {
-  const [amount, setAmount] = React.useState('')
-  const [selectedToken, setSelectedToken] = React.useState(TOKENS[0].id)
-  const [selectedBridge, setSelectedBridge] = React.useState(BRIDGES[0].id)
+type Token = typeof TOKENS[number]['id'];
+type Bridge = typeof BRIDGES[number]['id'];
 
-  const handleDeposit = () => {
-    const bridge = BRIDGES.find(b => b.id === selectedBridge)
-    if (bridge) {
-      window.open(bridge.url(selectedToken), '_blank')
+export function DepositModal({ isOpen, onClose, walletType, address }: DepositModalProps) {
+  const [amount, setAmount] = useState('');
+  const [selectedToken, setSelectedToken] = useState<Token>('eth');
+  const [selectedBridge, setSelectedBridge] = useState<Bridge>('rhino');
+
+  const handleBridge = () => {
+    const bridge = BRIDGES.find(b => b.id === selectedBridge);
+    if (bridge && amount && parseFloat(amount) > 0) {
+      window.open(bridge.url({ token: selectedToken, amount }), '_blank');
+      onClose();
     }
-    onClose()
-  }
+  };
+
+  const selectedTokenData = TOKENS.find(t => t.id === selectedToken);
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Deposit to Starknet</DialogTitle>
-          <DialogDescription>
-            Choose the amount, token, and bridge to deposit funds to Starknet.
-          </DialogDescription>
+          <DialogTitle>Bridge to Starknet</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <label htmlFor="amount" className="text-sm font-medium">
-              Amount
-            </label>
-            <Input
-              id="amount"
-              placeholder="0.0"
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium">Connected Wallet</label>
+            <div className="flex items-center gap-2 text-sm font-mono">
+              {walletType === 'starknet' ? (
+                <span>🔵 Starknet: {shortAddress(address)}</span>
+              ) : (
+                <span>🦊 EVM: {shortAddress(address)}</span>
+              )}
+            </div>
           </div>
-          <div className="grid gap-2">
+
+          {/* Token Selection */}
+          <div className="flex flex-col gap-2">
             <label className="text-sm font-medium">Token</label>
-            <Select value={selectedToken} onValueChange={setSelectedToken}>
+            <Select
+              value={selectedToken}
+              onValueChange={(value) => setSelectedToken(value as Token)}
+            >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue>
+                  {selectedTokenData && (
+                    <span className="flex items-center gap-2">
+                      <span>{selectedTokenData.icon}</span>
+                      <span>{selectedTokenData.name}</span>
+                    </span>
+                  )}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {TOKENS.map((token) => (
-                  <SelectItem key={token.id} value={token.id}>
+                  <SelectItem 
+                    key={token.id} 
+                    value={token.id}
+                  >
                     <span className="flex items-center gap-2">
                       <span>{token.icon}</span>
                       <span>{token.name}</span>
@@ -92,35 +114,56 @@ export function DepositModal({ isOpen, onClose }: DepositModalProps) {
               </SelectContent>
             </Select>
           </div>
-          <div className="grid gap-2">
+
+          {/* Amount Input */}
+          <div className="flex flex-col gap-2">
+            <label htmlFor="amount" className="text-sm font-medium">
+              Amount
+            </label>
+            <input
+              id="amount"
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="Enter amount"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
+
+          {/* Bridge Selection */}
+          <div className="flex flex-col gap-2">
             <label className="text-sm font-medium">Bridge</label>
-            <Select value={selectedBridge} onValueChange={setSelectedBridge}>
+            <Select
+              value={selectedBridge}
+              onValueChange={(value) => setSelectedBridge(value as Bridge)}
+            >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue>
+                  {BRIDGES.find(b => b.id === selectedBridge)?.name}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {BRIDGES.map((bridge) => (
-                  <SelectItem key={bridge.id} value={bridge.id}>
+                  <SelectItem 
+                    key={bridge.id} 
+                    value={bridge.id}
+                  >
                     {bridge.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-        </div>
-        <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
+
           <Button 
-            onClick={handleDeposit}
+            onClick={handleBridge} 
+            className="w-full"
             disabled={!amount || parseFloat(amount) <= 0}
-            className="bg-gradient-to-r from-[#F76B2A] to-[#A047E4] text-white hover:opacity-90"
           >
-            Deposit
+            Bridge to Starknet
           </Button>
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 } 

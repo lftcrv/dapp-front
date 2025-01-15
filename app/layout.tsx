@@ -1,15 +1,14 @@
-import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import { NavigationMenu } from '@/components/navigation-menu'
-import { Providers } from './providers'
-import './globals.css'
 import { cn } from '@/lib/utils'
+import { NavigationMenu } from '@/components/navigation-menu'
+import { Providers } from '@/app/providers'
+import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
 
-export const metadata: Metadata = {
-  title: 'LeftCurve - Trading Agent Arena',
-  description: 'Create, trade, and compete with AI trading agents powered by memes',
+export const metadata = {
+  title: 'LeftCurve',
+  description: 'Trade with confidence',
 }
 
 export default function RootLayout({
@@ -24,7 +23,7 @@ export default function RootLayout({
           <div className="relative flex min-h-screen flex-col">
             <div className="glow" />
             <NavigationMenu />
-            <main className="flex-1 flex-grow">{children}</main>
+            <main className="flex-1">{children}</main>
           </div>
         </Providers>
       </body>

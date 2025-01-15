@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button'
 import { shortAddress } from '@/lib/utils'
 import { usePathname } from 'next/navigation'
 import { DepositButton } from './deposit-button'
+import { WalletConnectModal } from './wallet-connect-modal'
+import { usePrivy } from '@privy-io/react-auth'
 
 const navigation = [
   { name: 'Home', href: '/' },
@@ -18,28 +20,56 @@ const navigation = [
 
 export function NavigationMenu() {
   const [isOpen, setIsOpen] = React.useState(false)
-  const { address, isConnecting, walletType, connect, disconnect } = useWallet()
+  const [showWalletModal, setShowWalletModal] = React.useState(false)
+  const { address: starknetAddress, isConnecting: isStarknetConnecting, walletType, disconnect: disconnectStarknet } = useWallet()
+  const { ready: privyReady, user, logout: disconnectEVM } = usePrivy()
   const pathname = usePathname()
 
-  const WalletButton = () => (
-    address ? (
+  const evmAddress = user?.wallet?.address
+
+  const handleDisconnect = async () => {
+    if (starknetAddress) {
+      await disconnectStarknet()
+    } else if (evmAddress) {
+      await disconnectEVM()
+    }
+  }
+
+  const WalletButton = () => {
+    if (starknetAddress) {
+      return (
+        <Button
+          variant="outline"
+          onClick={handleDisconnect}
+          className="font-mono text-sm"
+        >
+          {walletType === 'braavos' ? '🦧' : '🔵'} {shortAddress(starknetAddress)}
+        </Button>
+      )
+    }
+
+    if (evmAddress && privyReady) {
+      return (
+        <Button
+          variant="outline"
+          onClick={handleDisconnect}
+          className="font-mono text-sm"
+        >
+          🦊 {shortAddress(evmAddress)}
+        </Button>
+      )
+    }
+
+    return (
       <Button
-        variant="outline"
-        onClick={disconnect}
-        className="font-mono text-sm"
-      >
-        {walletType === 'braavos' ? '🦧' : '🔵'} {shortAddress(address)}
-      </Button>
-    ) : (
-      <Button
-        onClick={connect}
-        disabled={isConnecting}
+        onClick={() => setShowWalletModal(true)}
+        disabled={isStarknetConnecting || !privyReady}
         className="bg-gradient-to-r from-yellow-500 to-pink-500 text-white hover:opacity-90"
       >
-        {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+        {isStarknetConnecting ? 'Connecting...' : 'Connect Wallet'}
       </Button>
     )
-  )
+  }
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-sm border-b border-white/5">
@@ -131,6 +161,11 @@ export function NavigationMenu() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <WalletConnectModal 
+        isOpen={showWalletModal} 
+        onClose={() => setShowWalletModal(false)} 
+      />
     </nav>
   )
 } 
