@@ -29,6 +29,23 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [walletType, setWalletType] = useState<'argent' | 'braavos'>();
   const [lastDisconnectTime, setLastDisconnectTime] = useState<number>(0);
 
+  const createOrUpdateUser = useCallback(async (starknetAddress: string) => {
+    try {
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ starknetAddress }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create/update user');
+      }
+    } catch (error) {
+      console.error('Error creating/updating user:', error);
+      toast.error('Failed to sync user data');
+    }
+  }, []);
+
   const cleanupStarknet = useCallback(async () => {
     try {
       // First reset state to ensure UI updates immediately
@@ -84,6 +101,10 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         if (wallet.isConnected && wallet.account?.address) {
           setAddress(wallet.account.address);
           setWalletType(wallet.id === 'braavos' ? 'braavos' : 'argent');
+          
+          // Create or update user
+          await createOrUpdateUser(wallet.account.address);
+          
           toast.success('Wallet connected successfully');
         }
       }
@@ -97,7 +118,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsConnecting(false);
     }
-  }, [cleanupStarknet, isConnecting, lastDisconnectTime]);
+  }, [cleanupStarknet, isConnecting, lastDisconnectTime, createOrUpdateUser]);
 
   const disconnect = useCallback(async () => {
     await cleanupStarknet();

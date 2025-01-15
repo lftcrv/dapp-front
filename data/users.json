@@ -1,0 +1,25 @@
+{
+  "users": [
+    {
+      "id": "user_1736941301843",
+      "starknetAddress": "0x23fc992d6f6e960bb38f8885a5046748754a4cdae8e37efc6ef738802932907",
+      "privateKey": "0xa4a59a7ec59fa53e8a3277d2d2a5162c444e9823b5634287125608b97d9e5b",
+      "createdAt": "2025-01-15T11:41:41.753Z",
+      "updatedAt": "2025-01-15T11:51:29.460Z"
+    },
+    {
+      "id": "user_1736942194312",
+      "evmAddress": "0xaF5E68D0516c3423ca1613a410d00418ddd7ECFF",
+      "privateKey": "0x6b4fbe4c4e6ecd329058205a92562e866cce1786378294af101e9503517f979",
+      "createdAt": "2025-01-15T11:56:34.254Z",
+      "updatedAt": "2025-01-15T12:01:30.034Z"
+    },
+    {
+      "id": "user_1736942398113",
+      "evmAddress": "0x8B784D94EFB8Ae90816e0e2Cf0272732325AD4c4",
+      "privateKey": "0x7da0bc98f0423c0d1a6f1206c7cbd5b6bc15012a24853c4436c7bf563cc8d27",
+      "createdAt": "2025-01-15T11:59:58.054Z",
+      "updatedAt": "2025-01-15T12:01:11.080Z"
+    }
+  ]
+}
