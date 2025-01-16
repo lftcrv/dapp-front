@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { usePrivy } from '@privy-io/react-auth'
 import { useAccount } from 'wagmi'
+import { connect } from 'starknetkit'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,7 +15,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { Brain, Flame, MessageSquare, Pencil, ArrowLeft, Plus, X, Wallet2, Loader2 } from 'lucide-react'
 import { createAgent } from '@/actions/createAgent'
-import type { CharacterConfig } from '@/types/agent'
+import type { CharacterConfig } from '../../types/agent'
+import { cn } from '@/lib/utils'
+import type { StarknetWindowObject } from 'get-starknet-core'
 
 type TabType = 'basic' | 'personality' | 'examples'
 const TABS: TabType[] = ['basic', 'personality', 'examples']
@@ -65,23 +68,108 @@ export default function CreateAgentPage() {
   const router = useRouter()
   const { ready: privyReady, authenticated } = usePrivy()
   const { address: evmAddress } = useAccount()
+  const [starknetConnectorData, setStarknetConnectorData] = useState<{ account?: string }>({})
+  const [starknetWallet, setStarknetWallet] = useState<StarknetWindowObject | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [agentType, setAgentType] = useState<'leftcurve' | 'rightcurve'>('leftcurve')
   const [currentTab, setCurrentTab] = useState<TabType>('basic')
   const [formData, setFormData] = useState(initialFormData)
+  const [canSubmit, setCanSubmit] = useState(false)
 
-  // Check if any wallet is connected
-  const isWalletConnected = authenticated || Boolean(evmAddress)
+  // Check both Privy and Starknet connections
+  const isPrivyConnected = authenticated && Boolean(evmAddress)
+  const isStarknetConnected = Boolean(starknetConnectorData?.account)
+  const isWalletConnected = isPrivyConnected || isStarknetConnected
+
+  // Collect wallet connection status
+  useEffect(() => {
+    const checkWalletStatus = () => {
+      const isPrivyReady = privyReady && authenticated && Boolean(evmAddress)
+      const isStarknetReady = Boolean(starknetConnectorData?.account) && Boolean(starknetWallet)
+      const canProceed = isPrivyReady || isStarknetReady
+
+      console.log('Wallet Status:', {
+        privy: { ready: privyReady, authenticated, evmAddress },
+        starknet: { account: starknetConnectorData?.account, wallet: starknetWallet?.id },
+        canSubmit: canProceed
+      })
+
+      setCanSubmit(canProceed)
+    }
+
+    checkWalletStatus()
+  }, [privyReady, authenticated, evmAddress, starknetConnectorData, starknetWallet])
+
+  // Initialize and handle Starknet connection
+  useEffect(() => {
+    const connectToStarknet = async () => {
+      try {
+        const { wallet, connectorData } = await connect({ modalMode: "neverAsk" })
+        if (wallet && connectorData?.account) {
+          setStarknetWallet(wallet)
+          setStarknetConnectorData(connectorData)
+
+          // Set up event listeners for Starknet wallet
+          const handleAccountsChanged = (accounts?: string[]) => {
+            console.log('Starknet accounts changed:', accounts)
+            if (accounts?.[0]) {
+              setStarknetConnectorData({ account: accounts[0] })
+            } else {
+              setStarknetConnectorData({})
+              setStarknetWallet(null)
+            }
+          }
+
+          const handleNetworkChanged = async () => {
+            console.log('Starknet network changed')
+            // Reconnect on network change
+            const { wallet: newWallet, connectorData: newConnectorData } = await connect({ modalMode: "neverAsk" })
+            if (newWallet && newConnectorData?.account) {
+              setStarknetWallet(newWallet)
+              setStarknetConnectorData(newConnectorData)
+            }
+          }
+
+          wallet.on('accountsChanged', handleAccountsChanged)
+          wallet.on('networkChanged', handleNetworkChanged)
+
+          return () => {
+            wallet.off('accountsChanged', handleAccountsChanged)
+            wallet.off('networkChanged', handleNetworkChanged)
+          }
+        }
+      } catch (error) {
+        console.error('Error connecting to Starknet:', error)
+      }
+    }
+
+    connectToStarknet()
+  }, [])
+
+  // Handle Privy connection changes
+  useEffect(() => {
+    if (!authenticated) {
+      console.log('Privy disconnected')
+      // If Privy disconnects and we're not connected to Starknet, disable form
+      if (!isStarknetConnected) {
+        // Reset form state or handle disconnection
+      }
+    }
+  }, [authenticated, isStarknetConnected])
 
   // Debug logs for wallet connection status
-  React.useEffect(() => {
+  useEffect(() => {
     console.log('Wallet Connection Status:', {
       privyReady,
       authenticated,
       evmAddress,
-      isWalletConnected
+      starknetConnected: isStarknetConnected,
+      privyConnected: isPrivyConnected,
+      isWalletConnected,
+      starknetWallet: starknetWallet?.id,
+      starknetAccount: starknetConnectorData?.account
     })
-  }, [privyReady, authenticated, evmAddress, isWalletConnected])
+  }, [privyReady, authenticated, evmAddress, isStarknetConnected, isPrivyConnected, isWalletConnected, starknetWallet, starknetConnectorData])
 
   const handleNext = () => {
     const currentIndex = TABS.indexOf(currentTab)
@@ -100,7 +188,7 @@ export default function CreateAgentPage() {
   const handleArrayInput = (field: FormField, index: number, value: string) => {
     setFormData(prev => ({
       ...prev,
-      [field]: prev[field].map((item: string, i: number) => i === index ? value : item)
+      [field]: (prev[field] as string[]).map((item: string, i: number) => i === index ? value : item)
     }))
   }
 
@@ -139,7 +227,7 @@ export default function CreateAgentPage() {
   const handleRemoveField = (field: FormField, index: number) => {
     setFormData(prev => ({
       ...prev,
-      [field]: prev[field].filter((_: string, i: number) => i !== index)
+      [field]: (prev[field] as string[]).filter((_: string, i: number) => i !== index)
     }))
   }
 
@@ -184,9 +272,17 @@ export default function CreateAgentPage() {
   }
 
   const handleDeploy = async () => {    
-    if (!isWalletConnected) {
-      toast.error('Connect Wallet', {
-        description: 'Please connect your wallet to deploy your agent'
+    // Check wallet connection status
+    const isPrivyReady = privyReady && authenticated && Boolean(evmAddress)
+    const isStarknetReady = Boolean(starknetConnectorData?.account) && Boolean(starknetWallet)
+    
+    if (!isPrivyReady && !isStarknetReady) {
+      toast.error('Wallet Not Connected', {
+        description: isPrivyReady 
+          ? 'Please connect your Starknet wallet to deploy'
+          : isStarknetReady 
+          ? 'Please connect your EVM wallet to deploy'
+          : 'Please connect either an EVM or Starknet wallet to deploy'
       })
       return
     }
@@ -247,6 +343,17 @@ export default function CreateAgentPage() {
         adjectives: formData.adjectives.filter(Boolean)
       }
 
+      // Log deployment data
+      console.log('Deploying Agent with Configuration:', {
+        name: formData.name,
+        type: agentType,
+        wallet: {
+          evm: evmAddress,
+          starknet: starknetConnectorData?.account
+        },
+        characterConfig: JSON.stringify(characterConfig, null, 2)
+      })
+
       const result = await createAgent(formData.name, characterConfig)
       
       if (result.success) {
@@ -306,7 +413,7 @@ export default function CreateAgentPage() {
         </Button>
       </div>
       <div className="space-y-3">
-        {formData[field].map((value: string, index: number) => (
+        {(formData[field] as string[]).map((value: string, index: number) => (
           <div key={index} className="flex gap-2 group">
             <Input
               value={value}
@@ -424,24 +531,6 @@ export default function CreateAgentPage() {
                     <span className="mr-2">🐙</span> RightCurve
                   </Button>
                 </div>
-                <motion.div 
-                  className="space-y-1"
-                  initial={false}
-                  animate={{ x: agentType === 'leftcurve' ? 0 : 20 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                >
-                  <p className="text-muted-foreground text-sm">
-                    {agentType === 'leftcurve' 
-                      ? 'Creative chaos, meme magic, and pure degen energy'
-                      : 'Technical mastery, market wisdom, and calculated alpha'}
-                  </p>
-                  <p className="text-[13px] text-muted-foreground italic">
-                    {agentType === 'leftcurve'
-                      ? 'For those who believe fundamentals are just vibes'
-                      : 'For those who see patterns in the matrix'}
-                  </p>
-                </motion.div>
-                <p className="text-[12px] text-yellow-500/70 animate-pulse">Midcurvers ngmi 😭</p>
               </div>
             </div>
 
@@ -458,164 +547,165 @@ export default function CreateAgentPage() {
             </div>
 
             {/* Form */}
-            <Card className={`border-2 shadow-lg ${!isWalletConnected ? 'opacity-50' : ''}`}>
+            <Card className={cn(
+              "border-2 shadow-lg transition-all duration-200",
+              !canSubmit && "opacity-50 pointer-events-none"
+            )}>
               <CardContent className="pt-6">
-                <div className={`${!isWalletConnected ? 'pointer-events-none select-none' : ''}`}>
-                  <Tabs value={currentTab} onValueChange={(value) => setCurrentTab(value as TabType)} className="w-full">
-                    <TabsList className="grid grid-cols-3 mb-4">
-                      {tabs.map(({ id, icon: Icon, label }) => (
-                        <TabsTrigger 
-                          key={id} 
-                          value={id}
-                          className={`transition-all duration-200 ${
-                            currentTab === id ? `${
-                              agentType === 'leftcurve' 
-                                ? 'data-[state=active]:bg-yellow-500/20 data-[state=active]:text-yellow-700' 
-                                : 'data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-700'
-                            }` : 'hover:bg-muted'
+                <Tabs value={currentTab} onValueChange={(value) => setCurrentTab(value as TabType)} className="w-full">
+                  <TabsList className="grid grid-cols-3 mb-4">
+                    {tabs.map(({ id, icon: Icon, label }) => (
+                      <TabsTrigger 
+                        key={id} 
+                        value={id}
+                        className={`transition-all duration-200 ${
+                          currentTab === id ? `${
+                            agentType === 'leftcurve' 
+                              ? 'data-[state=active]:bg-yellow-500/20 data-[state=active]:text-yellow-700' 
+                              : 'data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-700'
+                          }` : 'hover:bg-muted'
+                        }`}
+                      >
+                        <Icon className="mr-2 h-4 w-4" />
+                        {label}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+
+                  <TabsContent value="basic" className="space-y-6 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name" className="text-base font-medium">Agent Name</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        placeholder={getPlaceholder('name')}
+                        required
+                        className={`border-2 transition-all duration-200 ${
+                          agentType === 'leftcurve'
+                            ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
+                            : 'focus:border-purple-500 focus:ring-purple-500/20'
+                        }`}
+                      />
+                    </div>
+
+                    {renderArrayField('topics', 'Topics', getPlaceholder('topics'))}
+                    {renderArrayField('adjectives', 'Adjectives', getPlaceholder('adjectives'))}
+                  </TabsContent>
+
+                  <TabsContent value="personality" className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Bio</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleAddField('bio')}
+                          className={`${
+                            agentType === 'leftcurve' 
+                              ? 'hover:bg-yellow-500/20' 
+                              : 'hover:bg-purple-500/20'
                           }`}
                         >
-                          <Icon className="mr-2 h-4 w-4" />
-                          {label}
-                        </TabsTrigger>
+                          <Plus className="h-4 w-4" />
+                          Add Bio Entry
+                        </Button>
+                      </div>
+                      {formData.bio.map((item, index) => (
+                        <div key={index} className="flex gap-2">
+                          <textarea
+                            className="min-h-[80px] w-full rounded-md border-2 border-input bg-background px-3 py-2 text-sm focus:ring-2 ring-offset-2"
+                            value={item}
+                            onChange={(e) => handleArrayInput('bio', index, e.target.value)}
+                            placeholder={getPlaceholder('bio')}
+                          />
+                          {index > 0 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoveField('bio', index)}
+                              className="hover:bg-red-500/20 self-start"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       ))}
-                    </TabsList>
+                    </div>
 
-                    <TabsContent value="basic" className="space-y-6 mt-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="name" className="text-base font-medium">Agent Name</Label>
-                        <Input
-                          id="name"
-                          value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          placeholder={getPlaceholder('name')}
-                          required
-                          className={`border-2 transition-all duration-200 ${
-                            agentType === 'leftcurve'
-                              ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
-                              : 'focus:border-purple-500 focus:ring-purple-500/20'
+                    {renderArrayField('lore', 'Lore', getPlaceholder('lore'))}
+                    {renderArrayField('knowledge', 'Knowledge', getPlaceholder('knowledge'))}
+                  </TabsContent>
+
+                  <TabsContent value="examples" className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Message Examples</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAddMessageExample}
+                          className={`${
+                            agentType === 'leftcurve' 
+                              ? 'hover:bg-yellow-500/20' 
+                              : 'hover:bg-purple-500/20'
                           }`}
-                        />
+                        >
+                          <Plus className="h-4 w-4" />
+                          Add Example
+                        </Button>
                       </div>
-
-                      {renderArrayField('topics', 'Topics', getPlaceholder('topics'))}
-                      {renderArrayField('adjectives', 'Adjectives', getPlaceholder('adjectives'))}
-                    </TabsContent>
-
-                    <TabsContent value="personality" className="space-y-4 mt-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label>Bio</Label>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleAddField('bio')}
-                            className={`${
-                              agentType === 'leftcurve' 
-                                ? 'hover:bg-yellow-500/20' 
-                                : 'hover:bg-purple-500/20'
-                            }`}
-                          >
-                            <Plus className="h-4 w-4" />
-                            Add Bio Entry
-                          </Button>
-                        </div>
-                        {formData.bio.map((item, index) => (
-                          <div key={index} className="flex gap-2">
+                      {formData.messageExamples.map((example, index) => (
+                        <Card key={index} className={`p-4 relative border-2 transition-all duration-200 group ${
+                          agentType === 'leftcurve'
+                            ? 'hover:border-yellow-500/50'
+                            : 'hover:border-purple-500/50'
+                        }`}>
+                          {index > 0 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoveMessageExample(index)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20 hover:text-red-700 absolute top-2 right-2"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <div className="space-y-3">
                             <textarea
-                              className="min-h-[80px] w-full rounded-md border-2 border-input bg-background px-3 py-2 text-sm focus:ring-2 ring-offset-2"
-                              value={item}
-                              onChange={(e) => handleArrayInput('bio', index, e.target.value)}
-                              placeholder={getPlaceholder('bio')}
+                              className={`min-h-[60px] w-full rounded-md border-2 bg-background px-3 py-2 text-sm transition-all duration-200 ${
+                                agentType === 'leftcurve'
+                                  ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
+                                  : 'focus:border-purple-500 focus:ring-purple-500/20'
+                              }`}
+                              value={example[0].content.text}
+                              onChange={(e) => handleMessageExample(index, 'user', e.target.value)}
+                              placeholder={agentType === 'leftcurve' ? "wen moon ser?" : "What's your analysis of current market conditions?"}
                             />
-                            {index > 0 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleRemoveField('bio', index)}
-                                className="hover:bg-red-500/20 self-start"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            )}
+                            <textarea
+                              className={`min-h-[60px] w-full rounded-md border-2 bg-background px-3 py-2 text-sm transition-all duration-200 ${
+                                agentType === 'leftcurve'
+                                  ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
+                                  : 'focus:border-purple-500 focus:ring-purple-500/20'
+                              }`}
+                              value={example[1].content.text}
+                              onChange={(e) => handleMessageExample(index, 'agent', e.target.value)}
+                              placeholder={agentType === 'leftcurve' ? "ngmi if you have to ask anon 🚀" : "Based on order flow analysis and market structure..."}
+                            />
                           </div>
-                        ))}
-                      </div>
+                        </Card>
+                      ))}
+                    </div>
 
-                      {renderArrayField('lore', 'Lore', getPlaceholder('lore'))}
-                      {renderArrayField('knowledge', 'Knowledge', getPlaceholder('knowledge'))}
-                    </TabsContent>
-
-                    <TabsContent value="examples" className="space-y-4 mt-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label>Message Examples</Label>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={handleAddMessageExample}
-                            className={`${
-                              agentType === 'leftcurve' 
-                                ? 'hover:bg-yellow-500/20' 
-                                : 'hover:bg-purple-500/20'
-                            }`}
-                          >
-                            <Plus className="h-4 w-4" />
-                            Add Example
-                          </Button>
-                        </div>
-                        {formData.messageExamples.map((example, index) => (
-                          <Card key={index} className={`p-4 relative border-2 transition-all duration-200 group ${
-                            agentType === 'leftcurve'
-                              ? 'hover:border-yellow-500/50'
-                              : 'hover:border-purple-500/50'
-                          }`}>
-                            {index > 0 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleRemoveMessageExample(index)}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20 hover:text-red-700 absolute top-2 right-2"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            )}
-                            <div className="space-y-3">
-                              <textarea
-                                className={`min-h-[60px] w-full rounded-md border-2 bg-background px-3 py-2 text-sm transition-all duration-200 ${
-                                  agentType === 'leftcurve'
-                                    ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
-                                    : 'focus:border-purple-500 focus:ring-purple-500/20'
-                                }`}
-                                value={example[0].content.text}
-                                onChange={(e) => handleMessageExample(index, 'user', e.target.value)}
-                                placeholder={agentType === 'leftcurve' ? "wen moon ser?" : "What's your analysis of current market conditions?"}
-                              />
-                              <textarea
-                                className={`min-h-[60px] w-full rounded-md border-2 bg-background px-3 py-2 text-sm transition-all duration-200 ${
-                                  agentType === 'leftcurve'
-                                    ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
-                                    : 'focus:border-purple-500 focus:ring-purple-500/20'
-                                }`}
-                                value={example[1].content.text}
-                                onChange={(e) => handleMessageExample(index, 'agent', e.target.value)}
-                                placeholder={agentType === 'leftcurve' ? "ngmi if you have to ask anon 🚀" : "Based on order flow analysis and market structure..."}
-                              />
-                            </div>
-                          </Card>
-                        ))}
-                      </div>
-
-                      {renderStyleField('all', 'General Style', agentType === 'leftcurve' ? "Uses excessive emojis and meme slang" : "Maintains professional and analytical tone")}
-                      {renderStyleField('chat', 'Chat Style', agentType === 'leftcurve' ? "Responds with degen enthusiasm" : "Provides detailed market analysis")}
-                      {renderStyleField('post', 'Post Style', agentType === 'leftcurve' ? "Creates viral meme content" : "Writes educational threads")}
-                    </TabsContent>
-                  </Tabs>
-                </div>
+                    {renderStyleField('all', 'General Style', agentType === 'leftcurve' ? "Uses excessive emojis and meme slang" : "Maintains professional and analytical tone")}
+                    {renderStyleField('chat', 'Chat Style', agentType === 'leftcurve' ? "Responds with degen enthusiasm" : "Provides detailed market analysis")}
+                    {renderStyleField('post', 'Post Style', agentType === 'leftcurve' ? "Creates viral meme content" : "Writes educational threads")}
+                  </TabsContent>
+                </Tabs>
 
                 <div className="flex gap-4 pt-6">
                   {currentTab !== 'basic' && (
@@ -624,7 +714,7 @@ export default function CreateAgentPage() {
                       variant="outline"
                       onClick={handlePrevious}
                       className="flex-1"
-                      disabled={!isWalletConnected}
+                      disabled={!canSubmit}
                     >
                       <ArrowLeft className="mr-2 h-4 w-4" />
                       Previous
@@ -635,12 +725,14 @@ export default function CreateAgentPage() {
                     <Button
                       type="button"
                       onClick={handleNext}
-                      className={`flex-1 ${
+                      className={cn(
+                        "flex-1",
+                        !canSubmit && "opacity-50 cursor-not-allowed",
                         agentType === 'leftcurve' 
                           ? 'bg-yellow-500 hover:bg-yellow-600' 
                           : 'bg-purple-500 hover:bg-purple-600'
-                      }`}
-                      disabled={!isWalletConnected}
+                      )}
+                      disabled={!canSubmit}
                     >
                       Next
                       <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
@@ -649,35 +741,23 @@ export default function CreateAgentPage() {
                     <Button
                       type="button"
                       size="lg"
-                      className={`w-full font-bold ${
-                        !isWalletConnected 
-                          ? 'bg-muted text-muted-foreground opacity-50 cursor-not-allowed'
+                      className={cn(
+                        "w-full font-bold",
+                        !canSubmit
+                          ? "bg-muted text-muted-foreground opacity-50 cursor-not-allowed"
                           : agentType === 'leftcurve'
-                            ? 'bg-gradient-to-r from-yellow-500 to-red-500 hover:opacity-90'
-                            : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:opacity-90'
-                      }`}
-                      disabled={!isWalletConnected || isSubmitting}
-                      aria-disabled={!isWalletConnected}
-                      onClick={(e) => {
-                        console.log('Deploy Button Clicked:', {
-                          isWalletConnected,
-                          isSubmitting,
-                          authenticated,
-                          evmAddress
-                        })
-                        if (!isWalletConnected) {
-                          e.preventDefault()
-                          return
-                        }
-                        handleDeploy()
-                      }}
+                            ? "bg-gradient-to-r from-yellow-500 to-red-500 hover:opacity-90"
+                            : "bg-gradient-to-r from-purple-500 to-blue-500 hover:opacity-90"
+                      )}
+                      disabled={!canSubmit || isSubmitting}
+                      onClick={handleDeploy}
                     >
                       {!privyReady ? (
                         <>
                           <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                           LOADING...
                         </>
-                      ) : !isWalletConnected ? (
+                      ) : !canSubmit ? (
                         <>
                           <Wallet2 className="mr-2 h-5 w-5" />
                           CONNECT WALLET TO DEPLOY
@@ -703,4 +783,4 @@ export default function CreateAgentPage() {
       </div>
     </>
   )
-} 
+}
