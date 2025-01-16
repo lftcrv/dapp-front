@@ -1,14 +1,14 @@
 export interface CharacterConfig {
   name: string
-  clients: any[]
+  clients: string[]
   modelProvider: string
   settings: {
-    secrets: Record<string, any>
+    secrets: Record<string, string>
     voice: {
       model: string
     }
   }
-  plugins: any[]
+  plugins: string[]
   bio: string[]
   lore: string[]
   knowledge: string[]

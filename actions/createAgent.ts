@@ -1,6 +1,6 @@
 'use server'
 
-import { CharacterConfig } from '@/types/agent'
+import { CharacterConfig } from '../types/agent'
 
 interface CreateAgentResponse {
   success: boolean
