@@ -1,230 +1,706 @@
 'use client'
 
-import { useState } from 'react'
+import * as React from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { useWallets } from '@privy-io/react-auth'
+import { usePrivy } from '@privy-io/react-auth'
+import { useAccount } from 'wagmi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Card, CardContent } from '@/components/ui/card'
 import { toast } from 'sonner'
-import { Brain, Twitter, Flame, Rocket } from 'lucide-react'
+import { Brain, Flame, MessageSquare, Pencil, ArrowLeft, Plus, X, Wallet2, Loader2 } from 'lucide-react'
+import { createAgent } from '@/actions/createAgent'
+import type { CharacterConfig } from '@/types/agent'
+
+type TabType = 'basic' | 'personality' | 'examples'
+const TABS: TabType[] = ['basic', 'personality', 'examples']
+
+type FormField = 'name' | 'bio' | 'lore' | 'knowledge' | 'topics' | 'adjectives' | 'postExamples'
+
+type FormDataType = {
+  name: string
+  bio: string[]
+  lore: string[]
+  knowledge: string[]
+  topics: string[]
+  adjectives: string[]
+  messageExamples: Array<[
+    { user: string; content: { text: string } },
+    { user: string; content: { text: string } }
+  ]>
+  postExamples: string[]
+  style: {
+    all: string[]
+    chat: string[]
+    post: string[]
+  }
+}
+
+const initialFormData: FormDataType = {
+  name: '',
+  bio: [''],
+  lore: [''],
+  knowledge: [''],
+  topics: [''],
+  adjectives: [''],
+  messageExamples: [
+    [
+      { user: 'user1', content: { text: '' } },
+      { user: '', content: { text: '' } }
+    ]
+  ],
+  postExamples: [''],
+  style: {
+    all: [''],
+    chat: [''],
+    post: ['']
+  }
+}
 
 export default function CreateAgentPage() {
   const router = useRouter()
-  const { wallets } = useWallets()
+  const { ready: privyReady, authenticated } = usePrivy()
+  const { address: evmAddress } = useAccount()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [agentType, setAgentType] = useState<'leftcurve' | 'rightcurve'>('leftcurve')
-  const [formData, setFormData] = useState({
-    name: '',
-    avatar: '',
-    lore: '',
-    strategy: '',
-    knowledge: '',
-    twitter: ''
-  })
+  const [currentTab, setCurrentTab] = useState<TabType>('basic')
+  const [formData, setFormData] = useState(initialFormData)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!wallets.length) {
-      toast.error('🦊 Wallet Required', {
-        description: 'Anon, you need to connect your wallet first!'
+  // Check if any wallet is connected
+  const isWalletConnected = authenticated || Boolean(evmAddress)
+
+  // Debug logs for wallet connection status
+  React.useEffect(() => {
+    console.log('Wallet Connection Status:', {
+      privyReady,
+      authenticated,
+      evmAddress,
+      isWalletConnected
+    })
+  }, [privyReady, authenticated, evmAddress, isWalletConnected])
+
+  const handleNext = () => {
+    const currentIndex = TABS.indexOf(currentTab)
+    if (currentIndex < TABS.length - 1) {
+      setCurrentTab(TABS[currentIndex + 1])
+    }
+  }
+
+  const handlePrevious = () => {
+    const currentIndex = TABS.indexOf(currentTab)
+    if (currentIndex > 0) {
+      setCurrentTab(TABS[currentIndex - 1])
+    }
+  }
+
+  const handleArrayInput = (field: FormField, index: number, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: prev[field].map((item: string, i: number) => i === index ? value : item)
+    }))
+  }
+
+  const handleStyleInput = (type: keyof typeof formData.style, index: number, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      style: {
+        ...prev.style,
+        [type]: prev.style[type].map((item, i) => i === index ? value : item)
+      }
+    }))
+  }
+
+  const handleMessageExample = (index: number, type: 'user' | 'agent', value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      messageExamples: prev.messageExamples.map((example, i) => {
+        if (i !== index) return example
+        const [user, agent] = example
+        if (type === 'user') {
+          return [{ ...user, content: { text: value } }, agent]
+        } else {
+          return [user, { ...agent, content: { text: value } }]
+        }
       })
+    }))
+  }
+
+  const handleAddField = (field: FormField) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: [...prev[field], '']
+    }))
+  }
+
+  const handleRemoveField = (field: FormField, index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: prev[field].filter((_: string, i: number) => i !== index)
+    }))
+  }
+
+  const handleAddMessageExample = () => {
+    setFormData(prev => ({
+      ...prev,
+      messageExamples: [
+        ...prev.messageExamples,
+        [
+          { user: 'user1', content: { text: '' } },
+          { user: formData.name, content: { text: '' } }
+        ]
+      ]
+    }))
+  }
+
+  const handleRemoveMessageExample = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      messageExamples: prev.messageExamples.filter((_, i) => i !== index)
+    }))
+  }
+
+  const handleAddStyleField = (type: keyof typeof formData.style) => {
+    setFormData(prev => ({
+      ...prev,
+      style: {
+        ...prev.style,
+        [type]: [...prev.style[type], '']
+      }
+    }))
+  }
+
+  const handleRemoveStyleField = (type: keyof typeof formData.style, index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      style: {
+        ...prev.style,
+        [type]: prev.style[type].filter((_, i) => i !== index)
+      }
+    }))
+  }
+
+  const handleDeploy = async () => {    
+    if (!isWalletConnected) {
+      toast.error('Connect Wallet', {
+        description: 'Please connect your wallet to deploy your agent'
+      })
+      return
+    }
+
+    // Validate required fields before submission
+    if (!formData.name.trim()) {
+      toast.warning('Missing Name', {
+        description: 'Please give your agent a name'
+      })
+      setCurrentTab('basic')
+      return
+    }
+
+    if (!formData.bio.some(b => b.trim())) {
+      toast.warning('Missing Bio', {
+        description: 'Please add at least one bio entry'
+      })
+      setCurrentTab('personality')
+      return
+    }
+
+    if (!formData.messageExamples[0][0].content.text.trim() || 
+        !formData.messageExamples[0][1].content.text.trim()) {
+      toast.warning('Missing Examples', {
+        description: 'Please add at least one complete message example'
+      })
+      setCurrentTab('examples')
       return
     }
 
     setIsSubmitting(true)
     
     try {
-      // TODO: Implement actual creation logic
-      toast('🚀 Coming Soon', {
-        description: 'Agent deployment will be available soon! Stay tuned anon...'
-      })
+      const characterConfig: CharacterConfig = {
+        name: formData.name,
+        clients: [],
+        modelProvider: 'openai',
+        settings: {
+          secrets: {},
+          voice: {
+            model: 'en_US-male-medium'
+          }
+        },
+        plugins: [],
+        bio: formData.bio.filter(Boolean),
+        lore: formData.lore.filter(Boolean),
+        knowledge: formData.knowledge.filter(Boolean),
+        messageExamples: formData.messageExamples.filter(msg => 
+          msg[0].content.text && msg[1].content.text
+        ),
+        postExamples: formData.postExamples.filter(Boolean),
+        topics: formData.topics.filter(Boolean),
+        style: {
+          all: formData.style.all.filter(Boolean),
+          chat: formData.style.chat.filter(Boolean),
+          post: formData.style.post.filter(Boolean)
+        },
+        adjectives: formData.adjectives.filter(Boolean)
+      }
+
+      const result = await createAgent(formData.name, characterConfig)
       
-      // Mock success for now
-      setTimeout(() => {
+      if (result.success) {
+        toast.success('Agent Deployed', {
+          description: 'Your agent is now live! 🚀'
+        })
         router.push('/')
-      }, 1500)
+      } else {
+        throw new Error(result.error || 'Failed to create agent')
+      }
     } catch (error) {
-      console.error('Error creating agent:', error)
-      toast.error('💀 Deploy Failed', {
-        description: 'Something went wrong! Try again anon...'
+      console.error('Error deploying agent:', error)
+      toast.error('Failed to Deploy', {
+        description: error instanceof Error ? error.message : 'An unexpected error occurred'
       })
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-start pt-24">
-      <div className="container max-w-2xl mx-auto px-4">
-        <motion.div
-          className="space-y-8 w-full"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+  const getPlaceholder = (field: FormField | 'style') => {
+    const isLeft = agentType === 'leftcurve'
+    const placeholders = {
+      name: isLeft ? '🦧 APEtoshi Nakamoto' : '🐙 AlphaMatrix',
+      bio: isLeft ? 'Born in the depths of /biz/, forged in the fires of degen trades...' : 'A sophisticated AI trained on decades of market data and technical analysis...',
+      lore: isLeft ? "Legend says they once 100x'd their portfolio by following a dream about bananas..." : 'Mastered the art of price action through quantum computing simulations...',
+      knowledge: isLeft ? 'Meme trends, Twitter sentiment, Discord alpha signals...' : 'Order flow analysis, market microstructure, institutional trading patterns...',
+      topics: isLeft ? 'memes, defi, nfts, degen plays' : 'derivatives, volatility, market making, arbitrage',
+      adjectives: isLeft ? 'chaotic, based, memetic, galaxy-brain' : 'precise, analytical, strategic, sophisticated'
+    }
+    return placeholders[field as keyof typeof placeholders] || ''
+  }
+
+  const tabs = [
+    { id: 'basic', icon: Brain, label: 'Basic' },
+    { id: 'personality', icon: MessageSquare, label: 'Personality' },
+    { id: 'examples', icon: Pencil, label: 'Examples' }
+  ]
+
+  const renderArrayField = (field: FormField, label: string, placeholder: string) => (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <Label className="text-base font-medium">{label}</Label>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => handleAddField(field)}
+          className={`transition-all duration-200 ${
+            agentType === 'leftcurve' 
+              ? 'hover:bg-yellow-500/20 hover:text-yellow-700 hover:border-yellow-500' 
+              : 'hover:bg-purple-500/20 hover:text-purple-700 hover:border-purple-500'
+          }`}
         >
-          {/* Header */}
-          <div className="text-center space-y-4">
-            <h1 className="font-sketch text-4xl bg-gradient-to-r from-yellow-500 via-pink-500 to-purple-500 text-transparent bg-clip-text">
-              Deploy Your Agent
-            </h1>
-            <div className="flex flex-col items-center gap-4">
-              <p className="text-sm text-muted-foreground">choose wisely anon, there&apos;s no going back 🔥</p>
-              <div className="flex items-center gap-4">
-                <Button
-                  variant={agentType === 'leftcurve' ? 'default' : 'outline'}
-                  onClick={() => setAgentType('leftcurve')}
-                  className={agentType === 'leftcurve' ? 'bg-yellow-500 hover:bg-yellow-600' : ''}
-                >
-                  <span className="mr-2">🦧</span> LeftCurve
-                </Button>
-                <Button
-                  variant={agentType === 'rightcurve' ? 'default' : 'outline'}
-                  onClick={() => setAgentType('rightcurve')}
-                  className={agentType === 'rightcurve' ? 'bg-purple-500 hover:bg-purple-600' : ''}
-                >
-                  <span className="mr-2">🐙</span> RightCurve
-                </Button>
-              </div>
-              <div className="space-y-1">
-                <p className="text-muted-foreground text-sm">
-                  {agentType === 'leftcurve' 
-                    ? 'Creative chaos, meme magic, and pure degen energy'
-                    : 'Technical mastery, market wisdom, and calculated alpha'}
-                </p>
-                <p className="text-[13px] text-muted-foreground italic">
-                  {agentType === 'leftcurve'
-                    ? 'For those who believe fundamentals are just vibes'
-                    : 'For those who see patterns in the matrix'}
-                </p>
-              </div>
-              <p className="text-[12px] text-yellow-500/70">Midcurvers ngmi 😭</p>
-            </div>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <Tabs defaultValue="personality" className="w-full">
-              <TabsList className="grid grid-cols-2">
-                <TabsTrigger value="personality">
-                  <Brain className="mr-2 h-4 w-4" />
-                  Personality
-                </TabsTrigger>
-                <TabsTrigger value="strategy">
-                  <Rocket className="mr-2 h-4 w-4" />
-                  Strategy
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="personality" className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Agent Name</Label>
-                  <Input
-                    id="name"
-                    placeholder={agentType === 'leftcurve' ? 'e.g., APE-3000' : 'e.g., OctoAlpha'}
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="avatar">Avatar URL</Label>
-                  <Input
-                    id="avatar"
-                    placeholder="https://example.com/avatar.png"
-                    value={formData.avatar}
-                    onChange={(e) => setFormData({ ...formData, avatar: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="lore">Lore / Personality</Label>
-                  <textarea
-                    id="lore"
-                    className="min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder={agentType === 'leftcurve' 
-                      ? 'A galaxy-brain ape who discovered trading while eating crayons...'
-                      : 'A sophisticated octopus who mastered technical analysis...'}
-                    value={formData.lore}
-                    onChange={(e) => setFormData({ ...formData, lore: e.target.value })}
-                    required
-                  />
-                </div>
-              </TabsContent>
-
-              <TabsContent value="strategy" className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="strategy">Trading Strategy</Label>
-                  <textarea
-                    id="strategy"
-                    className="min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder={agentType === 'leftcurve'
-                      ? 'Buy high sell higher, inverse Cramer, follow the memes...'
-                      : 'Advanced ML models, multi-timeframe analysis, order flow...'}
-                    value={formData.strategy}
-                    onChange={(e) => setFormData({ ...formData, strategy: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="knowledge">Knowledge Base</Label>
-                  <textarea
-                    id="knowledge"
-                    className="min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder={agentType === 'leftcurve'
-                      ? 'Memes, Reddit sentiment, Discord alpha...'
-                      : 'Market data, trading journals, research papers...'}
-                    value={formData.knowledge}
-                    onChange={(e) => setFormData({ ...formData, knowledge: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="twitter">Twitter Handle</Label>
-                  <div className="relative">
-                    <Twitter className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="twitter"
-                      placeholder="@username"
-                      value={formData.twitter}
-                      onChange={(e) => setFormData({ ...formData, twitter: e.target.value })}
-                      className="pl-9"
-                    />
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-
-            <Button
-              type="submit"
-              size="lg"
-              className={`w-full font-bold hover:opacity-90 ${
-                agentType === 'leftcurve'
-                  ? 'bg-gradient-to-r from-yellow-500 to-pink-500'
-                  : 'bg-gradient-to-r from-purple-500 to-pink-500'
-              }`}
-              disabled={isSubmitting || !wallets.length}
-            >
-              <Flame className="mr-2 h-5 w-5" />
-              {isSubmitting ? (
-                <>DEPLOYING...</>
-              ) : !wallets.length ? (
-                <>CONNECT WALLET</>
-              ) : (
-                <>DEPLOY {agentType === 'leftcurve' ? '🦧' : '🐙'} AGENT</>
-              )}
-            </Button>
-          </form>
-
-          <p className="text-sm text-center text-muted-foreground">
-            * Deployment requires $LEFT tokens for gas fees 🚀
-          </p>
-        </motion.div>
+          <Plus className="h-4 w-4 mr-1" />
+          Add {label}
+        </Button>
       </div>
-    </main>
+      <div className="space-y-3">
+        {formData[field].map((value: string, index: number) => (
+          <div key={index} className="flex gap-2 group">
+            <Input
+              value={value}
+              onChange={(e) => handleArrayInput(field, index, e.target.value)}
+              placeholder={placeholder}
+              className={`border-2 transition-all duration-200 ${
+                agentType === 'leftcurve'
+                  ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
+                  : 'focus:border-purple-500 focus:ring-purple-500/20'
+              }`}
+            />
+            {index > 0 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => handleRemoveField(field, index)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20 hover:text-red-700"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  const renderStyleField = (type: keyof typeof formData.style, label: string, placeholder: string) => (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label>{label}</Label>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => handleAddStyleField(type)}
+          className={`${
+            agentType === 'leftcurve' 
+              ? 'hover:bg-yellow-500/20' 
+              : 'hover:bg-purple-500/20'
+          }`}
+        >
+          <Plus className="h-4 w-4" />
+          Add {label}
+        </Button>
+      </div>
+      {formData.style[type].map((value, index) => (
+        <div key={index} className="flex gap-2">
+          <Input
+            value={value}
+            onChange={(e) => handleStyleInput(type, index, e.target.value)}
+            placeholder={placeholder}
+            className="border-2 focus:ring-2 ring-offset-2"
+          />
+          {index > 0 && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => handleRemoveStyleField(type, index)}
+              className="hover:bg-red-500/20"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+
+  return (
+    <>
+      <div className="flex min-h-screen flex-col items-center justify-start pt-24">
+        <div className="container max-w-2xl mx-auto px-4 pb-24">
+          <motion.div
+            className="space-y-8 w-full"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Button 
+              variant="ghost" 
+              className="mb-4"
+              onClick={() => router.push('/')}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Home
+            </Button>
+
+            {/* Header */}
+            <div className="text-center space-y-4">
+              <h1 className={`font-sketch text-4xl bg-gradient-to-r ${
+                agentType === 'leftcurve' 
+                  ? 'from-yellow-500 via-orange-500 to-red-500'
+                  : 'from-purple-500 via-indigo-500 to-blue-500'
+              } text-transparent bg-clip-text`}>
+                Deploy Your Agent
+              </h1>
+              <div className="flex flex-col items-center gap-4">
+                <p className="text-sm text-muted-foreground">choose your side anon, there&apos;s no going back 🔥</p>
+                <div className="flex items-center gap-4">
+                  <Button
+                    variant={agentType === 'leftcurve' ? 'default' : 'outline'}
+                    onClick={() => setAgentType('leftcurve')}
+                    className={agentType === 'leftcurve' ? 'bg-yellow-500 hover:bg-yellow-600 transform hover:scale-105 transition-all' : ''}
+                  >
+                    <span className="mr-2">🦧</span> LeftCurve
+                  </Button>
+                  <Button
+                    variant={agentType === 'rightcurve' ? 'default' : 'outline'}
+                    onClick={() => setAgentType('rightcurve')}
+                    className={agentType === 'rightcurve' ? 'bg-purple-500 hover:bg-purple-600 transform hover:scale-105 transition-all' : ''}
+                  >
+                    <span className="mr-2">🐙</span> RightCurve
+                  </Button>
+                </div>
+                <motion.div 
+                  className="space-y-1"
+                  initial={false}
+                  animate={{ x: agentType === 'leftcurve' ? 0 : 20 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                >
+                  <p className="text-muted-foreground text-sm">
+                    {agentType === 'leftcurve' 
+                      ? 'Creative chaos, meme magic, and pure degen energy'
+                      : 'Technical mastery, market wisdom, and calculated alpha'}
+                  </p>
+                  <p className="text-[13px] text-muted-foreground italic">
+                    {agentType === 'leftcurve'
+                      ? 'For those who believe fundamentals are just vibes'
+                      : 'For those who see patterns in the matrix'}
+                  </p>
+                </motion.div>
+                <p className="text-[12px] text-yellow-500/70 animate-pulse">Midcurvers ngmi 😭</p>
+              </div>
+            </div>
+
+            {/* Progress */}
+            <div className="w-full bg-muted rounded-full h-2 mb-6">
+              <div 
+                className={`h-full rounded-full transition-all duration-300 ${
+                  agentType === 'leftcurve' ? 'bg-yellow-500' : 'bg-purple-500'
+                }`}
+                style={{ 
+                  width: `${((TABS.indexOf(currentTab) + 1) / TABS.length) * 100}%`
+                }}
+              />
+            </div>
+
+            {/* Form */}
+            <Card className={`border-2 shadow-lg ${!isWalletConnected ? 'opacity-50' : ''}`}>
+              <CardContent className="pt-6">
+                <div className={`${!isWalletConnected ? 'pointer-events-none select-none' : ''}`}>
+                  <Tabs value={currentTab} onValueChange={(value) => setCurrentTab(value as TabType)} className="w-full">
+                    <TabsList className="grid grid-cols-3 mb-4">
+                      {tabs.map(({ id, icon: Icon, label }) => (
+                        <TabsTrigger 
+                          key={id} 
+                          value={id}
+                          className={`transition-all duration-200 ${
+                            currentTab === id ? `${
+                              agentType === 'leftcurve' 
+                                ? 'data-[state=active]:bg-yellow-500/20 data-[state=active]:text-yellow-700' 
+                                : 'data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-700'
+                            }` : 'hover:bg-muted'
+                          }`}
+                        >
+                          <Icon className="mr-2 h-4 w-4" />
+                          {label}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+
+                    <TabsContent value="basic" className="space-y-6 mt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name" className="text-base font-medium">Agent Name</Label>
+                        <Input
+                          id="name"
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          placeholder={getPlaceholder('name')}
+                          required
+                          className={`border-2 transition-all duration-200 ${
+                            agentType === 'leftcurve'
+                              ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
+                              : 'focus:border-purple-500 focus:ring-purple-500/20'
+                          }`}
+                        />
+                      </div>
+
+                      {renderArrayField('topics', 'Topics', getPlaceholder('topics'))}
+                      {renderArrayField('adjectives', 'Adjectives', getPlaceholder('adjectives'))}
+                    </TabsContent>
+
+                    <TabsContent value="personality" className="space-y-4 mt-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label>Bio</Label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleAddField('bio')}
+                            className={`${
+                              agentType === 'leftcurve' 
+                                ? 'hover:bg-yellow-500/20' 
+                                : 'hover:bg-purple-500/20'
+                            }`}
+                          >
+                            <Plus className="h-4 w-4" />
+                            Add Bio Entry
+                          </Button>
+                        </div>
+                        {formData.bio.map((item, index) => (
+                          <div key={index} className="flex gap-2">
+                            <textarea
+                              className="min-h-[80px] w-full rounded-md border-2 border-input bg-background px-3 py-2 text-sm focus:ring-2 ring-offset-2"
+                              value={item}
+                              onChange={(e) => handleArrayInput('bio', index, e.target.value)}
+                              placeholder={getPlaceholder('bio')}
+                            />
+                            {index > 0 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemoveField('bio', index)}
+                                className="hover:bg-red-500/20 self-start"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {renderArrayField('lore', 'Lore', getPlaceholder('lore'))}
+                      {renderArrayField('knowledge', 'Knowledge', getPlaceholder('knowledge'))}
+                    </TabsContent>
+
+                    <TabsContent value="examples" className="space-y-4 mt-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label>Message Examples</Label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleAddMessageExample}
+                            className={`${
+                              agentType === 'leftcurve' 
+                                ? 'hover:bg-yellow-500/20' 
+                                : 'hover:bg-purple-500/20'
+                            }`}
+                          >
+                            <Plus className="h-4 w-4" />
+                            Add Example
+                          </Button>
+                        </div>
+                        {formData.messageExamples.map((example, index) => (
+                          <Card key={index} className={`p-4 relative border-2 transition-all duration-200 group ${
+                            agentType === 'leftcurve'
+                              ? 'hover:border-yellow-500/50'
+                              : 'hover:border-purple-500/50'
+                          }`}>
+                            {index > 0 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemoveMessageExample(index)}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20 hover:text-red-700 absolute top-2 right-2"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <div className="space-y-3">
+                              <textarea
+                                className={`min-h-[60px] w-full rounded-md border-2 bg-background px-3 py-2 text-sm transition-all duration-200 ${
+                                  agentType === 'leftcurve'
+                                    ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
+                                    : 'focus:border-purple-500 focus:ring-purple-500/20'
+                                }`}
+                                value={example[0].content.text}
+                                onChange={(e) => handleMessageExample(index, 'user', e.target.value)}
+                                placeholder={agentType === 'leftcurve' ? "wen moon ser?" : "What's your analysis of current market conditions?"}
+                              />
+                              <textarea
+                                className={`min-h-[60px] w-full rounded-md border-2 bg-background px-3 py-2 text-sm transition-all duration-200 ${
+                                  agentType === 'leftcurve'
+                                    ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
+                                    : 'focus:border-purple-500 focus:ring-purple-500/20'
+                                }`}
+                                value={example[1].content.text}
+                                onChange={(e) => handleMessageExample(index, 'agent', e.target.value)}
+                                placeholder={agentType === 'leftcurve' ? "ngmi if you have to ask anon 🚀" : "Based on order flow analysis and market structure..."}
+                              />
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+
+                      {renderStyleField('all', 'General Style', agentType === 'leftcurve' ? "Uses excessive emojis and meme slang" : "Maintains professional and analytical tone")}
+                      {renderStyleField('chat', 'Chat Style', agentType === 'leftcurve' ? "Responds with degen enthusiasm" : "Provides detailed market analysis")}
+                      {renderStyleField('post', 'Post Style', agentType === 'leftcurve' ? "Creates viral meme content" : "Writes educational threads")}
+                    </TabsContent>
+                  </Tabs>
+                </div>
+
+                <div className="flex gap-4 pt-6">
+                  {currentTab !== 'basic' && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handlePrevious}
+                      className="flex-1"
+                      disabled={!isWalletConnected}
+                    >
+                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      Previous
+                    </Button>
+                  )}
+                  
+                  {currentTab !== 'examples' ? (
+                    <Button
+                      type="button"
+                      onClick={handleNext}
+                      className={`flex-1 ${
+                        agentType === 'leftcurve' 
+                          ? 'bg-yellow-500 hover:bg-yellow-600' 
+                          : 'bg-purple-500 hover:bg-purple-600'
+                      }`}
+                      disabled={!isWalletConnected}
+                    >
+                      Next
+                      <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="lg"
+                      className={`w-full font-bold ${
+                        !isWalletConnected 
+                          ? 'bg-muted text-muted-foreground opacity-50 cursor-not-allowed'
+                          : agentType === 'leftcurve'
+                            ? 'bg-gradient-to-r from-yellow-500 to-red-500 hover:opacity-90'
+                            : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:opacity-90'
+                      }`}
+                      disabled={!isWalletConnected || isSubmitting}
+                      aria-disabled={!isWalletConnected}
+                      onClick={(e) => {
+                        console.log('Deploy Button Clicked:', {
+                          isWalletConnected,
+                          isSubmitting,
+                          authenticated,
+                          evmAddress
+                        })
+                        if (!isWalletConnected) {
+                          e.preventDefault()
+                          return
+                        }
+                        handleDeploy()
+                      }}
+                    >
+                      {!privyReady ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          LOADING...
+                        </>
+                      ) : !isWalletConnected ? (
+                        <>
+                          <Wallet2 className="mr-2 h-5 w-5" />
+                          CONNECT WALLET TO DEPLOY
+                        </>
+                      ) : isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          DEPLOYING...
+                        </>
+                      ) : (
+                        <>
+                          <Flame className="mr-2 h-5 w-5" />
+                          DEPLOY {agentType === 'leftcurve' ? '🦧' : '🐙'} AGENT
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </div>
+    </>
   )
 } 
