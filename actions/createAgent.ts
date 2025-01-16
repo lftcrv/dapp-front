@@ -16,19 +16,27 @@ export async function createAgent(
   characterConfig: CharacterConfig
 ): Promise<CreateAgentResponse> {
   try {
-    const headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
+    const apiKey = process.env.ELIZA_API_KEY
+    const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL
+
+    if (!apiKey || !apiUrl) {
+      throw new Error('Missing API configuration')
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/eliza-agent`, {
+    const response = await fetch(`${apiUrl}/agents`, {
       method: 'POST',
-      headers,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'x-api-key': apiKey
+      },
       body: JSON.stringify({ name, characterConfig })
     })
 
     if (!response.ok) {
-      if (response.status === 400) {
+      if (response.status === 401) {
+        throw new Error('Invalid API key')
+      } else if (response.status === 400) {
         throw new Error('Invalid agent configuration')
       } else if (response.status >= 500) {
         throw new Error('Server error')
