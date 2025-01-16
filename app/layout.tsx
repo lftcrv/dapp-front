@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { LayoutSkeleton } from '@/components/layout-skeleton'
 import { PerformanceMonitor } from '@/components/performance-monitor'
 import { NavigationWrapper } from '@/components/navigation-wrapper'
+import { Toaster } from 'sonner'
 import Providers from './providers'
 import './globals.css'
 
@@ -47,6 +48,7 @@ export default function RootLayout({
               <NavigationWrapper />
             </React.Suspense>
           </div>
+          <Toaster position="bottom-right" theme="dark" />
         </Providers>
       </body>
     </html>

@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { showToast } from '@/components/ui/custom-toast'
+import { showToast } from '@/lib/toast'
 import { type StarknetWindowObject } from 'get-starknet-core'
 
 // Helper function for colored console logs
@@ -36,7 +36,7 @@ const WalletConnectModal = React.lazy(() =>
 );
 
 export function WalletButton() {
-  const mountTime = React.useRef(performance.now());
+  const mountTime = React.useRef(performance.now())
   const [showWalletModal, setShowWalletModal] = React.useState(false)
   const { ready, authenticated, logout } = usePrivy()
   const { address: evmAddress } = useAccount()
@@ -46,23 +46,17 @@ export function WalletButton() {
   })
   const [isLoadingWallet, setIsLoadingWallet] = React.useState(false)
 
-  // Log initial mount time
-  React.useEffect(() => {
-    const walletType = starknetWallet.isConnected ? 'Starknet' : authenticated ? 'EVM' : 'None';
-    logPerf('Wallet Mount', performance.now() - mountTime.current, walletType);
-  }, [authenticated, starknetWallet.isConnected]);
-
   // Function to clear Starknet state with performance logging
   const clearStarknetState = React.useCallback(() => {
-    const startTime = performance.now();
+    const startTime = performance.now()
     setStarknetWallet({
       wallet: null,
       isConnected: false
-    });
-    localStorage.removeItem('starknet_wallet');
-    sessionStorage.removeItem('starknet_wallet_cache');
-    logPerf('Clear State', performance.now() - startTime);
-  }, []);
+    })
+    localStorage.removeItem('starknet_wallet')
+    sessionStorage.removeItem('starknet_wallet_cache')
+    logPerf('Clear State', performance.now() - startTime)
+  }, [])
 
   // Optimized connection check with caching
   const checkStarknetConnection = React.useCallback(async () => {
@@ -147,58 +141,60 @@ export function WalletButton() {
     }
   }, [authenticated, clearStarknetState, isLoadingWallet]);
 
-  // Only check Starknet connection when user interacts with wallet button
-  const handleWalletClick = () => {
-    if (!ready) return;
-    if (!authenticated && !starknetWallet.isConnected) {
-      checkStarknetConnection();
-    }
-    setShowWalletModal(true);
-  };
+  // Log initial mount time and check connection
+  React.useEffect(() => {
+    const walletType = starknetWallet.isConnected ? 'Starknet' : authenticated ? 'EVM' : 'None'
+    logPerf('Wallet Mount', performance.now() - mountTime.current, walletType)
+    
+    // Check for existing Starknet connection
+    checkStarknetConnection()
+  }, [authenticated, starknetWallet.isConnected, checkStarknetConnection])
 
   // Handle EVM wallet changes
   React.useEffect(() => {
     if (authenticated && starknetWallet.isConnected) {
-      clearStarknetState();
+      clearStarknetState()
     }
-  }, [authenticated, starknetWallet.isConnected, clearStarknetState]);
+  }, [authenticated, starknetWallet.isConnected, clearStarknetState])
 
-  const handleDisconnect = async () => {
-    const startTime = performance.now();
+  // Only check Starknet connection when user interacts with wallet button
+  const handleWalletClick = () => {
+    if (!ready) return
+    if (!authenticated && !starknetWallet.isConnected) {
+      checkStarknetConnection()
+    }
+    setShowWalletModal(true)
+  }
+
+  const handleDisconnect = React.useCallback(async () => {
+    const startTime = performance.now()
     try {
-      // Handle EVM wallet disconnection first
+      // Handle EVM wallet disconnection
       if (authenticated) {
-        await logout();
-        clearStarknetState();
-        showToast('info', '👋 GM -> GN', {
-          description: '🌙 EVM wallet disconnected... See you soon!'
-        });
-        logPerf('EVM Disconnect', performance.now() - startTime);
-        return;
+        await logout()
+        logPerf('EVM Disconnect', performance.now() - startTime)
+        showToast('EVM_DISCONNECT', 'success')
+        return
       }
 
       // Handle Starknet wallet disconnection
-      if (starknetWallet.isConnected && starknetWallet.wallet) {
-        try {
-          await disconnect();
-        } catch {
-          // Ignore error, we'll clear state anyway
-        }
-        
-        clearStarknetState();
-        showToast('info', '👋 GM -> GN', {
-          description: '🌙 Starknet wallet disconnected... See you soon!'
-        });
-        logPerf('Starknet Disconnect', performance.now() - startTime);
+      if (starknetWallet.isConnected) {
+        await disconnect({ clearLastWallet: true })
+        setStarknetWallet({
+          wallet: null,
+          isConnected: false
+        })
+        // Clear stored wallet data
+        localStorage.removeItem('starknet_wallet')
+        sessionStorage.removeItem('starknet_wallet_cache')
+        logPerf('Starknet Disconnect', performance.now() - startTime)
+        showToast('DISCONNECT', 'success')
       }
-    } catch (err) {
-      console.error('Failed to disconnect wallet:', err);
-      showToast('error', '😭 NGMI...', {
-        description: '↘️ Failed to disconnect. Try again ser! 📉'
-      });
-      logPerf('Disconnect Error', performance.now() - startTime);
+    } catch {
+      showToast('DEFAULT_ERROR', 'error')
+      logPerf('Disconnect Error', performance.now() - startTime)
     }
-  }
+  }, [authenticated, logout, starknetWallet.isConnected])
 
   const handleCopyAddress = (address: string) => {
     navigator.clipboard.writeText(address)
