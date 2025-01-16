@@ -13,6 +13,7 @@ import { toast } from 'sonner'
 import { Brain, Flame, MessageSquare, Pencil, ArrowLeft, Plus, X, Loader2 } from 'lucide-react'
 import { createAgent } from '@/actions/createAgent'
 import type { CharacterConfig } from '@/types/agent'
+import { showToast } from '@/lib/toast'
 
 type TabType = 'basic' | 'personality' | 'examples'
 const TABS: TabType[] = ['basic', 'personality', 'examples']
@@ -211,35 +212,32 @@ export default function CreateAgentPage() {
     }))
   }
 
-  const handleDeploy = async () => {    
-    // Validate required fields before submission
+  const handleDeploy = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    // Validate required fields
     if (!formData.name.trim()) {
-      toast.warning('Missing Name', {
-        description: 'Please give your agent a name'
-      })
+      showToast('AGENT_ERROR', 'error')
       setCurrentTab('basic')
       return
     }
 
     if (!formData.bio.some(b => b.trim())) {
-      toast.warning('Missing Bio', {
-        description: 'Please add at least one bio entry'
-      })
+      showToast('AGENT_ERROR', 'error')
       setCurrentTab('personality')
       return
     }
 
     if (!formData.messageExamples[0][0].content.text.trim() || 
         !formData.messageExamples[0][1].content.text.trim()) {
-      toast.warning('Missing Examples', {
-        description: 'Please add at least one complete message example'
-      })
+      showToast('AGENT_ERROR', 'error')
       setCurrentTab('examples')
       return
     }
 
     setIsSubmitting(true)
-    
+    showToast('AGENT_CREATING', 'loading')
+
     try {
       const characterConfig: CharacterConfig = {
         name: formData.name,
@@ -271,19 +269,13 @@ export default function CreateAgentPage() {
       const result = await createAgent(formData.name, characterConfig)
       
       if (result.success) {
-        toast.success('LFG! 🚀', {
-          description: `${formData.name} is ready to take over the world!`
-        })
-        router.push('/')
+        showToast('AGENT_SUCCESS', 'success')
+        router.push('/agents')
       } else {
-        toast.error('Deploy Failed', {
-          description: result.error || 'Something went wrong'
-        })
+        showToast('AGENT_ERROR', 'error')
       }
     } catch (error) {
-      toast.error('Deploy Failed', {
-        description: error instanceof Error ? error.message : 'Something went wrong'
-      })
+      showToast('AGENT_ERROR', 'error')
     } finally {
       setIsSubmitting(false)
     }
