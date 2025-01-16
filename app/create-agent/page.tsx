@@ -4,15 +4,13 @@ import * as React from 'react'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { usePrivy } from '@privy-io/react-auth'
-import { useAccount } from 'wagmi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent } from '@/components/ui/card'
 import { toast } from 'sonner'
-import { Brain, Flame, MessageSquare, Pencil, ArrowLeft, Plus, X, Wallet2, Loader2 } from 'lucide-react'
+import { Brain, Flame, MessageSquare, Pencil, ArrowLeft, Plus, X, Loader2 } from 'lucide-react'
 import { createAgent } from '@/actions/createAgent'
 import type { CharacterConfig } from '@/types/agent'
 
@@ -64,8 +62,6 @@ const initialFormData: FormDataType = {
 
 export default function CreateAgentPage() {
   const router = useRouter()
-  const { ready: privyReady, authenticated } = usePrivy()
-  const { address: evmAddress } = useAccount()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [agentType, setAgentType] = useState<'leftcurve' | 'rightcurve'>('leftcurve')
   const [currentTab, setCurrentTab] = useState<TabType>('basic')
@@ -135,19 +131,6 @@ export default function CreateAgentPage() {
       </div>
     </div>
   )
-
-  // Check if any wallet is connected
-  const isWalletConnected = authenticated || Boolean(evmAddress)
-
-  // Debug logs for wallet connection status
-  React.useEffect(() => {
-    console.log('Wallet Connection Status:', {
-      privyReady,
-      authenticated,
-      evmAddress,
-      isWalletConnected
-    })
-  }, [privyReady, authenticated, evmAddress, isWalletConnected])
 
   const handleNext = () => {
     const currentIndex = TABS.indexOf(currentTab)
@@ -229,13 +212,6 @@ export default function CreateAgentPage() {
   }
 
   const handleDeploy = async () => {    
-    if (!isWalletConnected) {
-      toast.error('Connect Wallet', {
-        description: 'Please connect your wallet to deploy your agent'
-      })
-      return
-    }
-
     // Validate required fields before submission
     if (!formData.name.trim()) {
       toast.warning('Missing Name', {
@@ -455,9 +431,9 @@ export default function CreateAgentPage() {
             </div>
 
             {/* Form */}
-            <Card className={`border-2 shadow-lg ${!isWalletConnected ? 'opacity-50' : ''}`}>
+            <Card className="border-2 shadow-lg">
               <CardContent className="pt-6">
-                <div className={`${!isWalletConnected ? 'pointer-events-none select-none' : ''}`}>
+                <div>
                   <Tabs value={currentTab} onValueChange={(value) => setCurrentTab(value as TabType)} className="w-full">
                     <TabsList className="grid grid-cols-3 mb-4">
                       {tabs.map(({ id, icon: Icon, label }) => (
@@ -621,7 +597,6 @@ export default function CreateAgentPage() {
                       variant="outline"
                       onClick={handlePrevious}
                       className="flex-1"
-                      disabled={!isWalletConnected}
                     >
                       <ArrowLeft className="mr-2 h-4 w-4" />
                       Previous
@@ -637,7 +612,6 @@ export default function CreateAgentPage() {
                           ? 'bg-yellow-500 hover:bg-yellow-600' 
                           : 'bg-purple-500 hover:bg-purple-600'
                       }`}
-                      disabled={!isWalletConnected}
                     >
                       Next
                       <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
@@ -647,39 +621,14 @@ export default function CreateAgentPage() {
                       type="button"
                       size="lg"
                       className={`w-full font-bold ${
-                        !isWalletConnected 
-                          ? 'bg-muted text-muted-foreground opacity-50 cursor-not-allowed'
-                          : agentType === 'leftcurve'
-                            ? 'bg-gradient-to-r from-yellow-500 to-red-500 hover:opacity-90'
-                            : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:opacity-90'
+                        agentType === 'leftcurve'
+                          ? 'bg-gradient-to-r from-yellow-500 to-red-500 hover:opacity-90'
+                          : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:opacity-90'
                       }`}
-                      disabled={!isWalletConnected || isSubmitting}
-                      aria-disabled={!isWalletConnected}
-                      onClick={(e) => {
-                        console.log('Deploy Button Clicked:', {
-                          isWalletConnected,
-                          isSubmitting,
-                          authenticated,
-                          evmAddress
-                        })
-                        if (!isWalletConnected) {
-                          e.preventDefault()
-                          return
-                        }
-                        handleDeploy()
-                      }}
+                      disabled={isSubmitting}
+                      onClick={handleDeploy}
                     >
-                      {!privyReady ? (
-                        <>
-                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                          LOADING...
-                        </>
-                      ) : !isWalletConnected ? (
-                        <>
-                          <Wallet2 className="mr-2 h-5 w-5" />
-                          CONNECT WALLET TO DEPLOY
-                        </>
-                      ) : isSubmitting ? (
+                      {isSubmitting ? (
                         <>
                           <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                           DEPLOYING...
