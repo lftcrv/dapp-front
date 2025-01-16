@@ -3,11 +3,12 @@
 import { Agent } from "@/lib/types"
 import { cn, isInBondingPhase } from "@/lib/utils"
 import { AgentAvatar } from "@/components/ui/agent-avatar"
-import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { ArrowUpDown, Search, Skull, Users } from "lucide-react"
 import Link from "next/link"
+import { PriceChange } from "@/components/price-change"
+import { useAgentTable } from "@/hooks/use-agent-table"
 import {
   Table,
   TableBody,
@@ -21,59 +22,9 @@ interface AgentTableProps {
   agents: Agent[]
 }
 
-function PriceChange() {
-  const [change, setChange] = useState({ value: 0, isPositive: true })
-
-  useEffect(() => {
-    setChange({
-      value: Math.random() * 20,
-      isPositive: Math.random() > 0.5
-    })
-  }, [])
-
-  if (change.value === 0) return null
-
+function SortableHeader({ label, sortKey }: { label: string; sortKey: keyof Agent }) {
+  const { sortConfig, toggleSort } = useAgentTable([])
   return (
-    <span className={cn(
-      "text-xs font-mono",
-      change.isPositive ? "text-green-500" : "text-red-500"
-    )}>
-      {change.isPositive ? "+" : "-"}{change.value.toFixed(2)}%
-    </span>
-  )
-}
-
-export function AgentTable({ agents }: AgentTableProps) {
-  const [sortConfig, setSortConfig] = useState<{
-    key: keyof Agent;
-    direction: 'asc' | 'desc';
-  }>({ key: 'createdAt', direction: 'desc' })
-  const [searchTerm, setSearchTerm] = useState('')
-
-  const sortedAgents = [...agents].sort((a, b) => {
-    const aVal = a[sortConfig.key] ?? '';
-    const bVal = b[sortConfig.key] ?? '';
-    if (aVal < bVal) {
-      return sortConfig.direction === 'asc' ? -1 : 1
-    }
-    if (aVal > bVal) {
-      return sortConfig.direction === 'asc' ? 1 : -1
-    }
-    return 0
-  }).filter(agent => 
-    agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    agent.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    agent.id.toLowerCase().includes(searchTerm.toLowerCase())
-  )
-
-  const toggleSort = (key: keyof Agent) => {
-    setSortConfig(current => ({
-      key,
-      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
-    }))
-  }
-
-  const SortableHeader = ({ label, sortKey }: { label: string; sortKey: keyof Agent }) => (
     <Button 
       variant="ghost" 
       onClick={() => toggleSort(sortKey)}
@@ -85,6 +36,16 @@ export function AgentTable({ agents }: AgentTableProps) {
       {label} <ArrowUpDown className="ml-1 h-3 w-3" />
     </Button>
   )
+}
+
+export function AgentTable({ agents }: AgentTableProps) {
+  const { 
+    sortConfig, 
+    searchTerm, 
+    setSearchTerm, 
+    toggleSort, 
+    agents: sortedAgents 
+  } = useAgentTable(agents)
 
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 p-4">
