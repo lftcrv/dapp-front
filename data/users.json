@@ -8,20 +8,6 @@
       "updatedAt": "2025-01-16T08:42:39.527Z"
     },
     {
-      "id": "user_1736942194312",
-      "evmAddress": "0xaF5E68D0516c3423ca1613a410d00418ddd7ECFF",
-      "privateKey": "0x6b4fbe4c4e6ecd329058205a92562e866cce1786378294af101e9503517f979",
-      "createdAt": "2025-01-15T11:56:34.254Z",
-      "updatedAt": "2025-01-16T08:41:35.856Z"
-    },
-    {
-      "id": "user_1736942398113",
-      "evmAddress": "0x8B784D94EFB8Ae90816e0e2Cf0272732325AD4c4",
-      "privateKey": "0x7da0bc98f0423c0d1a6f1206c7cbd5b6bc15012a24853c4436c7bf563cc8d27",
-      "createdAt": "2025-01-15T11:59:58.054Z",
-      "updatedAt": "2025-01-15T17:18:45.315Z"
-    },
-    {
       "id": "user_1737016629911",
       "starknetAddress": "0x18609026d235698aa871eb1e1485c1cb5904f4a0c363ad5b7f83874aea4b6b1",
       "privateKey": "0x47a33cd00b56791b058c95f10ff303588b6e88649c596affc6eb24ec99d288a",
@@ -29,11 +15,28 @@
       "updatedAt": "2025-01-16T08:41:18.347Z"
     },
     {
-      "id": "user_1737017237711",
+      "id": "user_1737023947679",
       "evmAddress": "0xABD7D15dFDf36e077a2C7F3875F75cfe299ECF2E",
-      "privateKey": "0x72c4b57fb1c0083cb867b58661fdf90e74536cf3cb79ed9f898d7a832b8426a",
-      "createdAt": "2025-01-16T08:47:17.651Z",
-      "updatedAt": "2025-01-16T08:51:41.528Z"
+      "starknetAddress": "0x72a246fcbc6dcb1ec5166d751bb609d4434e4cfbd6a207141f48c21fb3937d7",
+      "privateKey": "0x03a3de67503655a7071aeea9e6af2a4c00376b47bad11c06d0f87e3db5e6fc99",
+      "createdAt": "2025-01-16T10:39:07.679Z",
+      "updatedAt": "2025-01-16T10:39:07.679Z"
+    },
+    {
+      "id": "user_1737024359226",
+      "evmAddress": "0xaF5E68D0516c3423ca1613a410d00418ddd7ECFF",
+      "starknetAddress": "0x3cd6b79ac8c255cc1a72c29169e0164b5e714a48d1dca3bf35b0f1d5289084",
+      "privateKey": "0x055fca65088d98a9d17d6b44fd45de5b8ab1f010a30ac99f91aad2a138d7b434",
+      "createdAt": "2025-01-16T10:45:59.226Z",
+      "updatedAt": "2025-01-16T10:45:59.226Z"
+    },
+    {
+      "id": "user_1737024728220",
+      "evmAddress": "0x8B784D94EFB8Ae90816e0e2Cf0272732325AD4c4",
+      "starknetAddress": "0x4d49526265b3079f608c69366c1cec6d467f9093905e74dde826cc12b5688fa",
+      "privateKey": "0x061f938774358e402d0ae223f2a95a2761df720416de34c1343685834db6c836",
+      "createdAt": "2025-01-16T10:52:08.220Z",
+      "updatedAt": "2025-01-16T10:52:08.220Z"
     }
   ]
 }

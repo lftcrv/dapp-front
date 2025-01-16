@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { showToast } from '@/components/ui/custom-toast'
 import { type StarknetWindowObject } from 'get-starknet-core'
+import { StarknetAccountDerivation } from './starknet-account-derivation'
 
 const navigation = [
   { name: 'Home', href: '/' },
@@ -314,6 +315,9 @@ export function NavigationMenu() {
           });
         }}
       />
+
+      {/* Handle Starknet account derivation when connecting with EVM */}
+      <StarknetAccountDerivation />
     </nav>
   )
 } 
