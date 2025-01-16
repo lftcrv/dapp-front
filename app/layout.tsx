@@ -1,15 +1,12 @@
+'use client'
+
 import { Inter } from 'next/font/google'
 import { cn } from '@/lib/utils'
 import { NavigationMenu } from '@/components/navigation-menu'
-import { Providers } from '@/app/providers'
+import Providers from './providers'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
-
-export const metadata = {
-  title: 'LeftCurve',
-  description: 'Trade with confidence',
-}
 
 export default function RootLayout({
   children,

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { useWallet } from '@/lib/wallet-context'
+import { useWallets } from '@privy-io/react-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,7 +13,7 @@ import { Brain, Twitter, Flame, Rocket } from 'lucide-react'
 
 export default function CreateAgentPage() {
   const router = useRouter()
-  const { isConnected } = useWallet()
+  const { wallets } = useWallets()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [agentType, setAgentType] = useState<'leftcurve' | 'rightcurve'>('leftcurve')
   const [formData, setFormData] = useState({
@@ -28,7 +28,7 @@ export default function CreateAgentPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!isConnected) {
+    if (!wallets.length) {
       toast.error('🦊 Wallet Required', {
         description: 'Anon, you need to connect your wallet first!'
       })
@@ -207,12 +207,12 @@ export default function CreateAgentPage() {
                   ? 'bg-gradient-to-r from-yellow-500 to-pink-500'
                   : 'bg-gradient-to-r from-purple-500 to-pink-500'
               }`}
-              disabled={isSubmitting || !isConnected}
+              disabled={isSubmitting || !wallets.length}
             >
               <Flame className="mr-2 h-5 w-5" />
               {isSubmitting ? (
                 <>DEPLOYING...</>
-              ) : !isConnected ? (
+              ) : !wallets.length ? (
                 <>CONNECT WALLET</>
               ) : (
                 <>DEPLOY {agentType === 'leftcurve' ? '🦧' : '🐙'} AGENT</>

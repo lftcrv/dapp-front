@@ -1,8 +1,9 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { connect, disconnect as starknetDisconnect } from 'starknetkit';
 import { showToast } from '@/components/ui/custom-toast';
+import { InjectedConnector } from 'starknetkit/injected';
 
 interface WalletContextType {
   address?: string;
@@ -22,22 +23,17 @@ export function useWallet() {
   return context;
 }
 
-interface StarknetWallet {
-  id: string;
-  isConnected: boolean;
-  account?: {
-    address: string;
-  };
-  enable: () => Promise<void>;
-}
-
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [address, setAddress] = useState<string>();
   const [isConnecting, setIsConnecting] = useState(false);
   const [walletType, setWalletType] = useState<'argent' | 'braavos'>();
-  const [lastDisconnectTime, setLastDisconnectTime] = useState<number>(0);
 
   const createOrUpdateUser = useCallback(async (starknetAddress: string) => {
+    if (!starknetAddress) {
+      console.error('No Starknet address provided');
+      return;
+    }
+    
     try {
       const response = await fetch('/api/users', {
         method: 'POST',
@@ -48,78 +44,132 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       if (!response.ok) {
         throw new Error('Failed to create/update user');
       }
+
+      const data = await response.json();
+      console.log('User data:', data);
     } catch (error) {
       console.error('Error creating/updating user:', error);
       showToast('error', '🤪 SMOL BRAIN MOMENT', {
         description: '💀 Failed to sync your degen data... Try again or ask the MidCurve Support!'
       });
+      throw error; // Re-throw to handle in the connection flow
     }
   }, []);
 
   const cleanupStarknet = useCallback(async () => {
     try {
-      // First reset state to ensure UI updates immediately
+      await starknetDisconnect({ clearLastWallet: true });
       setAddress(undefined);
       setWalletType(undefined);
-      
-      // Then attempt to disconnect
-      await starknetDisconnect();
-      
-      // Record the disconnect time
-      setLastDisconnectTime(Date.now());
-      
-      // Force a delay to ensure cleanup is complete
-      await new Promise(resolve => setTimeout(resolve, 500));
     } catch (error) {
       console.log("StarkNet disconnect error (expected):", error);
-      // Even if disconnect fails, ensure state is reset
       setAddress(undefined);
       setWalletType(undefined);
-      setLastDisconnectTime(Date.now());
     }
   }, []);
 
   const connectToStarknet = useCallback(async () => {
-    // Prevent rapid reconnection attempts
-    const timeSinceLastDisconnect = Date.now() - lastDisconnectTime;
-    if (timeSinceLastDisconnect < 1000) {
-      await new Promise(resolve => setTimeout(resolve, 1000 - timeSinceLastDisconnect));
-    }
-
     if (isConnecting) {
       console.log("Connection already in progress...");
       return;
     }
 
+    let cleanup: (() => void) | undefined;
+
     try {
       setIsConnecting(true);
-      // Clean up any existing connection first
-      await cleanupStarknet();
       
-      // Add a small delay before attempting to connect
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const connection = await connect({ 
-        modalMode: "alwaysAsk",
+      // First try to get any existing connection
+      const { wallet: existingWallet, connectorData: existingConnectorData } = await connect({
+        modalMode: "neverAsk",
+        modalTheme: "dark",
         dappName: "LeftCurve",
       });
-      
-      if (connection?.wallet) {
-        const wallet = connection.wallet as unknown as StarknetWallet;
-        await wallet.enable();
+
+      // If there's an existing connection, use it
+      if (existingWallet && existingConnectorData?.account) {
+        console.log("Using existing connection:", { existingWallet, existingConnectorData });
+        setAddress(existingConnectorData.account);
+        setWalletType(existingWallet.id === 'braavos' ? 'braavos' : 'argent');
         
-        if (wallet.isConnected && wallet.account?.address) {
-          setAddress(wallet.account.address);
-          setWalletType(wallet.id === 'braavos' ? 'braavos' : 'argent');
-          
-          // Create or update user
-          await createOrUpdateUser(wallet.account.address);
-          
-          showToast('success', '🧠 WAGMI FRENS!', {
-            description: '↗️ Your brain is now connected to LeftCurve! 📈'
+        try {
+          await createOrUpdateUser(existingConnectorData.account);
+          showToast('success', '🧠 Welcome Back!', {
+            description: `↗️ Your ${existingWallet.id === 'braavos' ? 'Braavos' : 'Argent'} wallet is ready! 📈`
           });
+        } catch (error) {
+          console.error('User sync failed:', error);
         }
+        return;
       }
+
+      // If no existing connection, try to connect with modal
+      const { wallet, connectorData } = await connect({
+        modalMode: "alwaysAsk",
+        modalTheme: "dark",
+        dappName: "LeftCurve",
+        webWalletUrl: "https://web.argent.xyz",
+        connectors: [
+          new InjectedConnector({ 
+            options: { 
+              id: "argentX",
+              name: "Argent X",
+            }
+          }),
+          new InjectedConnector({ 
+            options: { 
+              id: "braavos",
+              name: "Braavos",
+            }
+          }),
+        ],
+      });
+
+      console.log("New connection result:", { wallet, connectorData });
+
+      if (!wallet || !connectorData?.account) {
+        throw new Error("Failed to connect wallet");
+      }
+
+      // Set wallet info
+      const newAddress = connectorData.account;
+      const newWalletType = wallet.id === 'braavos' ? 'braavos' : 'argent';
+      
+      setAddress(newAddress);
+      setWalletType(newWalletType);
+
+      // Create or update user
+      try {
+        await createOrUpdateUser(newAddress);
+        
+        showToast('success', '🧠 WAGMI FRENS!', {
+          description: `↗️ Your ${newWalletType === 'braavos' ? 'Braavos' : 'Argent'} wallet is now connected to LeftCurve! 📈`
+        });
+      } catch (error) {
+        console.error('User sync failed:', error);
+      }
+
+      // Setup wallet event listeners
+      const handleAccountsChanged = (accounts?: string[]) => {
+        if (accounts?.[0]) {
+          setAddress(accounts[0]);
+        } else {
+          cleanupStarknet();
+        }
+      };
+
+      const handleNetworkChanged = async () => {
+        await cleanupStarknet();
+        connectToStarknet();
+      };
+
+      wallet.on('accountsChanged', handleAccountsChanged);
+      wallet.on('networkChanged', handleNetworkChanged);
+
+      cleanup = () => {
+        wallet.off('accountsChanged', handleAccountsChanged);
+        wallet.off('networkChanged', handleNetworkChanged);
+      };
     } catch (error) {
       if (error instanceof Error && !error.message.includes('User rejected')) {
         console.error('Error connecting wallet:', error);
@@ -127,19 +177,50 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           description: '↘️ MidCurver moment... Failed to connect. Try again ser! 📉'
         });
       }
-      // Ensure state is cleaned up on error
       await cleanupStarknet();
+      if (cleanup) cleanup();
     } finally {
       setIsConnecting(false);
     }
-  }, [cleanupStarknet, isConnecting, lastDisconnectTime, createOrUpdateUser]);
+  }, [isConnecting, cleanupStarknet, createOrUpdateUser]);
 
   const disconnect = useCallback(async () => {
+    const currentType = walletType;
     await cleanupStarknet();
     showToast('info', '👋 GM -> GN', {
-      description: '🌙 Paper hands ... See you soon!'
+      description: `🌙 ${currentType === 'braavos' ? 'Braavos' : 'Argent'} wallet disconnected... See you soon!`
     });
-  }, [cleanupStarknet]);
+  }, [cleanupStarknet, walletType]);
+
+  // Handle automatic reconnection
+  useEffect(() => {
+    let mounted = true;
+
+    const checkConnection = async () => {
+      try {
+        const { wallet, connectorData } = await connect({
+          modalMode: "neverAsk",
+          modalTheme: "dark",
+          dappName: "LeftCurve",
+        });
+
+        if (!mounted) return;
+
+        if (wallet && connectorData?.account) {
+          setAddress(connectorData.account);
+          setWalletType(wallet.id === 'braavos' ? 'braavos' : 'argent');
+        }
+      } catch (error) {
+        console.log("Auto-reconnect error (expected):", error);
+      }
+    };
+
+    checkConnection();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <WalletContext.Provider

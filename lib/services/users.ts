@@ -68,7 +68,7 @@ export function upsertUser(params: {
   // Try to find existing user
   let user = users.find(
     u => 
-      (params.starknetAddress && u.starknetAddress.toLowerCase() === params.starknetAddress.toLowerCase()) ||
+      (params.starknetAddress && u.starknetAddress?.toLowerCase() === params.starknetAddress.toLowerCase()) ||
       (params.evmAddress && u.evmAddress?.toLowerCase() === params.evmAddress.toLowerCase())
   );
 
