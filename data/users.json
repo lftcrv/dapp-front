@@ -5,7 +5,7 @@
       "starknetAddress": "0x23fc992d6f6e960bb38f8885a5046748754a4cdae8e37efc6ef738802932907",
       "privateKey": "0xa4a59a7ec59fa53e8a3277d2d2a5162c444e9823b5634287125608b97d9e5b",
       "createdAt": "2025-01-15T11:41:41.753Z",
-      "updatedAt": "2025-01-16T08:41:00.878Z"
+      "updatedAt": "2025-01-16T08:42:39.527Z"
     },
     {
       "id": "user_1736942194312",
@@ -27,6 +27,13 @@
       "privateKey": "0x47a33cd00b56791b058c95f10ff303588b6e88649c596affc6eb24ec99d288a",
       "createdAt": "2025-01-16T08:37:09.824Z",
       "updatedAt": "2025-01-16T08:41:18.347Z"
+    },
+    {
+      "id": "user_1737017237711",
+      "evmAddress": "0xABD7D15dFDf36e077a2C7F3875F75cfe299ECF2E",
+      "privateKey": "0x72c4b57fb1c0083cb867b58661fdf90e74536cf3cb79ed9f898d7a832b8426a",
+      "createdAt": "2025-01-16T08:47:17.651Z",
+      "updatedAt": "2025-01-16T08:51:41.528Z"
     }
   ]
 }

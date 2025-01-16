@@ -80,17 +80,30 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       setIsConnecting(true);
       
       // First try to get any existing connection
-      const { wallet: existingWallet } = await connect({
+      const { wallet: existingWallet, connectorData: existingConnectorData } = await connect({
         modalMode: "neverAsk",
+        modalTheme: "dark",
         dappName: "LeftCurve",
       });
 
-      // If there's an existing connection, disconnect first
-      if (existingWallet) {
-        await cleanupStarknet();
+      // If there's an existing connection, use it
+      if (existingWallet && existingConnectorData?.account) {
+        console.log("Using existing connection:", { existingWallet, existingConnectorData });
+        setAddress(existingConnectorData.account);
+        setWalletType(existingWallet.id === 'braavos' ? 'braavos' : 'argent');
+        
+        try {
+          await createOrUpdateUser(existingConnectorData.account);
+          showToast('success', '🧠 Welcome Back!', {
+            description: `↗️ Your ${existingWallet.id === 'braavos' ? 'Braavos' : 'Argent'} wallet is ready! 📈`
+          });
+        } catch (error) {
+          console.error('User sync failed:', error);
+        }
+        return;
       }
 
-      // Now try to connect with modal
+      // If no existing connection, try to connect with modal
       const { wallet, connectorData } = await connect({
         modalMode: "alwaysAsk",
         modalTheme: "dark",
@@ -112,14 +125,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         ],
       });
 
-      console.log("Connection result:", { wallet, connectorData });
+      console.log("New connection result:", { wallet, connectorData });
 
       if (!wallet || !connectorData?.account) {
         throw new Error("Failed to connect wallet");
       }
-
-      // Request accounts access
-      await wallet.request({ type: "wallet_requestAccounts" });
 
       // Set wallet info
       const newAddress = connectorData.account;
@@ -136,7 +146,6 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           description: `↗️ Your ${newWalletType === 'braavos' ? 'Braavos' : 'Argent'} wallet is now connected to LeftCurve! 📈`
         });
       } catch (error) {
-        // User sync failed but wallet is still connected
         console.error('User sync failed:', error);
       }
 

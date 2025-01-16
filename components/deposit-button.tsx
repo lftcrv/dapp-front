@@ -1,20 +1,17 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { useWallet } from '@/lib/wallet-context';
 import { usePrivy } from '@privy-io/react-auth';
+import { useAccount } from 'wagmi';
 import { DepositModal } from './deposit-modal';
 import { useState } from 'react';
 
 export function DepositButton() {
   const [showModal, setShowModal] = useState(false);
-  const { address: starknetAddress } = useWallet();
-  const { ready: privyReady, user } = usePrivy();
+  const { authenticated } = usePrivy();
+  const { address } = useAccount();
 
-  const evmAddress = user?.wallet?.address;
-  const isConnected = Boolean(starknetAddress || (privyReady && evmAddress));
-
-  if (!isConnected) {
+  if (!authenticated || !address) {
     return null;
   }
 
@@ -31,8 +28,8 @@ export function DepositButton() {
       <DepositModal 
         isOpen={showModal} 
         onClose={() => setShowModal(false)}
-        walletType={starknetAddress ? 'starknet' : 'evm'}
-        address={starknetAddress || evmAddress || ''}
+        walletType="evm"
+        address={address}
       />
     </>
   );
