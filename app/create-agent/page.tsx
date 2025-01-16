@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { usePrivy } from '@privy-io/react-auth'
@@ -19,7 +19,8 @@ import type { CharacterConfig } from '@/types/agent'
 type TabType = 'basic' | 'personality' | 'examples'
 const TABS: TabType[] = ['basic', 'personality', 'examples']
 
-type FormField = 'name' | 'bio' | 'lore' | 'knowledge' | 'topics' | 'adjectives' | 'postExamples'
+type ArrayFormField = 'bio' | 'lore' | 'knowledge' | 'topics' | 'adjectives' | 'postExamples'
+type FormField = ArrayFormField | 'name'
 
 type FormDataType = {
   name: string
@@ -70,6 +71,71 @@ export default function CreateAgentPage() {
   const [currentTab, setCurrentTab] = useState<TabType>('basic')
   const [formData, setFormData] = useState(initialFormData)
 
+  const handleArrayInput = (field: ArrayFormField, index: number, value: string) => {
+    setFormData((prev: FormDataType) => ({
+      ...prev,
+      [field]: prev[field].map((item: string, i: number) => i === index ? value : item)
+    }))
+  }
+
+  const handleRemoveField = (field: ArrayFormField, index: number) => {
+    setFormData((prev: FormDataType) => ({
+      ...prev,
+      [field]: prev[field].filter((_: string, i: number) => i !== index)
+    }))
+  }
+
+  const handleAddField = (field: ArrayFormField) => {
+    setFormData((prev: FormDataType) => ({
+      ...prev,
+      [field]: [...prev[field], '']
+    }))
+  }
+
+  const renderArrayField = (field: ArrayFormField, label: string, placeholder: string) => (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <Label className="text-base font-medium">{label}</Label>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => handleAddField(field)}
+        >
+          <Plus className="h-4 w-4 mr-1" />
+          Add {label}
+        </Button>
+      </div>
+      <div className="space-y-3">
+        {formData[field].map((value: string, index: number) => (
+          <div key={index} className="flex gap-2 group">
+            <Input
+              value={value}
+              onChange={(e) => handleArrayInput(field, index, e.target.value)}
+              placeholder={placeholder}
+              className={`border-2 transition-all duration-200 ${
+                agentType === 'leftcurve'
+                  ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
+                  : 'focus:border-purple-500 focus:ring-purple-500/20'
+              }`}
+            />
+            {index > 0 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => handleRemoveField(field, index)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20 hover:text-red-700"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
   // Check if any wallet is connected
   const isWalletConnected = authenticated || Boolean(evmAddress)
 
@@ -97,13 +163,6 @@ export default function CreateAgentPage() {
     }
   }
 
-  const handleArrayInput = (field: FormField, index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: prev[field].map((item: string, i: number) => i === index ? value : item)
-    }))
-  }
-
   const handleStyleInput = (type: keyof typeof formData.style, index: number, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -126,20 +185,6 @@ export default function CreateAgentPage() {
           return [user, { ...agent, content: { text: value } }]
         }
       })
-    }))
-  }
-
-  const handleAddField = (field: FormField) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: [...prev[field], '']
-    }))
-  }
-
-  const handleRemoveField = (field: FormField, index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: prev[field].filter((_: string, i: number) => i !== index)
     }))
   }
 
@@ -250,17 +295,18 @@ export default function CreateAgentPage() {
       const result = await createAgent(formData.name, characterConfig)
       
       if (result.success) {
-        toast.success('Agent Deployed', {
-          description: 'Your agent is now live! 🚀'
+        toast.success('LFG! 🚀', {
+          description: `${formData.name} is ready to take over the world!`
         })
         router.push('/')
       } else {
-        throw new Error(result.error || 'Failed to create agent')
+        toast.error('Deploy Failed', {
+          description: result.error || 'Something went wrong'
+        })
       }
     } catch (error) {
-      console.error('Error deploying agent:', error)
-      toast.error('Failed to Deploy', {
-        description: error instanceof Error ? error.message : 'An unexpected error occurred'
+      toast.error('Deploy Failed', {
+        description: error instanceof Error ? error.message : 'Something went wrong'
       })
     } finally {
       setIsSubmitting(false)
@@ -285,55 +331,6 @@ export default function CreateAgentPage() {
     { id: 'personality', icon: MessageSquare, label: 'Personality' },
     { id: 'examples', icon: Pencil, label: 'Examples' }
   ]
-
-  const renderArrayField = (field: FormField, label: string, placeholder: string) => (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <Label className="text-base font-medium">{label}</Label>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => handleAddField(field)}
-          className={`transition-all duration-200 ${
-            agentType === 'leftcurve' 
-              ? 'hover:bg-yellow-500/20 hover:text-yellow-700 hover:border-yellow-500' 
-              : 'hover:bg-purple-500/20 hover:text-purple-700 hover:border-purple-500'
-          }`}
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          Add {label}
-        </Button>
-      </div>
-      <div className="space-y-3">
-        {formData[field].map((value: string, index: number) => (
-          <div key={index} className="flex gap-2 group">
-            <Input
-              value={value}
-              onChange={(e) => handleArrayInput(field, index, e.target.value)}
-              placeholder={placeholder}
-              className={`border-2 transition-all duration-200 ${
-                agentType === 'leftcurve'
-                  ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
-                  : 'focus:border-purple-500 focus:ring-purple-500/20'
-              }`}
-            />
-            {index > 0 && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => handleRemoveField(field, index)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20 hover:text-red-700"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  )
 
   const renderStyleField = (type: keyof typeof formData.style, label: string, placeholder: string) => (
     <div className="space-y-2">
