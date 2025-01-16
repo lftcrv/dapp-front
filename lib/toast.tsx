@@ -13,18 +13,18 @@ const ICONS = {
 } as const
 
 const MESSAGES = {
-  CONNECTING: { text: "GM! Connecting your Starknet wallet...", icon: 'wallet' },
-  CONNECTED: { text: "Wallet connected!", icon: 'wallet' },
-  CONNECTION_ERROR: { text: "Failed to connect wallet", icon: 'error' },
-  EVM_CONNECTING: { text: "Connecting your EVM wallet...", icon: 'wallet' },
-  EVM_CONNECTED: { text: "EVM wallet connected!", icon: 'wallet' },
-  EVM_ERROR: { text: "Failed to connect EVM wallet", icon: 'error' },
-  EVM_DISCONNECT: { text: "EVM wallet disconnected", icon: 'wallet' },
-  DEPLOYING: { text: "Deploying your agent...", icon: 'rocket' },
-  DEPLOYED: { text: "Agent deployed successfully!", icon: 'bot' },
-  DEPLOY_ERROR: { text: "Failed to deploy agent", icon: 'error' },
-  DISCONNECT: { text: "Wallet disconnected", icon: 'wallet' },
-  DEFAULT_ERROR: { text: "An error occurred", icon: 'error' }
+  CONNECTING: { text: "🦧 Aping into Starknet ser...", icon: 'wallet' },
+  CONNECTED: { text: "🐋 Based! Wallet connected!", icon: 'wallet' },
+  CONNECTION_ERROR: { text: "😭 Ngmi... Connection failed", icon: 'error' },
+  EVM_CONNECTING: { text: "🦍 Summoning EVM wallet...", icon: 'wallet' },
+  EVM_CONNECTED: { text: "🚀 Sigma grindset activated!", icon: 'wallet' },
+  EVM_ERROR: { text: "💀 Down bad... EVM failed", icon: 'error' },
+  EVM_DISCONNECT: { text: "👋 Paper hands detected", icon: 'wallet' },
+  DEPLOYING: { text: "🐙 Deploying gigabrain agent...", icon: 'rocket' },
+  DEPLOYED: { text: "🧠 Agent ready to flip midcurvers!", icon: 'bot' },
+  DEPLOY_ERROR: { text: "🤡 Deployment rugged", icon: 'error' },
+  DISCONNECT: { text: "🫡 See you on the curve ser", icon: 'wallet' },
+  DEFAULT_ERROR: { text: "💩 Ngmi... Something went wrong", icon: 'error' }
 } as const
 
 export function showToast(message: keyof typeof MESSAGES, type: ToastType = 'success') {
