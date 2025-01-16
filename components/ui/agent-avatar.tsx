@@ -1,31 +1,33 @@
-import { UserCircle } from 'lucide-react'
-import Image from 'next/image'
 import { useState } from 'react'
+import Image from 'next/image'
+import { cn } from '@/lib/utils'
+
+// Default avatar if image fails to load
+const DEFAULT_AVATAR = '/avatars/default-agent.svg'
 
 interface AgentAvatarProps {
   src?: string
   alt: string
+  className?: string
 }
 
-export function AgentAvatar({ src, alt }: AgentAvatarProps) {
+export function AgentAvatar({ src, alt, className }: AgentAvatarProps) {
   const [error, setError] = useState(false)
-
-  if (!src || error) {
-    return (
-      <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center">
-        <UserCircle className="w-8 h-8 text-gray-400" />
-      </div>
-    )
-  }
-
+  const imageSrc = error || !src ? DEFAULT_AVATAR : src
+  
   return (
-    <div className="relative w-12 h-12">
+    <div className={cn("relative w-8 h-8 rounded-full overflow-hidden bg-white/5", className)}>
       <Image
-        src={src}
+        src={imageSrc}
         alt={alt}
-        fill
-        className="object-cover rounded-lg"
+        width={32}
+        height={32}
+        className={cn(
+          "object-cover transition-opacity",
+          error ? "opacity-50" : "opacity-100"
+        )}
         onError={() => setError(true)}
+        priority // Add priority to load early
       />
     </div>
   )

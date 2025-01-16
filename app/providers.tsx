@@ -1,57 +1,51 @@
 'use client'
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import * as React from 'react'
 import { PrivyProvider } from '@privy-io/react-auth'
-import { WagmiProvider } from '@privy-io/wagmi'
-import { Toaster } from 'sonner'
-import { wagmiConfig } from '@/lib/wagmi-config'
-import { mainnet, sepolia } from 'viem/chains'
-import { WalletProvider } from '@/lib/wallet-context'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { WagmiProvider, createConfig } from '@privy-io/wagmi'
+import { mainnet } from 'viem/chains'
+import { http } from 'viem'
 
 const queryClient = new QueryClient()
+
+const config = createConfig({
+  chains: [mainnet],
+  transports: {
+    [mainnet.id]: http()
+  }
+})
+
+const privyConfig = {
+  loginMethods: ['wallet'] as Array<'wallet'>,
+  appearance: {
+    theme: 'dark' as const,
+    accentColor: '#F97316' as `#${string}`,
+    showWalletLoginFirst: true,
+  },
+  supportedChains: [mainnet],
+  defaultChain: mainnet,
+  embeddedWallets: {
+    createOnLogin: 'users-without-wallets' as const,
+  },
+  walletConnectProjectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
+  // Disable third-party storage access
+  storageAccessBehavior: {
+    allowLocalStorage: true,
+    allowSessionStorage: true,
+    allowIndexedDB: false,
+  },
+}
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <PrivyProvider
-      appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID!}
-      config={{
-        appearance: {
-          theme: 'dark',
-          accentColor: '#FF5733',
-          logo: '/logo.png',
-        },
-        embeddedWallets: {
-          createOnLogin: 'users-without-wallets',
-        },
-        defaultChain: mainnet,
-        supportedChains: [mainnet, sepolia],
-        loginMethods: ['wallet'],
-      }}
+      appId="cm5xsjyf902mm5xx5c6oo3vyv"
+      config={privyConfig}
     >
       <QueryClientProvider client={queryClient}>
-        <WagmiProvider config={wagmiConfig}>
-          <WalletProvider>
-            {children}
-            <Toaster 
-              position="bottom-right"
-              toastOptions={{
-                style: {
-                  background: "rgba(0, 0, 0, 0.9)",
-                  color: "white",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  backdropFilter: "blur(12px)",
-                  WebkitBackdropFilter: "blur(12px)",
-                  fontFamily: "monospace",
-                  boxShadow: "0 0 20px rgba(0, 0, 0, 0.5)",
-                  borderRadius: "8px"
-                },
-                className: "font-mono",
-                duration: 4000,
-                unstyled: true
-              }}
-              closeButton
-            />
-          </WalletProvider>
+        <WagmiProvider config={config}>
+          {children}
         </WagmiProvider>
       </QueryClientProvider>
     </PrivyProvider>

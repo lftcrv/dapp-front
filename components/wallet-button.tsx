@@ -5,7 +5,6 @@ import { usePrivy } from '@privy-io/react-auth'
 import { useAccount } from 'wagmi'
 import { Button } from '@/components/ui/button'
 import { shortAddress } from '@/lib/utils'
-import { WalletConnectModal } from './wallet-connect-modal'
 import { Wallet2, LogOut, Copy } from 'lucide-react'
 import { connect, disconnect } from 'starknetkit'
 import {
@@ -18,13 +17,26 @@ import {
 import { showToast } from '@/components/ui/custom-toast'
 import { type StarknetWindowObject } from 'get-starknet-core'
 
+// Helper function for colored console logs
+function logPerf(action: string, duration: number, walletType: string = '') {
+  console.log('\x1b[36m%s\x1b[0m', `⏱️ ${action}${walletType ? ` (${walletType})` : ''}: ${duration.toFixed(2)}ms`);
+}
+
 interface StarknetWalletState {
   wallet: StarknetWindowObject | null;
   address?: string;
   isConnected: boolean;
 }
 
+// Lazy load modal only when needed
+const WalletConnectModal = React.lazy(() => 
+  import('./wallet-connect-modal').then(mod => ({
+    default: mod.WalletConnectModal
+  }))
+);
+
 export function WalletButton() {
+  const mountTime = React.useRef(performance.now());
   const [showWalletModal, setShowWalletModal] = React.useState(false)
   const { ready, authenticated, logout } = usePrivy()
   const { address: evmAddress } = useAccount()
@@ -34,59 +46,104 @@ export function WalletButton() {
   })
   const [isLoadingWallet, setIsLoadingWallet] = React.useState(false)
 
-  // Function to clear Starknet state
+  // Log initial mount time
+  React.useEffect(() => {
+    const walletType = starknetWallet.isConnected ? 'Starknet' : authenticated ? 'EVM' : 'None';
+    logPerf('Wallet Mount', performance.now() - mountTime.current, walletType);
+  }, [authenticated, starknetWallet.isConnected]);
+
+  // Function to clear Starknet state with performance logging
   const clearStarknetState = React.useCallback(() => {
+    const startTime = performance.now();
     setStarknetWallet({
       wallet: null,
       isConnected: false
     });
     localStorage.removeItem('starknet_wallet');
+    sessionStorage.removeItem('starknet_wallet_cache');
+    logPerf('Clear State', performance.now() - startTime);
   }, []);
 
-  // Lazy load Starknet connection check
+  // Optimized connection check with caching
   const checkStarknetConnection = React.useCallback(async () => {
     if (isLoadingWallet || authenticated) return;
     
+    const startTime = performance.now();
     setIsLoadingWallet(true);
+    
     try {
-      const savedWallet = localStorage.getItem('starknet_wallet');
-      if (savedWallet) {
-        const { address, isConnected } = JSON.parse(savedWallet);
-        if (isConnected) {
-          const { wallet } = await connect({
-            modalMode: "neverAsk",
-            modalTheme: "dark",
-            dappName: "LeftCurve",
-          });
-          
-          if (wallet) {
-            try {
-              const [currentAddress] = await wallet.request({
-                type: 'wallet_requestAccounts'
-              });
-              
-              if (currentAddress === address) {
-                setStarknetWallet({
-                  wallet,
-                  address: currentAddress,
-                  isConnected: true
-                });
-              } else {
-                clearStarknetState();
-              }
-            } catch {
-              clearStarknetState();
-            }
-          } else {
-            clearStarknetState();
-          }
+      // Check cache first
+      const cachedWallet = sessionStorage.getItem('starknet_wallet_cache');
+      if (cachedWallet) {
+        const { timestamp, data } = JSON.parse(cachedWallet);
+        // Cache valid for 5 minutes
+        if (Date.now() - timestamp < 5 * 60 * 1000) {
+          setStarknetWallet(data);
+          logPerf('Cache Hit', performance.now() - startTime);
+          return;
         }
+      }
+
+      const savedWallet = localStorage.getItem('starknet_wallet');
+      if (!savedWallet) {
+        logPerf('No Saved Wallet Check', performance.now() - startTime);
+        return;
+      }
+
+      const { address, isConnected } = JSON.parse(savedWallet);
+      if (!isConnected) {
+        logPerf('Not Connected Check', performance.now() - startTime);
+        return;
+      }
+
+      const connectStartTime = performance.now();
+      const { wallet } = await connect({
+        modalMode: "neverAsk",
+        modalTheme: "dark",
+        dappName: "LeftCurve",
+      });
+      logPerf('Starknet Connect', performance.now() - connectStartTime);
+      
+      if (!wallet) {
+        clearStarknetState();
+        logPerf('No Wallet Connect', performance.now() - startTime);
+        return;
+      }
+
+      const addressCheckStartTime = performance.now();
+      try {
+        const [currentAddress] = await wallet.request({
+          type: 'wallet_requestAccounts'
+        });
+        
+        if (currentAddress === address) {
+          const walletState = {
+            wallet,
+            address: currentAddress,
+            isConnected: true
+          };
+          setStarknetWallet(walletState);
+          // Cache the successful connection
+          sessionStorage.setItem('starknet_wallet_cache', JSON.stringify({
+            timestamp: Date.now(),
+            data: walletState
+          }));
+          logPerf('Successful Connect', performance.now() - addressCheckStartTime);
+        } else {
+          clearStarknetState();
+          logPerf('Address Mismatch', performance.now() - addressCheckStartTime);
+        }
+      } catch {
+        clearStarknetState();
+        logPerf('Address Check Failed', performance.now() - addressCheckStartTime);
       }
     } catch (err) {
       console.error('Failed to check Starknet connection:', err);
       clearStarknetState();
+      logPerf('Connection Error', performance.now() - startTime);
     } finally {
       setIsLoadingWallet(false);
+      logPerf('Total Connection Check', performance.now() - startTime);
     }
   }, [authenticated, clearStarknetState, isLoadingWallet]);
 
@@ -107,6 +164,7 @@ export function WalletButton() {
   }, [authenticated, starknetWallet.isConnected, clearStarknetState]);
 
   const handleDisconnect = async () => {
+    const startTime = performance.now();
     try {
       // Handle EVM wallet disconnection first
       if (authenticated) {
@@ -115,13 +173,13 @@ export function WalletButton() {
         showToast('info', '👋 GM -> GN', {
           description: '🌙 EVM wallet disconnected... See you soon!'
         });
-        return; // Exit early after EVM disconnect
+        logPerf('EVM Disconnect', performance.now() - startTime);
+        return;
       }
 
       // Handle Starknet wallet disconnection
       if (starknetWallet.isConnected && starknetWallet.wallet) {
         try {
-          // First try to disconnect using StarknetKit
           await disconnect();
         } catch {
           // Ignore error, we'll clear state anyway
@@ -131,12 +189,14 @@ export function WalletButton() {
         showToast('info', '👋 GM -> GN', {
           description: '🌙 Starknet wallet disconnected... See you soon!'
         });
+        logPerf('Starknet Disconnect', performance.now() - startTime);
       }
     } catch (err) {
       console.error('Failed to disconnect wallet:', err);
       showToast('error', '😭 NGMI...', {
         description: '↘️ Failed to disconnect. Try again ser! 📉'
       });
+      logPerf('Disconnect Error', performance.now() - startTime);
     }
   }
 
@@ -189,17 +249,21 @@ export function WalletButton() {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <WalletConnectModal
-          isOpen={showWalletModal}
-          onClose={() => setShowWalletModal(false)}
-          onStarknetConnect={(wallet: StarknetWindowObject, address: string) => {
-            setStarknetWallet({
-              wallet,
-              address,
-              isConnected: true
-            });
-          }}
-        />
+        {showWalletModal && (
+          <React.Suspense fallback={null}>
+            <WalletConnectModal
+              isOpen={showWalletModal}
+              onClose={() => setShowWalletModal(false)}
+              onStarknetConnect={(wallet: StarknetWindowObject, address: string) => {
+                setStarknetWallet({
+                  wallet,
+                  address,
+                  isConnected: true
+                });
+              }}
+            />
+          </React.Suspense>
+        )}
       </>
     )
   }
@@ -227,17 +291,21 @@ export function WalletButton() {
         )}
       </Button>
 
-      <WalletConnectModal
-        isOpen={showWalletModal}
-        onClose={() => setShowWalletModal(false)}
-        onStarknetConnect={(wallet: StarknetWindowObject, address: string) => {
-          setStarknetWallet({
-            wallet,
-            address,
-            isConnected: true
-          });
-        }}
-      />
+      {showWalletModal && (
+        <React.Suspense fallback={null}>
+          <WalletConnectModal
+            isOpen={showWalletModal}
+            onClose={() => setShowWalletModal(false)}
+            onStarknetConnect={(wallet: StarknetWindowObject, address: string) => {
+              setStarknetWallet({
+                wallet,
+                address,
+                isConnected: true
+              });
+            }}
+          />
+        </React.Suspense>
+      )}
     </>
   )
 } 
