@@ -208,7 +208,7 @@ export function PriceChart({
       window.removeEventListener('resize', handleResize)
       chart.remove()
     }
-  }, [chartData, interval, showMarketCap, aggregateData, tradingPair])
+  }, [chartData, interval, showMarketCap, aggregateData, tradingPair, data])
 
   return (
     <div className="space-y-2">

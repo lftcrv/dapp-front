@@ -6,6 +6,7 @@ import { WagmiProvider } from '@privy-io/wagmi'
 import { Toaster } from 'sonner'
 import { wagmiConfig } from '@/lib/wagmi-config'
 import { mainnet, sepolia } from 'viem/chains'
+import { WalletProvider } from '@/lib/wallet-context'
 
 const queryClient = new QueryClient()
 
@@ -29,26 +30,28 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     >
       <QueryClientProvider client={queryClient}>
         <WagmiProvider config={wagmiConfig}>
-          {children}
-          <Toaster 
-            position="bottom-right"
-            toastOptions={{
-              style: {
-                background: "rgba(0, 0, 0, 0.9)",
-                color: "white",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
-                backdropFilter: "blur(12px)",
-                WebkitBackdropFilter: "blur(12px)",
-                fontFamily: "monospace",
-                boxShadow: "0 0 20px rgba(0, 0, 0, 0.5)",
-                borderRadius: "8px"
-              },
-              className: "font-mono",
-              duration: 4000,
-              unstyled: true
-            }}
-            closeButton
-          />
+          <WalletProvider>
+            {children}
+            <Toaster 
+              position="bottom-right"
+              toastOptions={{
+                style: {
+                  background: "rgba(0, 0, 0, 0.9)",
+                  color: "white",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  backdropFilter: "blur(12px)",
+                  WebkitBackdropFilter: "blur(12px)",
+                  fontFamily: "monospace",
+                  boxShadow: "0 0 20px rgba(0, 0, 0, 0.5)",
+                  borderRadius: "8px"
+                },
+                className: "font-mono",
+                duration: 4000,
+                unstyled: true
+              }}
+              closeButton
+            />
+          </WalletProvider>
         </WagmiProvider>
       </QueryClientProvider>
     </PrivyProvider>

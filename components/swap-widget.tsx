@@ -16,12 +16,12 @@ interface SwapWidgetProps {
 
 export function SwapWidget({ agent }: SwapWidgetProps) {
   const [amount, setAmount] = useState('')
-  const { isConnected } = useWallet()
+  const { address } = useWallet()
   const { toast } = useToast()
   const isLeftCurve = agent.type === 'leftcurve'
 
   const handleSwap = () => {
-    if (!isConnected) {
+    if (!address) {
       toast({
         title: 'Connect Wallet',
         description: 'Please connect your wallet to trade.',
@@ -132,9 +132,14 @@ export function SwapWidget({ agent }: SwapWidgetProps) {
             )}
             size="lg"
             onClick={handleSwap}
-            disabled={!amount || parseFloat(amount) <= 0}
+            disabled={!address || !amount}
           >
-            {isConnected ? 'Swap Tokens' : 'Connect Wallet'}
+            {!address 
+              ? "Connect Wallet"
+              : !amount
+                ? "Enter Amount"
+                : "Swap"
+            }
           </Button>
 
           <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
@@ -204,9 +209,14 @@ export function SwapWidget({ agent }: SwapWidgetProps) {
             )}
             size="lg"
             onClick={handleSwap}
-            disabled={!amount || parseFloat(amount) <= 0}
+            disabled={!address || !amount}
           >
-            {isConnected ? 'Swap Tokens' : 'Connect Wallet'}
+            {!address 
+              ? "Connect Wallet"
+              : !amount
+                ? "Enter Amount"
+                : "Swap"
+            }
           </Button>
 
           <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
