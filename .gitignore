@@ -42,3 +42,17 @@ next-env.d.ts
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Test data
+/data/users.json
+/data/*.json
+
+# Ensure all env files are ignored
+.env
+.env.*
+!.env.example
+
+# Additional security
+*.key
+*.pem
+.secret*
