@@ -1,5 +1,4 @@
-import { ChatMessage } from '@/lib/types'
-import { ApiResponse } from './types'
+import { ChatMessage, ApiResponse } from '@/lib/types'
 import chatData from '@/data/chat-messages.json'
 
 export const chatService = {

@@ -1,26 +1,63 @@
-// Agent Types
+// Common Types
 export type AgentType = 'leftcurve' | 'rightcurve'
 export type AgentStatus = 'bonding' | 'live' | 'ended'
 export type TradeType = 'buy' | 'sell'
 
+// Price Types
+export interface PriceData {
+  time: number
+  open: number
+  high: number
+  low: number
+  close: number
+  volume: number
+}
+
+// Market Types
+export interface BondingMetric {
+  agentId: string
+  price: number
+  liquidity: number
+  holders: number
+  volume24h: number
+  priceChange24h: number
+  timestamp: string
+}
+
+export interface OnChainPrice {
+  symbol: string
+  price: number
+  volume24h: number
+  priceChange24h: number
+  timestamp: string
+}
+
+// API Types
+export interface ApiResponse<T> {
+  success: boolean
+  data: T
+  error?: {
+    code: string
+    message: string
+  }
+}
+
+// Agent Types
 export interface Agent {
   id: string
   name: string
-  avatar: string
+  symbol: string
   type: AgentType
   status: AgentStatus
-  symbol: string
+  avatar?: string
   price: number
-  holders: number
   marketCap: number
-  creativityIndex: number
-  performanceIndex: number
+  holders: number
   creator: string
   createdAt: string
   lore?: string
-  description?: string
-  tradingStrategy?: string
-  twitterHandle?: string
+  creativityIndex: number
+  performanceIndex: number
 }
 
 // Trade Types
@@ -34,36 +71,6 @@ export interface Trade {
   summary: string
   txHash: string
   success: boolean
-}
-
-// Price Types
-export interface BondingMetric {
-  id: string
-  agentId: string
-  timestamp: string
-  currentPrice: number
-  targetPrice: number
-  bondingProgress: number
-  liquidity: number
-  holdersCount: number
-  volume24h: number
-  remainingSupply: number
-  issuanceRate: number
-  estimatedTime?: string
-}
-
-export interface OnChainPrice {
-  id: string
-  symbol: string
-  blockNumber: string
-  timestamp: string
-  price: number
-  volume: number
-  liquidity: number
-  holders: number
-  marketCap: number
-  txHash?: string
-  source: string
 }
 
 // Performance Types
@@ -93,79 +100,36 @@ export interface ChatMessage {
   isCurrentUser: boolean
 }
 
-// Market Overview Types
-export interface MarketOverview {
-  bondingMetrics: {
-    totalAgents: number
-    totalHolders: number
-    totalLiquidity: number
-    volume24h: number
-  }
-  marketMetrics: {
-    totalAgents: number
-    totalHolders: number
-    totalLiquidity: number
-    volume24h: number
-  }
-  topPerformers: Array<{
-    agentId: string
-    symbol: string
-    performanceScore: number
-    priceChange24h: number
-    source: 'bonding' | 'market'
-  }>
-  recentTrades: Array<{
-    agentId: string
-    symbol: string
-    type: TradeType
-    price: number
-    amount: number
-    timestamp: string
-    source: 'bonding' | 'market'
-  }>
-}
-
-// Wallet Types
-export interface WalletInfo {
-  address: string
-  network: string
-  balance?: string
-}
-
-// API Response Types
-export interface ApiResponse<T> {
-  success: boolean
-  data: T
-  error?: {
-    code: string
-    message: string
-  }
-}
-
-// Form Types
-export interface CreateAgentForm {
+// Character Config Types
+export interface CharacterConfig {
   name: string
-  lore: string
-  personality: string
-  tradingStrategy?: string
-  twitterHandle?: string
+  clients: string[]
+  modelProvider: string
+  settings: {
+    secrets: Record<string, string>
+    voice: {
+      model: string
+    }
+  }
+  plugins: string[]
+  bio: string[]
+  lore: string[]
+  knowledge: string[]
+  messageExamples: Array<[
+    { user: string; content: { text: string } },
+    { user: string; content: { text: string } }
+  ]>
+  postExamples: string[]
+  topics: string[]
+  style: {
+    all: string[]
+    chat: string[]
+    post: string[]
+  }
+  adjectives: string[]
 }
 
-// Table Types
-export interface SortConfig<T> {
-  key: keyof T
-  direction: 'asc' | 'desc'
-}
-
-export interface PriceData {
-  time: number
-  open: number
-  high: number
-  low: number
-  close: number
-  volume: number
-}
-
+// Protocol Fee Types
 export interface ProtocolFeesData {
   totalFees: string
   periodFees: string
@@ -194,17 +158,5 @@ export interface ProtocolFeesData {
       }>
     }
   }
-  userShares: {
-    [key: string]: string
-  }
-}
-
-declare global {
-  interface Window {
-    ethereum?: {
-      request: (args: { method: string }) => Promise<string[]>
-      on: (event: string, callback: (accounts: string[]) => void) => void
-      removeListener: (event: string, callback: (accounts: string[]) => void) => void
-    }
-  }
+  userShares: Record<string, string>
 } 

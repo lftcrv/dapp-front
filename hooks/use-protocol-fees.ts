@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useWallet } from '@/lib/wallet-context'
 import { protocolFeesService } from '@/lib/services/api/protocol-fees'
 import { useToast } from '@/hooks/use-toast'
-import { ApiResponse, ProtocolFeesData } from '@/lib/types'
+import { ApiResponse } from '@/lib/types'
+import { ProtocolFeesData } from '@/lib/types'
 
 export interface TimeLeft {
   days: number

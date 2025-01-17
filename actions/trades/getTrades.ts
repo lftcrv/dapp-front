@@ -1,8 +1,9 @@
 'use server'
 
-import { CharacterConfig } from '../types/agent'
+import { Trade } from '@/lib/types'
+import { TradeType } from '@/lib/types'
 
-export async function createAgent(name: string, characterConfig: CharacterConfig) {
+export async function getTrades(agentId?: string) {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL
     const apiKey = process.env.ELIZA_API_KEY
@@ -11,13 +12,15 @@ export async function createAgent(name: string, characterConfig: CharacterConfig
       throw new Error('Missing API configuration')
     }
 
-    const response = await fetch(`${apiUrl}/api/eliza-agent`, {
-      method: 'POST',
+    const endpoint = agentId 
+      ? `${apiUrl}/api/trading-information/${agentId}`
+      : `${apiUrl}/api/trading-information`
+
+    const response = await fetch(endpoint, {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey
-      },
-      body: JSON.stringify({ name, characterConfig })
+      }
     })
 
     const data = await response.json()
@@ -26,21 +29,24 @@ export async function createAgent(name: string, characterConfig: CharacterConfig
       // Handle specific error cases
       if (response.status === 401) {
         throw new Error('Invalid API key')
-      } else if (response.status === 400) {
-        throw new Error(data.message || 'Invalid agent configuration')
+      } else if (response.status === 404) {
+        throw new Error('Agent not found')
       } else if (response.status >= 500) {
         throw new Error('Server error - please try again later')
       }
-      throw new Error(data.message || 'Failed to create agent')
+      throw new Error(data.message || 'Failed to fetch trades')
     }
 
     return {
       success: true,
-      data
+      data: data.trades.map((trade: any) => ({
+        ...trade,
+        type: trade.type as TradeType
+      })) as Trade[]
     }
 
   } catch (error) {
-    console.error('Error creating agent:', error)
+    console.error('Error fetching trades:', error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unexpected error occurred'

@@ -1,5 +1,5 @@
 import { Agent, AgentType, AgentStatus } from '@/lib/types'
-import { getAgents, getAgentById } from '@/actions/getAgents'
+import { getAgents, getAgentById } from '@/actions/agents/query/getAgents'
 // TODO: REMOVE IN PRODUCTION - Development-only imports
 import agentsData from '@/data/agents.json'
 
@@ -26,7 +26,7 @@ export const agentService = {
       console.log('No agents found from API, using dummy data for testing')
       return agentsData.agents.map(mapAgent)
       // TODO: REMOVE IN PRODUCTION - End of development-only code
-    } catch (error) {
+    } catch {
       // TODO: REMOVE IN PRODUCTION - Start of development-only code
       console.log('Error fetching agents from API, using dummy data for testing')
       return agentsData.agents.map(mapAgent)
@@ -50,7 +50,7 @@ export const agentService = {
       const agent = agentsData.agents.find(agent => agent.id === id)
       return agent ? mapAgent(agent) : null
       // TODO: REMOVE IN PRODUCTION - End of development-only code
-    } catch (error) {
+    } catch {
       // TODO: REMOVE IN PRODUCTION - Start of development-only code
       console.log('Error fetching agent from API, using dummy data for testing')
       const agent = agentsData.agents.find(agent => agent.id === id)
