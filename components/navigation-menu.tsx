@@ -3,39 +3,61 @@
 import * as React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { DepositButton } from './deposit-button'
 import { WalletButtonSkeleton } from './wallet-button-skeleton'
-import { startTiming, endTiming } from '@/components/performance-monitor'
+import { 
+  startTiming, 
+  endTiming, 
+  measureNavigation,
+  startRouteTransition,
+  endRouteTransition 
+} from '@/lib/utils/performance'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import { memo } from 'react'
 
 const navigation = [
-  { name: 'Home', href: '/' },
-  { name: 'Create Agent', href: '/create-agent' },
-  { name: 'Leaderboard', href: '/leaderboard' }
+  { 
+    name: 'Home', 
+    href: '/',
+    segment: null
+  },
+  { 
+    name: 'Create Agent', 
+    href: '/create-agent',
+    segment: 'create-agent'
+  },
+  { 
+    name: 'Leaderboard', 
+    href: '/leaderboard',
+    segment: 'leaderboard'
+  }
 ] as const
 
+// Optimized prefetch hook with segment awareness
+const usePrefetch = () => {
+  const router = useRouter()
+  const pathname = usePathname()
+  
+  React.useEffect(() => {
+    // Only prefetch non-active routes
+    navigation
+      .filter(item => item.segment !== pathname.split('/')[1])
+      .forEach(item => {
+        // Delay prefetch slightly to prioritize current route
+        setTimeout(() => {
+          router.prefetch(item.href)
+        }, 100)
+      })
+  }, [router, pathname])
+}
+
+// Optimized dynamic import with better error boundary
 const WalletButtonContainer = dynamic(() => 
-  import('./wallet-button')
-    .then(mod => {
-      const Component = mod.WalletButton as React.FC
-      Component.displayName = 'WalletButton'
-      return Component
-    })
-    .catch(err => {
-      console.error('Failed to load wallet button:', err)
-      const FallbackComponent: React.FC = () => <WalletButtonSkeleton />
-      FallbackComponent.displayName = 'WalletButtonFallback'
-      return FallbackComponent
-    }),
+  import('./wallet-button').then(mod => mod.WalletButton), 
   { 
-    loading: () => {
-      const LoadingComponent: React.FC = () => <WalletButtonSkeleton />
-      LoadingComponent.displayName = 'WalletButtonLoading'
-      return <LoadingComponent />
-    },
+    loading: () => <WalletButtonSkeleton />,
     ssr: false 
   }
 )
@@ -56,24 +78,47 @@ const Logo = memo(() => (
 ))
 Logo.displayName = 'Logo'
 
-const NavLink = memo(({ href, isActive, children }: { href: string, isActive: boolean, children: React.ReactNode }) => (
-  <Link
-    href={href}
-    className={`text-sm transition-colors hover:text-primary relative ${
-      isActive ? 'text-primary font-medium' : 'text-muted-foreground'
-    }`}
-  >
-    {children}
-    {isActive && (
-      <motion.div
-        layoutId="activeIndicator"
-        className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary"
-        initial={false}
-        transition={{ type: "spring", stiffness: 380, damping: 30 }}
-      />
-    )}
-  </Link>
-))
+const NavLink = memo(({ href, isActive, children }: { href: string, isActive: boolean, children: React.ReactNode }) => {
+  const router = useRouter()
+  
+  const handleClick = React.useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    startRouteTransition()
+    // Use replace for same-segment navigation to avoid history stack
+    const isSameSegment = href.split('/')[1] === window.location.pathname.split('/')[1]
+    router[isSameSegment ? 'replace' : 'push'](href)
+  }, [router, href])
+
+  return (
+    <Link
+      href={href}
+      onClick={handleClick}
+      className={`text-sm transition-colors hover:text-primary relative ${
+        isActive ? 'text-primary font-medium' : 'text-muted-foreground'
+      }`}
+    >
+      {children}
+      {isActive && (
+        <motion.div
+          layoutId="activeIndicator"
+          className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary"
+          initial={false}
+          transition={{ 
+            type: "spring", 
+            stiffness: 380, 
+            damping: 30,
+            duration: 0.2
+          }}
+          onAnimationComplete={() => {
+            if (isActive) {
+              endRouteTransition()
+            }
+          }}
+        />
+      )}
+    </Link>
+  )
+})
 NavLink.displayName = 'NavLink'
 
 const MobileMenuButton = memo(({ isOpen, onClick }: { isOpen: boolean, onClick: () => void }) => (
@@ -108,12 +153,23 @@ export const NavigationMenu = memo(() => {
   const [isOpen, setIsOpen] = React.useState(false)
   const pathname = usePathname()
 
+  // Use the prefetch hook
+  usePrefetch()
+
+  // Track initial render with component name
   React.useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      startTiming('NavigationMenu')
-      return () => endTiming('NavigationMenu')
-    }
+    const name = 'NavigationMenu'
+    startTiming(`${name} Render`)
+    return () => endTiming(`${name} Render`)
   }, [])
+
+  // Track navigation changes with segment info
+  React.useEffect(() => {
+    const segment = pathname.split('/')[1] || 'home'
+    startTiming(`Navigation Change (${segment})`)
+    measureNavigation()
+    return () => endTiming(`Navigation Change (${segment})`)
+  }, [pathname])
 
   // Close mobile menu when route changes
   React.useEffect(() => {
@@ -148,7 +204,9 @@ export const NavigationMenu = memo(() => {
                 {item.name}
               </NavLink>
             ))}
-            <DepositButton />
+            <React.Suspense fallback={null}>
+              <DepositButton />
+            </React.Suspense>
             <React.Suspense fallback={<WalletButtonSkeleton />}>
               <WalletButtonContainer />
             </React.Suspense>
@@ -160,9 +218,9 @@ export const NavigationMenu = memo(() => {
           </div>
         </div>
       </div>
-
-      {/* Mobile menu */}
-      <AnimatePresence>
+      
+      {/* Mobile menu with optimized animation */}
+      <AnimatePresence mode="wait">
         {isOpen && (
           <motion.div 
             className="md:hidden"
@@ -171,10 +229,7 @@ export const NavigationMenu = memo(() => {
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
           >
-            <div 
-              id="mobile-menu"
-              className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-background/80 backdrop-blur-sm border-b border-white/5"
-            >
+            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-background/80 backdrop-blur-sm border-b border-white/5">
               {navigation.map((item) => (
                 <NavLink
                   key={item.href}
@@ -185,7 +240,9 @@ export const NavigationMenu = memo(() => {
                 </NavLink>
               ))}
               <div className="px-3 py-2">
-                <DepositButton />
+                <React.Suspense fallback={null}>
+                  <DepositButton />
+                </React.Suspense>
               </div>
               <div className="px-3 py-2">
                 <React.Suspense fallback={<WalletButtonSkeleton />}>
