@@ -11,7 +11,7 @@ export async function getLeaderboardLeft(limit: number = 10) {
       throw new Error('Missing API configuration')
     }
 
-    const response = await fetch(`${apiUrl}/api/leaderboard/leftcurve?limit=${limit}`, {
+    const response = await fetch(`${apiUrl}/api/leaderboard/left-curve?limit=${limit}`, {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey
