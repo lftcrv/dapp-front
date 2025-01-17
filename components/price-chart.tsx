@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { memo, useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { createChart, ColorType, UTCTimestamp, IChartApi, CrosshairMode, SeriesDataItemTypeMap, Time } from 'lightweight-charts'
 import { cn } from '@/lib/utils'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { Rocket, LineChart } from 'lucide-react'
+import { Skeleton } from './ui/skeleton'
+import { Alert, AlertDescription } from './ui/alert'
 
 type Interval = '15m' | '1h' | '4h' | '1d'
 
@@ -19,36 +21,145 @@ interface CandleData {
 }
 
 interface PriceChartProps {
-  data: {
-    time: number
-    open: number
-    high: number
-    low: number
-    close: number
-    volume: number
-  }[]
+  data: CandleData[]
   symbol?: string
   baseToken?: string
   quoteToken?: string
   inBondingCurve?: boolean
+  isLoading?: boolean
+  error?: Error | null
 }
 
-export function PriceChart({ 
+const LoadingState = memo(() => (
+  <div className="space-y-4">
+    <div className="flex items-center justify-between px-2">
+      <Skeleton className="h-8 w-32" />
+      <div className="flex gap-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-8 w-16" />
+        ))}
+      </div>
+    </div>
+    <Skeleton className="h-[400px] w-full" />
+  </div>
+))
+LoadingState.displayName = 'LoadingState'
+
+const ErrorState = memo(({ error }: { error: Error }) => (
+  <Alert variant="destructive">
+    <AlertDescription>
+      Failed to load chart data: {error.message}
+    </AlertDescription>
+  </Alert>
+))
+ErrorState.displayName = 'ErrorState'
+
+const ChartControls = memo(({ 
+  interval, 
+  setInterval, 
+  showMarketCap, 
+  setShowMarketCap,
+  tradingPair,
+  inBondingCurve
+}: { 
+  interval: Interval
+  setInterval: (i: Interval) => void
+  showMarketCap: boolean
+  setShowMarketCap: (show: boolean) => void
+  tradingPair: string
+  inBondingCurve: boolean
+}) => (
+  <div className="flex items-center justify-between px-2">
+    <div className="flex items-center gap-4">
+      <div className="font-mono text-sm font-medium">
+        {tradingPair}
+      </div>
+      <div className="flex items-center gap-4">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setShowMarketCap(!showMarketCap)}
+          className={cn(
+            "text-xs font-mono flex items-center gap-1.5",
+            showMarketCap && "bg-primary text-primary-foreground"
+          )}
+        >
+          <LineChart className="h-3 w-3" />
+          {showMarketCap ? 'MCAP' : 'PRICE'}
+        </Button>
+        <div className="flex items-center gap-2">
+          {(['15m', '1h', '4h', '1d'] as const).map((i) => (
+            <Button
+              key={i}
+              size="sm"
+              variant={interval === i ? 'default' : 'outline'}
+              onClick={() => setInterval(i)}
+              className="text-xs font-mono"
+            >
+              {i.toUpperCase()}
+            </Button>
+          ))}
+        </div>
+      </div>
+    </div>
+    {inBondingCurve && (
+      <Badge variant="outline" className="font-mono text-xs">
+        <Rocket className="mr-1 h-3 w-3" /> Bonding Curve
+      </Badge>
+    )}
+  </div>
+))
+ChartControls.displayName = 'ChartControls'
+
+const formatLegend = (
+  price: { time: Time, open: number, high: number, low: number, close: number }, 
+  tradingPair: string, 
+  interval: string,
+  showMarketCap: boolean
+) => {
+  const formatValue = (value: number) => {
+    if (showMarketCap) {
+      return value >= 1000000 
+        ? `$${(value / 1000000).toFixed(2)}M`
+        : `$${value.toFixed(2)}`
+    }
+    return `$${value.toFixed(6)}`
+  }
+
+  const date = new Date((price.time as number) * 1000)
+  const timeStr = interval === '1d'
+    ? date.toLocaleDateString()
+    : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+  return `
+    <div class="font-mono text-xs">
+      <div class="font-bold">${tradingPair} · ${timeStr}</div>
+      <div class="grid grid-cols-2 gap-x-4 mt-1">
+        <div>O: <span class="text-neutral-400">${formatValue(price.open)}</span></div>
+        <div>H: <span class="text-neutral-400">${formatValue(price.high)}</span></div>
+        <div>C: <span class="text-neutral-400">${formatValue(price.close)}</span></div>
+        <div>L: <span class="text-neutral-400">${formatValue(price.low)}</span></div>
+      </div>
+    </div>
+  `
+}
+
+export const PriceChart = memo(({ 
   data, 
   symbol = '', 
   baseToken = symbol, 
   quoteToken = 'USDC',
-  inBondingCurve = true 
-}: PriceChartProps) {
+  inBondingCurve = true,
+  isLoading,
+  error
+}: PriceChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const legendRef = useRef<HTMLDivElement>(null)
   const [interval, setInterval] = useState<Interval>('15m')
   const [showMarketCap, setShowMarketCap] = useState(false)
-  const [chartData, setChartData] = useState<CandleData[]>([])
   const tradingPair = `${baseToken}/${quoteToken}`
 
-  // Aggregate data based on interval
   const aggregateData = useCallback((rawData: CandleData[], intervalType: Interval) => {
     if (intervalType === '15m') return rawData
 
@@ -85,11 +196,9 @@ export function PriceChart({
     return Array.from(groupedData.values())
   }, [])
 
-  useEffect(() => {
-    if (!data) return
-    const aggregated = aggregateData(data, interval)
-    setChartData(aggregated)
-  }, [data, interval, aggregateData])
+  const chartData = useMemo(() => 
+    data ? aggregateData(data, interval) : []
+  , [data, interval, aggregateData])
 
   useEffect(() => {
     if (!chartContainerRef.current || !chartData.length) return
@@ -124,7 +233,6 @@ export function PriceChart({
       height: 400,
     })
 
-    // Create candlestick series
     const candlestickSeries = chart.addCandlestickSeries({
       upColor: '#22c55e',
       downColor: '#ef4444',
@@ -133,7 +241,6 @@ export function PriceChart({
       wickDownColor: '#ef4444',
     })
 
-    // Create volume series
     const volumeSeries = chart.addHistogramSeries({
       color: '#26a69a50',
       priceFormat: {
@@ -142,10 +249,8 @@ export function PriceChart({
       priceScaleId: '',
     })
 
-    // Format and set data based on interval
-    const aggregatedData = aggregateData(data, interval)
-    const formattedData = aggregatedData.map(d => {
-      const multiplier = showMarketCap ? 1000 : 1 // Use 1000 for market cap view
+    const formattedData = chartData.map(d => {
+      const multiplier = showMarketCap ? 1000 : 1
       return {
         time: (d.time) as UTCTimestamp,
         open: d.open * multiplier,
@@ -155,7 +260,7 @@ export function PriceChart({
       }
     })
 
-    const volumeData = aggregatedData.map(d => ({
+    const volumeData = chartData.map(d => ({
       time: (d.time) as UTCTimestamp,
       value: d.volume,
       color: d.close > d.open ? '#22c55e44' : '#ef444444',
@@ -164,7 +269,6 @@ export function PriceChart({
     candlestickSeries.setData(formattedData)
     volumeSeries.setData(volumeData)
 
-    // Add legend with price info
     if (legendRef.current) {
       const legend = legendRef.current
       chart.subscribeCrosshairMove(param => {
@@ -181,19 +285,14 @@ export function PriceChart({
         }
       })
 
-      // Show latest price initially
       if (formattedData.length > 0) {
         legend.innerHTML = formatLegend(formattedData[formattedData.length - 1], tradingPair, interval, showMarketCap)
       }
     }
 
-    // Fit content
     chart.timeScale().fitContent()
-
-    // Store chart reference
     chartRef.current = chart
 
-    // Handle resize
     const handleResize = () => {
       if (chartContainerRef.current) {
         chart.applyOptions({ 
@@ -208,113 +307,32 @@ export function PriceChart({
       window.removeEventListener('resize', handleResize)
       chart.remove()
     }
-  }, [chartData, interval, showMarketCap, aggregateData, tradingPair, data])
+  }, [chartData, interval, showMarketCap, tradingPair])
+
+  if (isLoading) {
+    return <LoadingState />
+  }
+
+  if (error) {
+    return <ErrorState error={error} />
+  }
 
   return (
     <div className="space-y-2">
-      {/* Header with trading pair, intervals, and status */}
-      <div className="flex items-center justify-between px-2">
-        <div className="flex items-center gap-4">
-          <div className="font-mono text-sm font-medium">
-            {tradingPair}
-          </div>
-          <div className="flex items-center gap-4">
-            {/* Market Cap Toggle */}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setShowMarketCap(!showMarketCap)}
-              className={cn(
-                "text-xs font-mono flex items-center gap-1.5",
-                showMarketCap && "bg-primary text-primary-foreground"
-              )}
-            >
-              <LineChart className="h-3 w-3" />
-              {showMarketCap ? 'MCAP' : 'PRICE'}
-            </Button>
-            {/* Time Intervals */}
-            <div className="flex items-center gap-2">
-              {(['15m', '1h', '4h', '1d'] as const).map((i) => (
-                <Button
-                  key={i}
-                  size="sm"
-                  variant={interval === i ? 'default' : 'outline'}
-                  onClick={() => setInterval(i)}
-                  className="text-xs font-mono"
-                >
-                  {i.toUpperCase()}
-                </Button>
-              ))}
-            </div>
-          </div>
-        </div>
-        
-        {/* Status Badge */}
-        <div className="flex items-center gap-2">
-          {inBondingCurve ? (
-            <Badge 
-              variant="outline" 
-              className="bg-gradient-to-r from-orange-500/10 to-purple-500/10 border-orange-500/50 text-orange-400 animate-pulse"
-            >
-              <Rocket className="w-3 h-3 mr-1" />
-              Bonding
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="bg-green-500/10 border-green-500/50 text-green-400">
-              Live Trading
-            </Badge>
-          )}
-          <div 
-            ref={legendRef}
-            className="text-xs font-mono bg-background/80 backdrop-blur-sm rounded px-2 py-1"
-          />
-        </div>
-      </div>
-
-      {/* Chart */}
+      <ChartControls 
+        interval={interval}
+        setInterval={setInterval}
+        showMarketCap={showMarketCap}
+        setShowMarketCap={setShowMarketCap}
+        tradingPair={tradingPair}
+        inBondingCurve={inBondingCurve}
+      />
+      <div ref={chartContainerRef} />
       <div 
-        ref={chartContainerRef} 
-        className={cn(
-          "w-full h-[400px]",
-          "bg-background/50 backdrop-blur-sm rounded-lg",
-          inBondingCurve && "bg-gradient-to-b from-orange-500/[0.02] to-purple-500/[0.02]"
-        )}
+        ref={legendRef} 
+        className="px-4 py-2 bg-card rounded-lg border text-card-foreground" 
       />
     </div>
   )
-}
-
-// Helper to format the legend text
-function formatLegend(
-  price: { time: Time, open: number, high: number, low: number, close: number }, 
-  tradingPair: string, 
-  interval: string,
-  showMarketCap: boolean
-) {
-  const date = new Date((price.time as number) * 1000)
-  const timeStr = interval === '1d' 
-    ? date.toLocaleDateString() 
-    : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  
-  const formatValue = (value: number) => {
-    if (showMarketCap) {
-      return `$${value.toLocaleString()}`
-    }
-    return `$${value.toFixed(6)}`
-  }
-  
-  return `
-    <div class="space-x-4">
-      <span class="text-muted-foreground">${interval}</span>
-      <span>${tradingPair} • ${timeStr}</span>
-      <span class="text-muted-foreground">O</span>
-      <span>${formatValue(price.open)}</span>
-      <span class="text-muted-foreground">H</span>
-      <span>${formatValue(price.high)}</span>
-      <span class="text-muted-foreground">L</span>
-      <span>${formatValue(price.low)}</span>
-      <span class="text-muted-foreground">C</span>
-      <span>${formatValue(price.close)}</span>
-    </div>
-  `
-} 
+})
+PriceChart.displayName = 'PriceChart' 

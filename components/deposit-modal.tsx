@@ -1,10 +1,11 @@
 'use client';
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { memo, useState, useCallback, useMemo } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
-import { useState } from 'react';
 import { shortAddress } from '@/lib/utils';
 import { useWallets } from '@privy-io/react-auth';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -27,7 +28,6 @@ const TOKENS = [
   { id: 'dai', name: 'DAI', icon: '💵' },
 ] as const;
 
-// Map chain IDs to network names used by bridges
 const CHAIN_NAMES: Record<number, string> = {
   1: 'ETHEREUM',
   42161: 'ARBITRUM',
@@ -58,18 +58,125 @@ const BRIDGES = [
 type Token = typeof TOKENS[number]['id'];
 type Bridge = typeof BRIDGES[number]['id'];
 
-export function DepositModal({ isOpen, onClose, walletType, address }: DepositModalProps) {
+interface WalletInfoProps {
+  walletType: 'starknet' | 'evm';
+  address: string;
+  chainId?: number;
+}
+
+const WalletInfo = memo(({ walletType, address, chainId }: WalletInfoProps) => (
+  <div className="flex flex-col gap-2">
+    <label className="text-sm font-medium">Connected Wallet</label>
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2 text-sm font-mono">
+        {walletType === 'starknet' ? (
+          <span>🌟 Starknet: {shortAddress(address)}</span>
+        ) : (
+          <span>⚡️ EVM: {shortAddress(address)}</span>
+        )}
+      </div>
+      {walletType === 'evm' && chainId && (
+        <div className="text-xs text-muted-foreground">
+          Network: {CHAIN_NAMES[chainId] || 'Unknown'}
+        </div>
+      )}
+    </div>
+  </div>
+))
+WalletInfo.displayName = 'WalletInfo'
+
+interface TokenSelectProps {
+  value: Token;
+  onChange: (value: Token) => void;
+}
+
+const TokenSelect = memo(({ value, onChange }: TokenSelectProps) => {
+  const selectedToken = useMemo(() => 
+    TOKENS.find(t => t.id === value)
+  , [value])
+
+  return (
+    <div className="flex flex-col gap-2">
+      <label className="text-sm font-medium">Token</label>
+      <Select
+        value={value}
+        onValueChange={(value) => onChange(value as Token)}
+      >
+        <SelectTrigger>
+          <SelectValue>
+            {selectedToken && (
+              <span className="flex items-center gap-2">
+                <span>{selectedToken.icon}</span>
+                <span>{selectedToken.name}</span>
+              </span>
+            )}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {TOKENS.map((token) => (
+            <SelectItem 
+              key={token.id} 
+              value={token.id}
+            >
+              <span className="flex items-center gap-2">
+                <span>{token.icon}</span>
+                <span>{token.name}</span>
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
+})
+TokenSelect.displayName = 'TokenSelect'
+
+interface BridgeSelectProps {
+  value: Bridge;
+  onChange: (value: Bridge) => void;
+}
+
+const BridgeSelect = memo(({ value, onChange }: BridgeSelectProps) => (
+  <div className="flex flex-col gap-2">
+    <label className="text-sm font-medium">Bridge</label>
+    <Select
+      value={value}
+      onValueChange={(value) => onChange(value as Bridge)}
+    >
+      <SelectTrigger>
+        <SelectValue>
+          {BRIDGES.find(b => b.id === value)?.name}
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        {BRIDGES.map((bridge) => (
+          <SelectItem 
+            key={bridge.id} 
+            value={bridge.id}
+          >
+            {bridge.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  </div>
+))
+BridgeSelect.displayName = 'BridgeSelect'
+
+export const DepositModal = memo(({ isOpen, onClose, walletType, address }: DepositModalProps) => {
   const [amount, setAmount] = useState('');
   const [selectedToken, setSelectedToken] = useState<Token>('eth');
   const [selectedBridge, setSelectedBridge] = useState<Bridge>('rhino');
   const { wallets } = useWallets();
 
-  // Get the current chain of the connected EVM wallet
-  const currentWallet = wallets.find(w => w.address.toLowerCase() === address.toLowerCase());
+  const currentWallet = useMemo(() => 
+    wallets.find(w => w.address.toLowerCase() === address.toLowerCase())
+  , [wallets, address])
+
   const chainId = currentWallet?.chainId ? Number(currentWallet.chainId) : undefined;
   const networkName = chainId && chainId in CHAIN_NAMES ? CHAIN_NAMES[chainId] : 'ETHEREUM';
 
-  const handleBridge = () => {
+  const handleBridge = useCallback(() => {
     const bridge = BRIDGES.find(b => b.id === selectedBridge);
     if (bridge && amount && parseFloat(amount) > 0) {
       window.open(
@@ -82,112 +189,55 @@ export function DepositModal({ isOpen, onClose, walletType, address }: DepositMo
       );
       onClose();
     }
-  };
+  }, [selectedBridge, amount, selectedToken, networkName, onClose]);
 
-  const selectedTokenData = TOKENS.find(t => t.id === selectedToken);
+  const isValidAmount = useMemo(() => 
+    amount && parseFloat(amount) > 0
+  , [amount])
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Bridge to Starknet</DialogTitle>
+          <DialogTitle>Deposit Funds</DialogTitle>
+          <DialogDescription>
+            Choose your token and amount to deposit from {walletType === 'evm' ? 'EVM' : 'Starknet'} wallet {shortAddress(address)}.
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium">Connected Wallet</label>
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2 text-sm font-mono">
-                {walletType === 'starknet' ? (
-                  <span>🌟 Starknet: {shortAddress(address)}</span>
-                ) : (
-                  <span>⚡️ EVM: {shortAddress(address)}</span>
-                )}
-              </div>
-              {walletType === 'evm' && chainId && (
-                <div className="text-xs text-muted-foreground">
-                  Network: {CHAIN_NAMES[chainId] || 'Unknown'}
-                </div>
-              )}
-            </div>
-          </div>
+          <WalletInfo 
+            walletType={walletType}
+            address={address}
+            chainId={chainId}
+          />
 
-          {/* Token Selection */}
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium">Token</label>
-            <Select
-              value={selectedToken}
-              onValueChange={(value) => setSelectedToken(value as Token)}
-            >
-              <SelectTrigger>
-                <SelectValue>
-                  {selectedTokenData && (
-                    <span className="flex items-center gap-2">
-                      <span>{selectedTokenData.icon}</span>
-                      <span>{selectedTokenData.name}</span>
-                    </span>
-                  )}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {TOKENS.map((token) => (
-                  <SelectItem 
-                    key={token.id} 
-                    value={token.id}
-                  >
-                    <span className="flex items-center gap-2">
-                      <span>{token.icon}</span>
-                      <span>{token.name}</span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <TokenSelect 
+            value={selectedToken}
+            onChange={setSelectedToken}
+          />
 
-          {/* Amount Input */}
           <div className="flex flex-col gap-2">
             <label htmlFor="amount" className="text-sm font-medium">
               Amount
             </label>
-            <input
+            <Input
               id="amount"
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="Enter amount"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
 
-          {/* Bridge Selection */}
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium">Bridge</label>
-            <Select
-              value={selectedBridge}
-              onValueChange={(value) => setSelectedBridge(value as Bridge)}
-            >
-              <SelectTrigger>
-                <SelectValue>
-                  {BRIDGES.find(b => b.id === selectedBridge)?.name}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {BRIDGES.map((bridge) => (
-                  <SelectItem 
-                    key={bridge.id} 
-                    value={bridge.id}
-                  >
-                    {bridge.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <BridgeSelect 
+            value={selectedBridge}
+            onChange={setSelectedBridge}
+          />
 
           <Button 
             onClick={handleBridge} 
             className="w-full"
-            disabled={!amount || parseFloat(amount) <= 0}
+            disabled={!isValidAmount}
           >
             Bridge to Starknet
           </Button>
@@ -195,4 +245,5 @@ export function DepositModal({ isOpen, onClose, walletType, address }: DepositMo
       </DialogContent>
     </Dialog>
   );
-} 
+})
+DepositModal.displayName = 'DepositModal' 

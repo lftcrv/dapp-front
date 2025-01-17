@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { memo, useState, useCallback, useMemo } from 'react'
 import { Agent } from '@/lib/types'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -12,15 +12,77 @@ import { cn } from '@/lib/utils'
 
 interface SwapWidgetProps {
   agent: Agent
+  className?: string
 }
 
-export function SwapWidget({ agent }: SwapWidgetProps) {
+interface SwapInputProps {
+  label: string
+  balance: string
+  value: string
+  onChange?: (value: string) => void
+  readOnly?: boolean
+  estimate?: string
+  isLeftCurve: boolean
+}
+
+const SwapInput = memo(({ 
+  label, 
+  balance, 
+  value, 
+  onChange, 
+  readOnly,
+  estimate,
+  isLeftCurve
+}: SwapInputProps) => (
+  <div className={cn(
+    "rounded-lg border-2 p-3 space-y-2",
+    isLeftCurve ? "bg-yellow-500/5 border-yellow-500/20" : "bg-purple-500/5 border-purple-500/20"
+  )}>
+    <div className="flex items-center justify-between text-sm">
+      <label className="text-muted-foreground">{label}</label>
+      <span className="font-mono text-xs">
+        {estimate ? `≈ $${estimate}` : `Balance: ${balance}`}
+      </span>
+    </div>
+    <Input
+      type="number"
+      placeholder="0.0"
+      value={value}
+      onChange={onChange && ((e) => onChange(e.target.value))}
+      readOnly={readOnly}
+      className="border-0 bg-transparent text-lg font-mono"
+    />
+  </div>
+))
+SwapInput.displayName = 'SwapInput'
+
+const SwapDivider = memo(({ isLeftCurve }: { isLeftCurve: boolean }) => (
+  <div className="relative py-2">
+    <div className="absolute inset-0 flex items-center">
+      <div className="w-full border-t border-border" />
+    </div>
+    <div className="relative flex justify-center">
+      <div className={cn(
+        "rounded-full border-2 p-1.5 bg-background",
+        isLeftCurve ? "border-yellow-500/50" : "border-purple-500/50"
+      )}>
+        <ArrowDownUp className={cn(
+          "h-3 w-3",
+          isLeftCurve ? "text-yellow-500" : "text-purple-500"
+        )} />
+      </div>
+    </div>
+  </div>
+))
+SwapDivider.displayName = 'SwapDivider'
+
+export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
   const [amount, setAmount] = useState('')
   const { address } = useWallet()
   const { toast } = useToast()
   const isLeftCurve = agent.type === 'leftcurve'
 
-  const handleSwap = () => {
+  const handleSwap = useCallback(() => {
     if (!address) {
       toast({
         title: 'Connect Wallet',
@@ -30,15 +92,27 @@ export function SwapWidget({ agent }: SwapWidgetProps) {
       return
     }
 
-    // TODO: Implement actual swap logic
     toast({
       title: 'Coming Soon',
       description: 'Trading functionality will be available soon!',
     })
-  }
+  }, [address, toast])
+
+  const buttonText = useMemo(() => {
+    if (!address) return "Connect Wallet"
+    if (!amount) return "Enter Amount"
+    return "Swap"
+  }, [address, amount])
+
+  const buttonStyle = useMemo(() => cn(
+    "w-full font-medium",
+    isLeftCurve 
+      ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600" 
+      : "bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+  ), [isLeftCurve])
 
   return (
-    <div className="p-6 space-y-4">
+    <div className={cn("p-6 space-y-4", className)}>
       <div className="flex items-center justify-between">
         <h3 className="font-medium flex items-center gap-2">
           <ArrowDownUp className={cn(
@@ -72,74 +146,32 @@ export function SwapWidget({ agent }: SwapWidgetProps) {
         </TabsList>
 
         <TabsContent value="buy" className="space-y-4">
-          <div className={cn(
-            "rounded-lg border-2 p-3 space-y-2",
-            isLeftCurve ? "bg-yellow-500/5 border-yellow-500/20" : "bg-purple-500/5 border-purple-500/20"
-          )}>
-            <div className="flex items-center justify-between text-sm">
-              <label className="text-muted-foreground">Pay with LINK</label>
-              <span className="font-mono text-xs">Balance: 0.00 LINK</span>
-            </div>
-            <Input
-              type="number"
-              placeholder="0.0"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="border-0 bg-transparent text-lg font-mono"
-            />
-          </div>
+          <SwapInput
+            label="Pay with LINK"
+            balance="0.00 LINK"
+            value={amount}
+            onChange={setAmount}
+            isLeftCurve={isLeftCurve}
+          />
 
-          <div className="relative py-2">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center">
-              <div className={cn(
-                "rounded-full border-2 p-1.5 bg-background",
-                isLeftCurve ? "border-yellow-500/50" : "border-purple-500/50"
-              )}>
-                <ArrowDownUp className={cn(
-                  "h-3 w-3",
-                  isLeftCurve ? "text-yellow-500" : "text-purple-500"
-                )} />
-              </div>
-            </div>
-          </div>
+          <SwapDivider isLeftCurve={isLeftCurve} />
 
-          <div className={cn(
-            "rounded-lg border-2 p-3 space-y-2",
-            isLeftCurve ? "bg-yellow-500/5 border-yellow-500/20" : "bg-purple-500/5 border-purple-500/20"
-          )}>
-            <div className="flex items-center justify-between text-sm">
-              <label className="text-muted-foreground">Receive {agent.name}</label>
-              <span className="font-mono text-xs">≈ ${amount ? (parseFloat(amount) * agent.price).toFixed(2) : '0.00'}</span>
-            </div>
-            <Input
-              type="number"
-              placeholder="0.0"
-              value={amount ? (parseFloat(amount) / agent.price).toFixed(6) : ''}
-              readOnly
-              className="border-0 bg-transparent text-lg font-mono"
-            />
-          </div>
+          <SwapInput
+            label={`Receive ${agent.name}`}
+            balance={`0.00 ${agent.name}`}
+            value={amount ? (parseFloat(amount) / agent.price).toFixed(6) : ''}
+            estimate={amount ? (parseFloat(amount) * agent.price).toFixed(2) : '0.00'}
+            readOnly
+            isLeftCurve={isLeftCurve}
+          />
 
           <Button 
-            className={cn(
-              "w-full font-medium",
-              isLeftCurve 
-                ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600" 
-                : "bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
-            )}
+            className={buttonStyle}
             size="lg"
             onClick={handleSwap}
             disabled={!address || !amount}
           >
-            {!address 
-              ? "Connect Wallet"
-              : !amount
-                ? "Enter Amount"
-                : "Swap"
-            }
+            {buttonText}
           </Button>
 
           <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
@@ -149,74 +181,32 @@ export function SwapWidget({ agent }: SwapWidgetProps) {
         </TabsContent>
 
         <TabsContent value="sell" className="space-y-4">
-          <div className={cn(
-            "rounded-lg border-2 p-3 space-y-2",
-            isLeftCurve ? "bg-yellow-500/5 border-yellow-500/20" : "bg-purple-500/5 border-purple-500/20"
-          )}>
-            <div className="flex items-center justify-between text-sm">
-              <label className="text-muted-foreground">Sell {agent.name}</label>
-              <span className="font-mono text-xs">Balance: 0.00 {agent.name}</span>
-            </div>
-            <Input
-              type="number"
-              placeholder="0.0"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="border-0 bg-transparent text-lg font-mono"
-            />
-          </div>
+          <SwapInput
+            label={`Sell ${agent.name}`}
+            balance={`0.00 ${agent.name}`}
+            value={amount}
+            onChange={setAmount}
+            isLeftCurve={isLeftCurve}
+          />
 
-          <div className="relative py-2">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center">
-              <div className={cn(
-                "rounded-full border-2 p-1.5 bg-background",
-                isLeftCurve ? "border-yellow-500/50" : "border-purple-500/50"
-              )}>
-                <ArrowDownUp className={cn(
-                  "h-3 w-3",
-                  isLeftCurve ? "text-yellow-500" : "text-purple-500"
-                )} />
-              </div>
-            </div>
-          </div>
+          <SwapDivider isLeftCurve={isLeftCurve} />
 
-          <div className={cn(
-            "rounded-lg border-2 p-3 space-y-2",
-            isLeftCurve ? "bg-yellow-500/5 border-yellow-500/20" : "bg-purple-500/5 border-purple-500/20"
-          )}>
-            <div className="flex items-center justify-between text-sm">
-              <label className="text-muted-foreground">Receive LINK</label>
-              <span className="font-mono text-xs">≈ ${amount ? (parseFloat(amount) * agent.price).toFixed(2) : '0.00'}</span>
-            </div>
-            <Input
-              type="number"
-              placeholder="0.0"
-              value={amount ? (parseFloat(amount) * agent.price).toFixed(6) : ''}
-              readOnly
-              className="border-0 bg-transparent text-lg font-mono"
-            />
-          </div>
+          <SwapInput
+            label="Receive LINK"
+            balance="0.00 LINK"
+            value={amount ? (parseFloat(amount) * agent.price).toFixed(6) : ''}
+            estimate={amount ? (parseFloat(amount) * agent.price).toFixed(2) : '0.00'}
+            readOnly
+            isLeftCurve={isLeftCurve}
+          />
 
           <Button 
-            className={cn(
-              "w-full font-medium",
-              isLeftCurve 
-                ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600" 
-                : "bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
-            )}
+            className={buttonStyle}
             size="lg"
             onClick={handleSwap}
             disabled={!address || !amount}
           >
-            {!address 
-              ? "Connect Wallet"
-              : !amount
-                ? "Enter Amount"
-                : "Swap"
-            }
+            {buttonText}
           </Button>
 
           <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
@@ -231,4 +221,5 @@ export function SwapWidget({ agent }: SwapWidgetProps) {
       </div>
     </div>
   )
-} 
+})
+SwapWidget.displayName = 'SwapWidget' 

@@ -30,7 +30,7 @@ function AgentNotFound() {
 }
 
 function AgentContent({ agentId }: { agentId: string }) {
-  const { agent, isLoading, error } = useAgent({ id: agentId })
+  const { data: agent, isLoading, error } = useAgent({ id: agentId })
   const theme = useAgentTheme()
   
   if (isLoading) {

@@ -3,33 +3,88 @@
 import { Agent } from "@/lib/types"
 import { AgentAvatar } from '@/components/ui/agent-avatar'
 import { cn } from "@/lib/utils"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { motion } from "framer-motion"
 import { UserCircle } from "lucide-react"
+import { memo, useMemo } from 'react'
 
-function LeaderboardTable({ 
-  agents, 
-  title, 
-  type, 
-  scoreKey,
-  description 
-}: { 
+interface AgentCellProps {
+  agent: Agent
+}
+
+const AgentCell = memo(({ agent }: AgentCellProps) => (
+  <div className="flex items-center gap-2">
+    <div className="w-8 h-8 relative rounded-lg overflow-hidden bg-white/5 flex items-center justify-center">
+      {agent.avatar ? (
+        <AgentAvatar src={agent.avatar} alt={agent.name} />
+      ) : (
+        <UserCircle className="w-5 h-5 text-gray-400" />
+      )}
+    </div>
+    <div>
+      <div className="font-medium text-sm flex items-center gap-1.5">
+        {agent.name}
+        <span className="text-xs text-muted-foreground font-mono">
+          ${agent.symbol}
+        </span>
+      </div>
+      <div className="text-xs text-muted-foreground">
+        {agent.holders.toLocaleString()} holders
+      </div>
+    </div>
+  </div>
+))
+AgentCell.displayName = 'AgentCell'
+
+interface LeaderboardRowProps {
+  agent: Agent
+  index: number
+  type: 'leftcurve' | 'rightcurve'
+  scoreKey: 'creativityIndex' | 'performanceIndex'
+}
+
+const LeaderboardRow = memo(({ agent, index, type, scoreKey }: LeaderboardRowProps) => (
+  <TableRow>
+    <TableCell>
+      <span className="font-mono text-sm">
+        {index === 0 ? '👑' : `#${index + 1}`}
+      </span>
+    </TableCell>
+    <TableCell>
+      <AgentCell agent={agent} />
+    </TableCell>
+    <TableCell className="text-right font-mono">
+      ${agent.price.toFixed(2)}
+    </TableCell>
+    <TableCell className="text-right font-mono">
+      ${agent.marketCap.toLocaleString()}
+    </TableCell>
+    <TableCell className="text-right">
+      <div className={cn(
+        "font-mono text-sm",
+        type === 'leftcurve' ? "text-orange-500" : "text-purple-500"
+      )}>
+        {(agent[scoreKey] * 100).toFixed(0)}%
+      </div>
+    </TableCell>
+  </TableRow>
+))
+LeaderboardRow.displayName = 'LeaderboardRow'
+
+interface LeaderboardTableProps {
   agents: Agent[]
   title: string
   type: 'leftcurve' | 'rightcurve'
   scoreKey: 'creativityIndex' | 'performanceIndex'
   description: string
-}) {
-  const sortedAgents = [...agents]
-    .filter(a => a.type === type)
-    .sort((a, b) => b[scoreKey] - a[scoreKey])
+}
+
+const LeaderboardTable = memo(({ agents, title, type, scoreKey, description }: LeaderboardTableProps) => {
+  const sortedAgents = useMemo(() => 
+    [...agents]
+      .filter(a => a.type === type)
+      .sort((a, b) => b[scoreKey] - a[scoreKey])
+  , [agents, type, scoreKey])
 
   return (
     <motion.div 
@@ -65,75 +120,43 @@ function LeaderboardTable({
         </TableHeader>
         <TableBody>
           {sortedAgents.map((agent, index) => (
-            <TableRow key={agent.id}>
-              <TableCell>
-                <span className="font-mono text-sm">
-                  {index === 0 ? '👑' : `#${index + 1}`}
-                </span>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 relative rounded-lg overflow-hidden bg-white/5 flex items-center justify-center">
-                    {agent.avatar ? (
-                      <AgentAvatar src={agent.avatar} alt={agent.name} />
-                    ) : (
-                      <UserCircle className="w-5 h-5 text-gray-400" />
-                    )}
-                  </div>
-                  <div>
-                    <div className="font-medium text-sm flex items-center gap-1.5">
-                      {agent.name}
-                      <span className="text-xs text-muted-foreground font-mono">
-                        ${agent.symbol}
-                      </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {agent.holders.toLocaleString()} holders
-                    </div>
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell className="text-right font-mono">
-                ${agent.price.toFixed(2)}
-              </TableCell>
-              <TableCell className="text-right font-mono">
-                ${agent.marketCap.toLocaleString()}
-              </TableCell>
-              <TableCell className="text-right">
-                <div className={cn(
-                  "font-mono text-sm",
-                  type === 'leftcurve' ? "text-orange-500" : "text-purple-500"
-                )}>
-                  {(agent[scoreKey] * 100).toFixed(0)}%
-                </div>
-              </TableCell>
-            </TableRow>
+            <LeaderboardRow 
+              key={agent.id} 
+              agent={agent} 
+              index={index}
+              type={type}
+              scoreKey={scoreKey}
+            />
           ))}
         </TableBody>
       </Table>
     </motion.div>
   )
+})
+LeaderboardTable.displayName = 'LeaderboardTable'
+
+interface LeaderboardTablesProps {
+  agents: Agent[]
 }
 
-export function LeaderboardTables({ agents }: { agents: Agent[] }) {
-  return (
-    <div className="space-y-4">
-      <div className="flex gap-4">
-        <LeaderboardTable 
-          agents={agents}
-          title="LEFTCURVE KINGS"
-          type="leftcurve"
-          scoreKey="creativityIndex"
-          description="Top degen agents by creativity score"
-        />
-        <LeaderboardTable 
-          agents={agents}
-          title="RIGHTCURVE LORDS"
-          type="rightcurve"
-          scoreKey="performanceIndex"
-          description="Top quant agents by performance score"
-        />
-      </div>
+export const LeaderboardTables = memo(({ agents }: LeaderboardTablesProps) => (
+  <div className="space-y-4">
+    <div className="flex gap-4">
+      <LeaderboardTable 
+        agents={agents}
+        title="LEFTCURVE KINGS"
+        type="leftcurve"
+        scoreKey="creativityIndex"
+        description="Top degen agents by creativity score"
+      />
+      <LeaderboardTable 
+        agents={agents}
+        title="RIGHTCURVE LORDS"
+        type="rightcurve"
+        scoreKey="performanceIndex"
+        description="Top quant agents by performance score"
+      />
     </div>
-  )
-} 
+  </div>
+))
+LeaderboardTables.displayName = 'LeaderboardTables' 

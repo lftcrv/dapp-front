@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { ChatMessage } from '@/lib/types'
 import { chatService } from '@/lib/services/api/chat'
+import { useAsyncState } from '@/lib/core/state'
 import { useToast } from '@/hooks/use-toast'
 
 interface UseChatOptions {
@@ -9,59 +10,39 @@ interface UseChatOptions {
 }
 
 export function useChat({ agentId, initialData }: UseChatOptions) {
-  const [messages, setMessages] = useState<ChatMessage[]>(initialData || [])
-  const [isLoading, setIsLoading] = useState(!initialData)
-  const [error, setError] = useState<Error | null>(null)
+  const state = useAsyncState<ChatMessage[]>(initialData)
   const { toast } = useToast()
 
   useEffect(() => {
     async function fetchMessages() {
-      try {
-        setIsLoading(true)
-        setError(null)
-        const response = await chatService.getMessages(agentId)
-        if (response.success) {
-          setMessages(response.data)
-        } else {
-          throw new Error(response.error?.message || 'Failed to fetch messages')
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('Failed to fetch messages'))
-      } finally {
-        setIsLoading(false)
-      }
+      if (initialData) return
+      
+      state.setLoading(true)
+      const result = await chatService.getByAgent(agentId)
+      state.handleResult(result)
     }
 
-    if (!initialData) {
-      fetchMessages()
-    }
+    fetchMessages()
   }, [agentId, initialData])
 
   const sendMessage = async (content: string) => {
-    try {
-      const response = await chatService.sendMessage(agentId, content)
-      if (response.success) {
-        setMessages(prev => [response.data, ...prev])
-      } else {
-        toast({
-          title: 'Error',
-          description: response.error?.message || 'Failed to send message',
-          variant: 'destructive'
-        })
-      }
-    } catch (err) {
+    const result = await chatService.sendMessage(agentId, content)
+    
+    if (result.success && result.data) {
+      state.setData([result.data, ...(state.data || [])])
+    } else {
       toast({
         title: 'Error',
-        description: 'Failed to send message',
+        description: result.error?.message || 'Failed to send message',
         variant: 'destructive'
       })
     }
   }
 
   return {
-    messages,
-    isLoading,
-    error,
+    messages: state.data || [],
+    isLoading: state.isLoading,
+    error: state.error,
     sendMessage
   }
 } 

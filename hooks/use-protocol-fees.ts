@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useWallet } from '@/lib/wallet-context'
 import { protocolFeesService } from '@/lib/services/api/protocol-fees'
+import { useAsyncState } from '@/lib/core/state'
 import { useToast } from '@/hooks/use-toast'
-import { ApiResponse } from '@/lib/types'
 import { ProtocolFeesData } from '@/lib/types'
 
 export interface TimeLeft {
@@ -12,40 +12,34 @@ export interface TimeLeft {
   seconds: number
 }
 
+const DEFAULT_TIME_LEFT: TimeLeft = { days: 0, hours: 0, minutes: 0, seconds: 0 }
+
 export function useProtocolFees() {
-  const { address } = useWallet()
+  const { address, walletType } = useWallet()
   const { toast } = useToast()
-  const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0 })
-  const [feesData, setFeesData] = useState<ProtocolFeesData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const { data, isLoading, error, setLoading, handleResult } = useAsyncState<ProtocolFeesData>()
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>(DEFAULT_TIME_LEFT)
   const [isClaiming, setIsClaiming] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
-  const fetchFeesData = async () => {
-    try {
-      setIsLoading(true)
-      const result = await protocolFeesService.getProtocolFees()
-      if (result.success && result.data) {
-        setFeesData(result.data)
-        setError(null)
-      } else {
-        setError(result.error?.message || 'Failed to fetch protocol fees')
-      }
-    } catch (error) {
-      setError('Failed to fetch protocol fees')
-      console.error('Failed to fetch protocol fees:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  // Memoize the service call to prevent re-renders
+  const getFeesData = useMemo(() => protocolFeesService.getData, [])
+  const claimFeesRewards = useMemo(() => protocolFeesService.claimRewards, [])
 
-  const claimRewards = async () => {
+  const fetchFeesData = useCallback(async () => {
+    if (!address) return
+    setLoading(true)
+    const result = await getFeesData()
+    handleResult(result)
+  }, [address, getFeesData, setLoading, handleResult])
+
+  const claimRewards = useCallback(async () => {
     if (!address) return
 
     try {
       setIsClaiming(true)
-      const result = await protocolFeesService.claimRewards(address)
-      if (result.success) {
+      const result = await claimFeesRewards(address)
+      
+      if (result.success && result.data && 'claimed' in result.data) {
         toast({
           title: "Success",
           description: `Claimed ${result.data.claimed} $LEFT`,
@@ -58,72 +52,92 @@ export function useProtocolFees() {
           variant: "destructive"
         })
       }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to claim rewards",
-        variant: "destructive"
-      })
     } finally {
       setIsClaiming(false)
     }
-  }
+  }, [address, claimFeesRewards, toast, fetchFeesData])
+
+  // Memoize time calculation to prevent re-renders
+  const calculateTimeLeft = useCallback(() => {
+    if (!data?.periodEndTime) return DEFAULT_TIME_LEFT
+
+    const now = new Date().getTime()
+    const distance = new Date(data.periodEndTime).getTime() - now
+
+    if (distance < 0) {
+      return DEFAULT_TIME_LEFT
+    }
+
+    return {
+      days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+      hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+      minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+      seconds: Math.floor((distance % (1000 * 60)) / 1000)
+    }
+  }, [data?.periodEndTime])
+
+  // Memoize timer effect dependencies
+  const updateTimeLeft = useCallback(() => {
+    setTimeLeft(calculateTimeLeft())
+  }, [calculateTimeLeft])
 
   useEffect(() => {
-    fetchFeesData()
-  }, [])
+    // Initial calculation
+    updateTimeLeft()
 
-  useEffect(() => {
-    if (!feesData) return
+    // Only set up timer if we have an end time
+    if (!data?.periodEndTime) return
 
-    const timer = setInterval(() => {
-      const now = new Date().getTime()
-      const distance = new Date(feesData.periodEndTime).getTime() - now
-
-      if (distance < 0) {
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 })
-        return
-      }
-
-      setTimeLeft({
-        days: Math.floor(distance / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-        minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
-        seconds: Math.floor((distance % (1000 * 60)) / 1000)
-      })
-    }, 1000)
-
+    const timer = setInterval(updateTimeLeft, 1000)
     return () => clearInterval(timer)
-  }, [feesData])
+  }, [data?.periodEndTime, updateTimeLeft])
 
-  const formatTimeLeft = (time: TimeLeft) => {
+  const formatTimeLeft = useCallback((time: TimeLeft) => {
     const { hours, minutes, seconds } = time
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-  }
+  }, [])
 
-  const getUserShare = () => {
-    if (!address || !feesData) return "0"
-    return feesData.userShares[address] || "0"
-  }
+  const getUserShare = useCallback(() => {
+    if (!address || !data?.userShares) return "0"
+    return data.userShares[address] || "0"
+  }, [address, data?.userShares])
 
-  const getUserSharePercentage = () => {
-    if (!address || !feesData) return "0"
+  const getUserSharePercentage = useCallback(() => {
+    if (!address || !data?.distribution) return "0"
     
-    const leftCurveGainer = feesData.distribution.leftCurve.topGainers.find(g => g.address === address)
-    const rightCurveGainer = feesData.distribution.rightCurve.topGainers.find(g => g.address === address)
+    const { leftCurve, rightCurve } = data.distribution
+    const leftCurveGainer = leftCurve.topGainers.find(g => g.address === address)
+    const rightCurveGainer = rightCurve.topGainers.find(g => g.address === address)
     
     if (leftCurveGainer) return leftCurveGainer.percentage
     if (rightCurveGainer) return rightCurveGainer.percentage
     return "0"
-  }
+  }, [address, data?.distribution])
+
+  // Initial data fetch with debounce
+  useEffect(() => {
+    if (!address) return
+    
+    const timer = setTimeout(() => {
+      fetchFeesData()
+    }, 100) // Small debounce to prevent rapid re-fetches
+
+    return () => clearTimeout(timer)
+  }, [address, fetchFeesData])
+
+  // Memoize all computed values
+  const memoizedTimeLeft = useMemo(() => formatTimeLeft(timeLeft), [formatTimeLeft, timeLeft])
+  const memoizedUserShare = useMemo(() => getUserShare(), [getUserShare])
+  const memoizedUserSharePercentage = useMemo(() => getUserSharePercentage(), [getUserSharePercentage])
+  const memoizedFeesData = useMemo(() => data, [data])
 
   return {
-    feesData,
-    timeLeft: formatTimeLeft(timeLeft),
+    feesData: memoizedFeesData,
+    timeLeft: memoizedTimeLeft,
     isLoading,
     error,
-    userShare: getUserShare(),
-    userSharePercentage: getUserSharePercentage(),
+    userShare: memoizedUserShare,
+    userSharePercentage: memoizedUserSharePercentage,
     isClaiming,
     claimRewards
   }
