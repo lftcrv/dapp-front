@@ -24,7 +24,10 @@ const MESSAGES = {
   DEPLOYED: { text: "🧠 Agent ready to flip midcurvers!", icon: 'bot' },
   DEPLOY_ERROR: { text: "🤡 Deployment rugged", icon: 'error' },
   DISCONNECT: { text: "🫡 See you on the curve ser", icon: 'wallet' },
-  DEFAULT_ERROR: { text: "💩 Ngmi... Something went wrong", icon: 'error' }
+  DEFAULT_ERROR: { text: "💩 Ngmi... Something went wrong", icon: 'error' },
+  AGENT_ERROR: { text: "🤔 Fill in all agent details ser", icon: 'error' },
+  AGENT_CREATING: { text: "🧪 Creating your 200 IQ agent...", icon: 'bot' },
+  AGENT_SUCCESS: { text: "🎯 Agent created successfully!", icon: 'bot' }
 } as const
 
 export function showToast(message: keyof typeof MESSAGES, type: ToastType = 'success') {
