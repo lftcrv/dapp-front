@@ -5,6 +5,7 @@
       "name": "Degen Ape",
       "avatar": "/avatars/degen-1.png",
       "type": "leftcurve",
+      "curveSide": "LEFT",
       "status": "live",
       "symbol": "DAPE",
       "price": 0.15,
@@ -12,14 +13,16 @@
       "marketCap": 127500,
       "creativityIndex": 9.8,
       "performanceIndex": 0.78,
-      "createdAt": "2024-01-15",
-      "creator": "0x1234567890abcdef1234567890abcdef12345678"
+      "createdAt": "2024-01-15T00:00:00Z",
+      "creator": "0x1234567890abcdef1234567890abcdef12345678",
+      "lore": "Born in the depths of /biz/, forged in the fires of leverage trading."
     },
     {
       "id": "LC002",
       "name": "Moon Boy",
       "avatar": "/avatars/degen-2.png",
       "type": "leftcurve",
+      "curveSide": "LEFT",
       "status": "live",
       "symbol": "MOON",
       "price": 0.08,
@@ -27,14 +30,16 @@
       "marketCap": 100000,
       "creativityIndex": 9.5,
       "performanceIndex": 0.82,
-      "createdAt": "2024-01-18",
-      "creator": "0x2345678901abcdef2345678901abcdef23456789"
+      "createdAt": "2024-01-18T00:00:00Z",
+      "creator": "0x2345678901abcdef2345678901abcdef23456789",
+      "lore": "100x or nothing, that's the motto."
     },
     {
       "id": "LC003",
       "name": "WAGMI Warrior",
       "avatar": "/avatars/degen-3.png",
       "type": "leftcurve",
+      "curveSide": "LEFT",
       "status": "bonding",
       "symbol": "WAGMI",
       "price": 0.12,
@@ -42,14 +47,16 @@
       "marketCap": 5400,
       "creativityIndex": 9.2,
       "performanceIndex": 0.75,
-      "createdAt": "2024-01-20",
-      "creator": "0x3456789012abcdef3456789012abcdef34567890"
+      "createdAt": "2024-01-20T00:00:00Z",
+      "creator": "0x3456789012abcdef3456789012abcdef34567890",
+      "lore": "We're all gonna make it, trust the process!"
     },
     {
       "id": "LC004",
       "name": "Pepe Trader",
       "avatar": "/avatars/degen-4.png",
       "type": "leftcurve",
+      "curveSide": "LEFT",
       "status": "bonding",
       "symbol": "PEPE",
       "price": 0.05,
@@ -57,14 +64,16 @@
       "marketCap": 4000,
       "creativityIndex": 8.9,
       "performanceIndex": 0.68,
-      "createdAt": "2024-01-22",
-      "creator": "0x4567890123abcdef4567890123abcdef45678901"
+      "createdAt": "2024-01-22T00:00:00Z",
+      "creator": "0x4567890123abcdef4567890123abcdef45678901",
+      "lore": "Rare Pepes only, no normies allowed."
     },
     {
       "id": "RC001",
       "name": "Alpha Seeker",
       "avatar": "/avatars/brain-1.png",
       "type": "rightcurve",
+      "curveSide": "RIGHT",
       "status": "live",
       "symbol": "ALPHA",
       "price": 0.25,
@@ -72,14 +81,16 @@
       "marketCap": 230000,
       "creativityIndex": 7.5,
       "performanceIndex": 0.92,
-      "createdAt": "2024-01-16",
-      "creator": "0x6789012345abcdef6789012345abcdef67890123"
+      "createdAt": "2024-01-16T00:00:00Z",
+      "creator": "0x6789012345abcdef6789012345abcdef67890123",
+      "lore": "Finding alpha through statistical arbitrage and market inefficiencies."
     },
     {
       "id": "RC002",
       "name": "Quant Master",
       "avatar": "/avatars/brain-2.png",
       "type": "rightcurve",
+      "curveSide": "RIGHT",
       "status": "live",
       "symbol": "QUANT",
       "price": 0.32,
@@ -87,14 +98,16 @@
       "marketCap": 249600,
       "creativityIndex": 7.2,
       "performanceIndex": 0.88,
-      "createdAt": "2024-01-19",
-      "creator": "0x7890123456abcdef7890123456abcdef78901234"
+      "createdAt": "2024-01-19T00:00:00Z",
+      "creator": "0x7890123456abcdef7890123456abcdef78901234",
+      "lore": "Utilizing advanced quantitative analysis and machine learning."
     },
     {
       "id": "RC003",
       "name": "Neural Net",
       "avatar": "/avatars/brain-3.png",
       "type": "rightcurve",
+      "curveSide": "RIGHT",
       "status": "bonding",
       "symbol": "NEURAL",
       "price": 0.15,
@@ -102,14 +115,16 @@
       "marketCap": 5250,
       "creativityIndex": 7.8,
       "performanceIndex": 0.85,
-      "createdAt": "2024-01-21",
-      "creator": "0x8901234567abcdef8901234567abcdef89012345"
+      "createdAt": "2024-01-21T00:00:00Z",
+      "creator": "0x8901234567abcdef8901234567abcdef89012345",
+      "lore": "Deep learning meets market dynamics."
     },
     {
       "id": "RC004",
       "name": "Data Wizard",
       "avatar": "/avatars/brain-4.png",
       "type": "rightcurve",
+      "curveSide": "RIGHT",
       "status": "ended",
       "symbol": "WIZARD",
       "price": 0.28,
@@ -117,14 +132,16 @@
       "marketCap": 109200,
       "creativityIndex": 7.1,
       "performanceIndex": 0.79,
-      "createdAt": "2024-01-23",
-      "creator": "0x9012345678abcdef9012345678abcdef90123456"
+      "createdAt": "2024-01-23T00:00:00Z",
+      "creator": "0x9012345678abcdef9012345678abcdef90123456",
+      "lore": "Transforming market data into profitable insights."
     },
     {
       "id": "RC005",
       "name": "Galaxy Brain",
       "avatar": "/avatars/brain-5.png",
       "type": "rightcurve",
+      "curveSide": "RIGHT",
       "status": "bonding",
       "symbol": "BRAIN",
       "price": 0.35,
@@ -132,8 +149,9 @@
       "marketCap": 5250,
       "creativityIndex": 7.4,
       "performanceIndex": 0.91,
-      "createdAt": "2024-01-26",
-      "creator": "0xa123456789abcdefa123456789abcdefa1234567"
+      "createdAt": "2024-01-26T00:00:00Z",
+      "creator": "0xa123456789abcdefa123456789abcdefa1234567",
+      "lore": "Expanding the boundaries of algorithmic trading."
     }
   ]
 } 
