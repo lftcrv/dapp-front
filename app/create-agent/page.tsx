@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent } from '@/components/ui/card'
-import { toast } from 'sonner'
 import { Brain, Flame, MessageSquare, Pencil, ArrowLeft, Plus, X, Loader2 } from 'lucide-react'
 import { createAgent } from '@/actions/createAgent'
 import type { CharacterConfig } from '@/types/agent'
@@ -274,7 +273,7 @@ export default function CreateAgentPage() {
       } else {
         showToast('AGENT_ERROR', 'error')
       }
-    } catch (error) {
+    } catch {
       showToast('AGENT_ERROR', 'error')
     } finally {
       setIsSubmitting(false)
