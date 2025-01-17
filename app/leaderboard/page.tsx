@@ -50,7 +50,7 @@ export default function LeaderboardPage() {
               🏆 Agent Leaderboards</h1>
               <span className="text-sm font-normal text-gray-400 ml-2">who&apos;s the most based?</span>
             
-            <p className="text-xs text-gray-400 mt-1">Updated every 5 minutes</p>
+            <p className="text-xs text-gray-400 mt-1">Updated every Friday</p>
           </motion.div>
 
           <ProtocolFees />

@@ -2,27 +2,13 @@ import { useEffect, useState } from 'react'
 import { useWallet } from '@/lib/wallet-context'
 import { protocolFeesService } from '@/lib/services/api/protocol-fees'
 import { useToast } from '@/hooks/use-toast'
-import { ProtocolFeesData } from '@/lib/types'
+import { ApiResponse, ProtocolFeesData } from '@/lib/types'
 
 export interface TimeLeft {
   days: number
   hours: number
   minutes: number
   seconds: number
-}
-
-interface TopGainer {
-  address: string
-  shares: string
-  percentage: string
-}
-
-interface CurveDistribution {
-  percentage: number
-  description: string
-  color: string
-  totalShares: string
-  topGainers: TopGainer[]
 }
 
 export function useProtocolFees() {
@@ -38,7 +24,7 @@ export function useProtocolFees() {
     try {
       setIsLoading(true)
       const result = await protocolFeesService.getProtocolFees()
-      if (result.success) {
+      if (result.success && result.data) {
         setFeesData(result.data)
         setError(null)
       } else {
@@ -63,7 +49,6 @@ export function useProtocolFees() {
           title: "Success",
           description: `Claimed ${result.data.claimed} $LEFT`,
         })
-        // Refresh fees data after claiming
         await fetchFeesData()
       } else {
         toast({
@@ -94,6 +79,11 @@ export function useProtocolFees() {
       const now = new Date().getTime()
       const distance = new Date(feesData.periodEndTime).getTime() - now
 
+      if (distance < 0) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 })
+        return
+      }
+
       setTimeLeft({
         days: Math.floor(distance / (1000 * 60 * 60 * 24)),
         hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
@@ -105,8 +95,16 @@ export function useProtocolFees() {
     return () => clearInterval(timer)
   }, [feesData])
 
-  const userShare = address && feesData ? feesData.userShares[address] || "0" : "0"
-  
+  const formatTimeLeft = (time: TimeLeft) => {
+    const { hours, minutes, seconds } = time
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+  }
+
+  const getUserShare = () => {
+    if (!address || !feesData) return "0"
+    return feesData.userShares[address] || "0"
+  }
+
   const getUserSharePercentage = () => {
     if (!address || !feesData) return "0"
     
@@ -120,12 +118,12 @@ export function useProtocolFees() {
 
   return {
     feesData,
-    timeLeft,
-    userShare,
-    userSharePercentage: getUserSharePercentage(),
+    timeLeft: formatTimeLeft(timeLeft),
     isLoading,
-    isClaiming,
     error,
+    userShare: getUserShare(),
+    userSharePercentage: getUserSharePercentage(),
+    isClaiming,
     claimRewards
   }
 } 
