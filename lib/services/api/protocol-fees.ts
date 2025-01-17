@@ -1,4 +1,4 @@
-import { ApiResponse } from './types'
+import { ApiResponse } from '@/lib/types'
 import protocolFeesData from '@/data/protocol-fees.json'
 import type { ProtocolFeesData } from '@/lib/types'
 

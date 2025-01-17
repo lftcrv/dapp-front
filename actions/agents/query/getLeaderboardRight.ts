@@ -11,7 +11,7 @@ export async function getLeaderboardRight(limit: number = 10) {
       throw new Error('Missing API configuration')
     }
 
-    const response = await fetch(`${apiUrl}/api/eliza-agent/leaderboard/right?limit=${limit}`, {
+    const response = await fetch(`${apiUrl}/api/leaderboard/right-curve?limit=${limit}`, {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey

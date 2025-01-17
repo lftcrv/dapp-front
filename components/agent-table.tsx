@@ -5,10 +5,6 @@ import { cn, isInBondingPhase } from "@/lib/utils"
 import { AgentAvatar } from "@/components/ui/agent-avatar"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { ArrowUpDown, Search, Skull, Users } from "lucide-react"
-import Link from "next/link"
-import { PriceChange } from "@/components/price-change"
-import { useAgentTable } from "@/hooks/use-agent-table"
 import {
   Table,
   TableBody,
@@ -17,13 +13,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { ArrowUpDown, Search, Skull, Users } from "lucide-react"
+import Link from "next/link"
+import { PriceChange } from "@/components/price-change"
+import { useAgentTable } from "@/hooks/use-agent-table"
 
 interface AgentTableProps {
   agents: Agent[]
 }
 
-function SortableHeader({ label, sortKey }: { label: string; sortKey: keyof Agent }) {
-  const { sortConfig, toggleSort } = useAgentTable([])
+interface SortableHeaderProps {
+  label: string
+  sortKey: keyof Agent
+  agents: Agent[]
+}
+
+function SortableHeader({ label, sortKey, agents }: SortableHeaderProps) {
+  const { sortConfig, toggleSort } = useAgentTable(agents)
   return (
     <Button 
       variant="ghost" 
@@ -84,10 +90,10 @@ export function AgentTable({ agents }: AgentTableProps) {
           <TableHeader>
             <TableRow className="hover:bg-white/5">
               <TableHead className="w-[50px] text-xs py-2">
-                <SortableHeader label="#" sortKey="id" />
+                <SortableHeader label="#" sortKey="id" agents={agents} />
               </TableHead>
               <TableHead className="text-xs py-2">
-                <SortableHeader label="Agent" sortKey="name" />
+                <SortableHeader label="Agent" sortKey="name" agents={agents} />
               </TableHead>
               <TableHead className="text-xs py-2">
                 <span className={cn(
@@ -100,20 +106,20 @@ export function AgentTable({ agents }: AgentTableProps) {
                 </span>
               </TableHead>
               <TableHead className="text-right text-xs py-2">
-                <SortableHeader label="Price" sortKey="price" />
+                <SortableHeader label="Price" sortKey="price" agents={agents} />
               </TableHead>
               <TableHead className="text-right text-xs py-2">24h</TableHead>
               <TableHead className="text-right text-xs py-2">
-                <SortableHeader label="Market Cap" sortKey="marketCap" />
+                <SortableHeader label="Market Cap" sortKey="marketCap" agents={agents} />
               </TableHead>
               <TableHead className="text-right text-xs py-2">
-                <SortableHeader label="Holders" sortKey="holders" />
+                <SortableHeader label="Holders" sortKey="holders" agents={agents} />
               </TableHead>
               <TableHead className="text-right text-xs py-2">
-                <SortableHeader label="Score" sortKey={sortConfig.key === 'creativityIndex' ? 'performanceIndex' : 'creativityIndex'} />
+                <SortableHeader label="Score" sortKey="creativityIndex" agents={agents} />
               </TableHead>
               <TableHead className="text-right text-xs py-2">
-                <SortableHeader label="Status" sortKey="status" />
+                <SortableHeader label="Status" sortKey="status" agents={agents} />
               </TableHead>
             </TableRow>
           </TableHeader>

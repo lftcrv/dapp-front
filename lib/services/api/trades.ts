@@ -1,5 +1,5 @@
 import { Trade, TradeType } from '@/lib/types'
-import { getTrades } from '@/actions/getTrades'
+import { getTrades } from '@/actions/trades/getTrades'
 // TODO: REMOVE IN PRODUCTION - Development-only imports
 import tradesData from '@/data/trades.json'
 
@@ -21,7 +21,7 @@ class TradeService {
         type: trade.type as TradeType
       }))
       // TODO: REMOVE IN PRODUCTION - End of development-only code
-    } catch (error) {
+    } catch {
       // TODO: REMOVE IN PRODUCTION - Start of development-only code
       console.log('Error fetching trades from API, using dummy data for testing')
       return tradesData.trades.map(trade => ({
@@ -37,36 +37,21 @@ class TradeService {
   }
 
   async getTradesByAgent(agentId: string): Promise<Trade[]> {
-    try {
-      const result = await getTrades(agentId)
-      if (result.success && result.data && result.data.length > 0) {
-        return result.data
-      }
-      
-      // TODO: REMOVE IN PRODUCTION - Start of development-only code
-      console.log('No trades found from API, using dummy data for testing')
+    if (process.env.NEXT_PUBLIC_USE_TEST_DATA === 'true') {
       return tradesData.trades
         .filter(trade => trade.agentId === agentId)
         .map(trade => ({
           ...trade,
           type: trade.type as TradeType
         }))
-      // TODO: REMOVE IN PRODUCTION - End of development-only code
-    } catch (error) {
-      // TODO: REMOVE IN PRODUCTION - Start of development-only code
-      console.log('Error fetching trades from API, using dummy data for testing')
-      return tradesData.trades
-        .filter(trade => trade.agentId === agentId)
-        .map(trade => ({
-          ...trade,
-          type: trade.type as TradeType
-        }))
-      // TODO: REMOVE IN PRODUCTION - End of development-only code
-
-      // TODO: UNCOMMENT IN PRODUCTION - Start of production-only code
-      // throw new Error('Failed to fetch trades')
-      // TODO: UNCOMMENT IN PRODUCTION - End of production-only code
     }
+
+    const result = await getTrades(agentId)
+    if (!result.success || !result.data) {
+      throw new Error(result.error || 'Failed to fetch trades')
+    }
+
+    return result.data
   }
 
   async getTradeById(id: string): Promise<Trade | null> {
