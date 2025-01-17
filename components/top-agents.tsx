@@ -1,28 +1,110 @@
 'use client'
 
+import { memo, useEffect, useRef, useState, useMemo } from 'react'
 import { Agent } from '@/lib/types'
 import { useAgents } from '@/hooks/use-agents'
-import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { UserCircle, Sparkles, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { AgentAvatar } from '@/components/ui/agent-avatar'
+import { Skeleton } from '@/components/ui/skeleton'
 
-function AgentList({ title, subtitle, agents, type }: { title: string; subtitle: string; agents: Agent[]; type: 'leftcurve' | 'rightcurve' }) {
+interface AgentListProps {
+  title: string
+  subtitle: string
+  agents: Agent[]
+  type: 'leftcurve' | 'rightcurve'
+}
+
+const AgentItem = memo(({ agent, type, index }: { agent: Agent, type: 'leftcurve' | 'rightcurve', index: number }) => (
+  <Link href={`/agent/${agent.id}`}>
+    <motion.div 
+      className={cn(
+        "group rounded-lg p-2 transition-all duration-200 cursor-pointer",
+        type === 'leftcurve' 
+          ? "hover:bg-orange-500/10 hover:border-orange-500/30" 
+          : "hover:bg-purple-500/10 hover:border-purple-500/30",
+        (index % 5) === 0 && "bg-white/5"
+      )}
+      initial={{ opacity: 0, x: type === 'leftcurve' ? -20 : 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.3, delay: 0.1 * (index % 5) }}
+    >
+      <div className="flex items-center gap-2">
+        <div className="relative">
+          <div className="w-8 h-8 relative rounded-lg overflow-hidden flex-shrink-0 bg-white/5 flex items-center justify-center">
+            {agent.avatar ? (
+              <AgentAvatar src={agent.avatar} alt={agent.name} />
+            ) : (
+              <UserCircle className="w-5 h-5 text-gray-400" />
+            )}
+          </div>
+          {(index % 5) === 0 && (
+            <div className={cn(
+              "absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-[10px]",
+              type === 'leftcurve' ? "bg-orange-500" : "bg-purple-500"
+            )}>
+              👑
+            </div>
+          )}
+        </div>
+        
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className={cn(
+                "font-medium text-xs transition-colors truncate flex items-center gap-1.5",
+                type === 'leftcurve' 
+                  ? "group-hover:text-orange-500" 
+                  : "group-hover:text-purple-500"
+              )}>
+                {agent.name}
+                <span className="text-[10px] text-muted-foreground font-mono">
+                  ${agent.symbol}
+                </span>
+              </div>
+              <div className="text-[10px] text-muted-foreground font-mono">
+                {agent.holders.toLocaleString()} holders
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="font-mono text-[10px]">
+                ${agent.price.toFixed(2)}
+              </div>
+              <div className={cn(
+                "font-mono text-[10px] font-bold",
+                type === 'leftcurve' ? "text-orange-500" : "text-purple-500"
+              )}>
+                {((type === 'leftcurve' ? agent.creativityIndex : agent.performanceIndex) * 100).toFixed(0)}%
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  </Link>
+))
+AgentItem.displayName = 'AgentItem'
+
+const AgentList = memo(({ title, subtitle, agents, type }: AgentListProps) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [isPaused, setIsPaused] = useState(false)
   
-  const sortedAgents = [...agents]
-    .filter(a => a.type === type)
-    .sort((a, b) => {
-      const scoreA = type === 'leftcurve' ? a.creativityIndex : a.performanceIndex
-      const scoreB = type === 'leftcurve' ? b.creativityIndex : b.performanceIndex
-      return scoreB - scoreA
-    })
-    .slice(0, 5)
+  const sortedAgents = useMemo(() => 
+    [...agents]
+      .filter(a => a.type === type)
+      .sort((a, b) => {
+        const scoreA = type === 'leftcurve' ? a.creativityIndex : a.performanceIndex
+        const scoreB = type === 'leftcurve' ? b.creativityIndex : b.performanceIndex
+        return scoreB - scoreA
+      })
+      .slice(0, 5)
+  , [agents, type])
 
-  const loopedAgents = [...sortedAgents, ...sortedAgents, ...sortedAgents]
+  const loopedAgents = useMemo(() => 
+    [...sortedAgents, ...sortedAgents, ...sortedAgents]
+  , [sortedAgents])
 
   useEffect(() => {
     const container = containerRef.current
@@ -85,90 +167,54 @@ function AgentList({ title, subtitle, agents, type }: { title: string; subtitle:
         onMouseLeave={() => setIsPaused(false)}
       >
         {loopedAgents.map((agent, index) => (
-          <Link 
+          <AgentItem 
             key={`${agent.id}-${index}`}
-            href={`/agent/${agent.id}`}
-          >
-            <motion.div 
-              className={cn(
-                "group rounded-lg p-2 transition-all duration-200 cursor-pointer",
-                type === 'leftcurve' 
-                  ? "hover:bg-orange-500/10 hover:border-orange-500/30" 
-                  : "hover:bg-purple-500/10 hover:border-purple-500/30",
-                (index % 5) === 0 && "bg-white/5"
-              )}
-              initial={{ opacity: 0, x: type === 'leftcurve' ? -20 : 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3, delay: 0.1 * (index % 5) }}
-            >
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <div className="w-8 h-8 relative rounded-lg overflow-hidden flex-shrink-0 bg-white/5 flex items-center justify-center">
-                    {agent.avatar ? (
-                      <AgentAvatar src={agent.avatar} alt={agent.name} />
-                    ) : (
-                      <UserCircle className="w-5 h-5 text-gray-400" />
-                    )}
-                  </div>
-                  {(index % 5) === 0 && (
-                    <div className={cn(
-                      "absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-[10px]",
-                      type === 'leftcurve' ? "bg-orange-500" : "bg-purple-500"
-                    )}>
-                      👑
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className={cn(
-                        "font-medium text-xs transition-colors truncate flex items-center gap-1.5",
-                        type === 'leftcurve' 
-                          ? "group-hover:text-orange-500" 
-                          : "group-hover:text-purple-500"
-                      )}>
-                        {agent.name}
-                        <span className="text-[10px] text-muted-foreground font-mono">
-                          ${agent.symbol}
-                        </span>
-                      </div>
-                      <div className="text-[10px] text-muted-foreground font-mono">
-                        {agent.holders.toLocaleString()} holders
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-mono text-[10px]">
-                        ${agent.price.toFixed(2)}
-                      </div>
-                      <div className={cn(
-                        "font-mono text-[10px] font-bold",
-                        type === 'leftcurve' ? "text-orange-500" : "text-purple-500"
-                      )}>
-                        {((type === 'leftcurve' ? agent.creativityIndex : agent.performanceIndex) * 100).toFixed(0)}%
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </Link>
+            agent={agent}
+            type={type}
+            index={index}
+          />
         ))}
       </div>
     </motion.div>
   )
-}
+})
+AgentList.displayName = 'AgentList'
 
-export function TopAgents() {
-  const { agents, isLoading, error } = useAgents()
+const LoadingState = () => (
+  <div className="flex gap-4">
+    {[0, 1].map((i) => (
+      <div key={i} className="flex-1 rounded-xl border border-border p-3">
+        <div className="space-y-2 mb-4">
+          <Skeleton className="h-8 w-40 mx-auto" />
+          <Skeleton className="h-4 w-32 mx-auto" />
+        </div>
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, j) => (
+            <Skeleton key={j} className="h-12 w-full" />
+          ))}
+        </div>
+      </div>
+    ))}
+  </div>
+)
+
+export const TopAgents = memo(() => {
+  const { data: agents, isLoading, error } = useAgents()
 
   if (isLoading) {
-    return <div>Loading...</div>
+    return <LoadingState />
   }
 
   if (error) {
-    return <div>Error: {error.message}</div>
+    return (
+      <div className="text-center text-sm text-red-500">
+        Failed to load agents: {error.message}
+      </div>
+    )
+  }
+
+  if (!agents) {
+    return null
   }
 
   return (
@@ -192,4 +238,5 @@ export function TopAgents() {
       </div>
     </div>
   )
-} 
+})
+TopAgents.displayName = 'TopAgents' 

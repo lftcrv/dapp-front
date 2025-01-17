@@ -1,34 +1,131 @@
-import { useState } from 'react'
+'use client'
+
+import { memo, useState, useCallback } from 'react'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
-// Default avatar if image fails to load
 const DEFAULT_AVATAR = '/avatars/default-agent.svg'
 
-interface AgentAvatarProps {
-  src?: string
-  alt: string
+interface ImageState {
+  isLoading: boolean
+  hasError: boolean
+}
+
+interface LoadingStateProps {
+  size: number
   className?: string
 }
 
-export function AgentAvatar({ src, alt, className }: AgentAvatarProps) {
-  const [error, setError] = useState(false)
-  const imageSrc = error || !src ? DEFAULT_AVATAR : src
+interface AgentAvatarProps {
+  src?: string
+  alt?: string
+  size?: number
+  className?: string
+  isLoading?: boolean
+  priority?: boolean
+  quality?: number
+}
+
+const LoadingState = memo(({ size, className }: LoadingStateProps) => (
+  <div 
+    className={cn("relative rounded-full overflow-hidden bg-white/5", className)}
+    style={{ width: size, height: size }}
+  >
+    <Skeleton className="w-full h-full" />
+  </div>
+))
+LoadingState.displayName = 'LoadingState'
+
+const ImageComponent = memo(({ 
+  src, 
+  alt, 
+  size,
+  priority = true,
+  quality = 90,
+  onLoad,
+  onError,
+  className 
+}: Pick<AgentAvatarProps, 'src' | 'alt' | 'size' | 'priority' | 'quality' | 'className'> & {
+  onLoad: () => void
+  onError: () => void
+}) => (
+  <Image
+    src={src || DEFAULT_AVATAR}
+    alt={alt || 'Agent avatar'}
+    width={size}
+    height={size}
+    quality={quality}
+    className={cn(
+      "object-cover transition-all duration-200",
+      !src ? "opacity-50" : "opacity-100",
+      className
+    )}
+    onError={onError}
+    onLoad={onLoad}
+    priority={priority}
+  />
+))
+ImageComponent.displayName = 'ImageComponent'
+
+export const AgentAvatar = memo(({
+  src,
+  alt = 'Agent avatar', 
+  className,
+  size = 32,
+  isLoading,
+  priority,
+  quality
+}: AgentAvatarProps) => {
+  const [imageState, setImageState] = useState<ImageState>({
+    isLoading: true,
+    hasError: false
+  })
   
+  const handleError = useCallback(() => {
+    setImageState(prev => ({
+      ...prev,
+      hasError: true,
+      isLoading: false
+    }))
+  }, [])
+
+  const handleLoad = useCallback(() => {
+    setImageState(prev => ({
+      ...prev,
+      isLoading: false
+    }))
+  }, [])
+
+  if (isLoading) {
+    return <LoadingState size={size} className={className} />
+  }
+
+  const imageSrc = imageState.hasError || !src ? DEFAULT_AVATAR : src
+
   return (
-    <div className={cn("relative w-8 h-8 rounded-full overflow-hidden bg-white/5", className)}>
-      <Image
+    <div 
+      className={cn(
+        "relative rounded-full overflow-hidden bg-white/5",
+        className
+      )}
+      style={{ width: size, height: size }}
+    >
+      {imageState.isLoading && <LoadingState size={size} />}
+      <ImageComponent
         src={imageSrc}
         alt={alt}
-        width={32}
-        height={32}
+        size={size}
+        priority={priority}
+        quality={quality}
+        onError={handleError}
+        onLoad={handleLoad}
         className={cn(
-          "object-cover transition-opacity",
-          error ? "opacity-50" : "opacity-100"
+          imageState.isLoading ? "scale-110 blur-sm" : "scale-100 blur-0"
         )}
-        onError={() => setError(true)}
-        priority // Add priority to load early
       />
     </div>
   )
-} 
+})
+
+AgentAvatar.displayName = 'AgentAvatar' 

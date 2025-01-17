@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Trade } from '@/lib/types'
 import { tradeService } from '@/lib/services/api/trades'
+import { useAsyncState } from '@/lib/core/state'
 
 interface UseTradesOptions {
   agentId?: string
@@ -9,41 +10,40 @@ interface UseTradesOptions {
 }
 
 export function useTrades({ agentId, initialData, limit = 10 }: UseTradesOptions = {}) {
-  const [trades, setTrades] = useState<Trade[]>(initialData || [])
+  const state = useAsyncState<Trade[]>(initialData)
   const [page, setPage] = useState(1)
-  const [isLoading, setIsLoading] = useState(!initialData)
-  const [error, setError] = useState<Error | null>(null)
   const [hasMore, setHasMore] = useState(true)
+  const [allTrades, setAllTrades] = useState<Trade[]>([])
 
   useEffect(() => {
     async function fetchTrades() {
-      try {
-        setIsLoading(true)
-        setError(null)
-        
-        let data: Trade[]
-        if (agentId) {
-          data = await tradeService.getTradesByAgent(agentId)
-        } else {
-          data = await tradeService.getAllTrades()
-        }
-        
-        const paginatedTrades = data.slice(0, page * limit)
-        setTrades(paginatedTrades)
-        setHasMore(paginatedTrades.length < data.length)
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('Failed to fetch trades'))
-      } finally {
-        setIsLoading(false)
+      if (initialData) return
+      
+      state.setLoading(true)
+      const result = agentId 
+        ? await tradeService.getByAgent(agentId)
+        : await tradeService.getAll()
+      
+      if (result.success && result.data) {
+        setAllTrades(result.data)
+        const paginatedTrades = result.data.slice(0, page * limit)
+        state.setData(paginatedTrades)
+        setHasMore(paginatedTrades.length < result.data.length)
+      } else if (result.error) {
+        state.setError(result.error)
       }
     }
 
-    if (!initialData) {
-      fetchTrades()
-    }
+    fetchTrades()
   }, [agentId, page, limit, initialData])
 
   const loadMore = () => setPage(p => p + 1)
 
-  return { trades, isLoading, error, hasMore, loadMore }
+  return { 
+    trades: state.data || [], 
+    isLoading: state.isLoading, 
+    error: state.error, 
+    hasMore, 
+    loadMore 
+  }
 } 

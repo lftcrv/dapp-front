@@ -1,8 +1,18 @@
 'use client'
 
-import { useEffect } from 'react'
+import { memo, useEffect, useCallback, useState } from 'react'
+import { AlertCircle, Clock } from 'lucide-react'
+import { Alert, AlertDescription } from './ui/alert'
+import { Badge } from './ui/badge'
+import { motion, AnimatePresence } from 'framer-motion'
 
-// Track component render times
+interface PerformanceMetric {
+  name: string
+  value: number
+  threshold: number
+  timestamp: number
+}
+
 const componentTimings: { [key: string]: number } = {}
 
 export function startTiming(componentName: string) {
@@ -19,89 +29,146 @@ export function endTiming(componentName: string) {
 
 function logPerf(action: string, duration: number, threshold = 0) {
   if (duration > threshold) {
-    console.log('\x1b[36m%s\x1b[0m', `⏱️ ${action}: ${duration.toFixed(2)}ms`);
+    console.log('\x1b[36m%s\x1b[0m', `⏱️ ${action}: ${duration.toFixed(2)}ms`)
   }
 }
 
-export function PerformanceMonitor() {
+const MetricBadge = memo(({ metric }: { metric: PerformanceMetric }) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.8 }}
+    animate={{ opacity: 1, scale: 1 }}
+    exit={{ opacity: 0, scale: 0.8 }}
+    transition={{ duration: 0.2 }}
+  >
+    <Badge 
+      variant={metric.value > metric.threshold ? "destructive" : "secondary"}
+      className="flex items-center gap-1.5"
+    >
+      <Clock className="h-3 w-3" />
+      {metric.name}: {metric.value.toFixed(2)}ms
+    </Badge>
+  </motion.div>
+))
+MetricBadge.displayName = 'MetricBadge'
+
+const ErrorAlert = memo(({ message }: { message: string }) => (
+  <Alert variant="destructive" className="mt-4">
+    <AlertCircle className="h-4 w-4" />
+    <AlertDescription>{message}</AlertDescription>
+  </Alert>
+))
+ErrorAlert.displayName = 'ErrorAlert'
+
+export const PerformanceMonitor = memo(() => {
+  const [metrics, setMetrics] = useState<PerformanceMetric[]>([])
+  const [error, setError] = useState<string | null>(null)
+
+  const addMetric = useCallback((name: string, value: number, threshold: number) => {
+    setMetrics(prev => {
+      const newMetrics = prev.filter(m => m.name !== name)
+      return [...newMetrics, {
+        name,
+        value,
+        threshold,
+        timestamp: Date.now()
+      }].slice(-5) // Keep only last 5 metrics
+    })
+  }, [])
+
   useEffect(() => {
-    // Only monitor in development
-    if (process.env.NODE_ENV !== 'development') return;
+    if (process.env.NODE_ENV !== 'development') return
 
-    // Start timing layout and main content
-    startTiming('RootLayout')
-    startTiming('MainContent')
-
-    // Log initial mount
-    const mountTime = performance.now();
-    
-    // Create a PerformanceObserver to track layout shifts
-    const layoutObserver = new PerformanceObserver((list) => {
-      list.getEntries().forEach((entry) => {
-        if (entry.entryType === 'layout-shift') {
-          logPerf('Layout Shift', entry.startTime, 0);
-        }
-      });
-    });
+    let layoutObserver: PerformanceObserver | null = null
+    let resourceObserver: PerformanceObserver | null = null
+    const mountTime = performance.now()
 
     try {
-      layoutObserver.observe({ entryTypes: ['layout-shift'] });
-    } catch (e) {
-      console.debug('Layout shifts cannot be monitored:', e);
-    }
-    
-    // Wait for window load to measure full page metrics
-    window.addEventListener('load', () => {
-      try {
-        endTiming('MainContent')
-        endTiming('RootLayout')
+      startTiming('RootLayout')
+      startTiming('MainContent')
 
-        // Navigation Timing API metrics
-        const timing = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-        const start = timing.fetchStart;
-        
-        // Calculate timings relative to fetchStart
-        const pageLoad = timing.loadEventEnd - start;
-        const domReady = timing.domContentLoadedEventEnd - start;
-        const firstPaint = performance.getEntriesByType('paint')[0]?.startTime || 0;
+      // Track layout shifts
+      layoutObserver = new PerformanceObserver((list) => {
+        list.getEntries().forEach((entry) => {
+          if (entry.entryType === 'layout-shift') {
+            addMetric('Layout Shift', entry.startTime, 0)
+          }
+        })
+      })
+      layoutObserver.observe({ entryTypes: ['layout-shift'] })
 
-        // Only log metrics above certain thresholds
-        if (pageLoad > 1000) logPerf('Page Load', pageLoad);
-        if (domReady > 500) logPerf('DOM Ready', domReady);
-        if (firstPaint > 100) logPerf('First Paint', firstPaint);
-        
-        // Log only very large resources (>1s load time or >500KB)
-        const resources = performance.getEntriesByType('resource');
-        resources.forEach((entry) => {
-          const resource = entry as PerformanceResourceTiming;
-          const size = resource.encodedBodySize / 1024;
+      // Track resource timing
+      resourceObserver = new PerformanceObserver((list) => {
+        list.getEntries().forEach((entry) => {
+          const resource = entry as PerformanceResourceTiming
+          const size = resource.encodedBodySize / 1024
           
           if (resource.duration > 1000 || size > 500) {
-            const name = resource.name.split('/').pop();
-            logPerf(`Large Resource: ${name}`, resource.duration, 1000);
-            if (size > 500) {
-              console.log('\x1b[33m%s\x1b[0m', `⚠️ Size: ${size.toFixed(2)}KB`);
-            }
+            const name = resource.name.split('/').pop() || ''
+            addMetric(`Resource: ${name}`, resource.duration, 1000)
           }
-        });
-      } catch (error) {
-        // Ignore errors in performance monitoring
-        console.debug('Performance monitoring error:', error);
-      }
-    });
+        })
+      })
+      resourceObserver.observe({ entryTypes: ['resource'] })
 
-    return () => {
-      // Log component mount time only if significant
-      logPerf('Initial Mount', performance.now() - mountTime, 100);
-      // Cleanup
-      try {
-        layoutObserver.disconnect();
-      } catch {
-        // Ignore cleanup errors
-      }
-    };
-  }, []);
+      // Handle window load
+      const handleLoad = () => {
+        try {
+          endTiming('MainContent')
+          endTiming('RootLayout')
 
-  // This component doesn't render anything
-  return null;
-} 
+          const timing = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming
+          const start = timing.fetchStart
+          
+          const pageLoad = timing.loadEventEnd - start
+          const domReady = timing.domContentLoadedEventEnd - start
+          const firstPaint = performance.getEntriesByType('paint')[0]?.startTime || 0
+
+          if (pageLoad > 1000) addMetric('Page Load', pageLoad, 1000)
+          if (domReady > 500) addMetric('DOM Ready', domReady, 500)
+          if (firstPaint > 100) addMetric('First Paint', firstPaint, 100)
+
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Failed to measure performance'
+          setError(message)
+          console.debug('Performance monitoring error:', err)
+        }
+      }
+
+      window.addEventListener('load', handleLoad)
+
+      return () => {
+        window.removeEventListener('load', handleLoad)
+        layoutObserver?.disconnect()
+        resourceObserver?.disconnect()
+        addMetric('Initial Mount', performance.now() - mountTime, 100)
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to initialize performance monitoring'
+      setError(message)
+      console.debug('Performance monitoring setup error:', err)
+      return () => {
+        layoutObserver?.disconnect()
+        resourceObserver?.disconnect()
+      }
+    }
+  }, [addMetric])
+
+  if (process.env.NODE_ENV !== 'development') {
+    return null
+  }
+
+  return (
+    <div className="fixed bottom-4 right-4 z-50 space-y-2">
+      <AnimatePresence mode="popLayout">
+        {metrics.map((metric) => (
+          <MetricBadge 
+            key={`${metric.name}-${metric.timestamp}`} 
+            metric={metric} 
+          />
+        ))}
+      </AnimatePresence>
+      {error && <ErrorAlert message={error} />}
+    </div>
+  )
+})
+PerformanceMonitor.displayName = 'PerformanceMonitor' 

@@ -16,9 +16,9 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { showToast } from '@/lib/toast'
 import { type StarknetWindowObject } from 'get-starknet-core'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
 
-// Helper function for colored console logs
-function logPerf(action: string, duration: number, walletType: string = '') {
+const logPerf = (action: string, duration: number, walletType: string = '') => {
   console.log('\x1b[36m%s\x1b[0m', `⏱️ ${action}${walletType ? ` (${walletType})` : ''}: ${duration.toFixed(2)}ms`);
 }
 
@@ -28,26 +28,100 @@ interface StarknetWalletState {
   isConnected: boolean;
 }
 
-// Lazy load modal only when needed
 const WalletConnectModal = React.lazy(() => 
   import('./wallet-connect-modal').then(mod => ({
     default: mod.WalletConnectModal
   }))
-);
+)
 
-export function WalletButton() {
-  const mountTime = React.useRef(performance.now())
-  const [showWalletModal, setShowWalletModal] = React.useState(false)
+interface WalletInfoProps {
+  address: string
+  walletType: 'Starknet' | 'EVM'
+  onCopy: (address: string) => void
+}
+
+const WalletInfo = memo(({ address, walletType, onCopy }: WalletInfoProps) => (
+  <div className="flex flex-col px-2 py-1.5 gap-1">
+    <div className="flex items-center gap-2 px-2 py-1.5">
+      <Wallet2 className="w-4 h-4 text-muted-foreground" />
+      <span className="text-sm font-medium">Connected {walletType} Wallet</span>
+    </div>
+    <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-muted/50">
+      <span className="font-mono text-sm">{shortAddress(address)}</span>
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        className="h-6 w-6 ml-auto hover:bg-muted"
+        onClick={() => onCopy(address)}
+      >
+        <Copy className="w-3 h-3" />
+      </Button>
+    </div>
+  </div>
+))
+WalletInfo.displayName = 'WalletInfo'
+
+interface ConnectedWalletProps {
+  address: string
+  walletType: 'Starknet' | 'EVM'
+  onDisconnect: () => void
+  onCopy: (address: string) => void
+}
+
+const ConnectedWallet = memo(({ address, walletType, onDisconnect, onCopy }: ConnectedWalletProps) => (
+  <DropdownMenu>
+    <DropdownMenuTrigger asChild>
+      <Button variant="outline" className="font-mono text-sm">
+        {walletType === 'Starknet' ? '🌟' : '⚡️'} {shortAddress(address)}
+      </Button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align="end" className="w-72">
+      <WalletInfo 
+        address={address}
+        walletType={walletType}
+        onCopy={onCopy}
+      />
+      <DropdownMenuSeparator />
+      <DropdownMenuItem 
+        onClick={onDisconnect}
+        className="px-2 py-1.5 text-sm font-medium text-red-500 focus:text-red-500 focus:bg-red-500/10 data-[highlighted]:text-red-500 data-[highlighted]:bg-red-500/10 transition-colors"
+      >
+        <LogOut className="w-4 h-4 mr-2" />
+        Disconnect
+      </DropdownMenuItem>
+    </DropdownMenuContent>
+  </DropdownMenu>
+))
+ConnectedWallet.displayName = 'ConnectedWallet'
+
+interface DisconnectedWalletProps {
+  onClick: () => void
+  isLoading: boolean
+}
+
+const DisconnectedWallet = memo(({ onClick, isLoading }: DisconnectedWalletProps) => (
+  <Button
+    variant="outline"
+    onClick={onClick}
+    disabled={isLoading}
+  >
+    {isLoading ? 'Checking...' : 'Connect Wallet'}
+  </Button>
+))
+DisconnectedWallet.displayName = 'DisconnectedWallet'
+
+export const WalletButton = memo(() => {
+  const mountTime = useRef(performance.now())
+  const [showWalletModal, setShowWalletModal] = useState(false)
   const { ready, authenticated, logout } = usePrivy()
   const { address: evmAddress } = useAccount()
-  const [starknetWallet, setStarknetWallet] = React.useState<StarknetWalletState>({
+  const [starknetWallet, setStarknetWallet] = useState<StarknetWalletState>({
     wallet: null,
     isConnected: false
   })
-  const [isLoadingWallet, setIsLoadingWallet] = React.useState(false)
+  const [isLoadingWallet, setIsLoadingWallet] = useState(false)
 
-  // Function to clear Starknet state with performance logging
-  const clearStarknetState = React.useCallback(() => {
+  const clearStarknetState = useCallback(() => {
     const startTime = performance.now()
     setStarknetWallet({
       wallet: null,
@@ -58,19 +132,16 @@ export function WalletButton() {
     logPerf('Clear State', performance.now() - startTime)
   }, [])
 
-  // Optimized connection check with caching
-  const checkStarknetConnection = React.useCallback(async () => {
+  const checkStarknetConnection = useCallback(async () => {
     if (isLoadingWallet || authenticated) return;
     
     const startTime = performance.now();
     setIsLoadingWallet(true);
     
     try {
-      // Check cache first
       const cachedWallet = sessionStorage.getItem('starknet_wallet_cache');
       if (cachedWallet) {
         const { timestamp, data } = JSON.parse(cachedWallet);
-        // Cache valid for 5 minutes
         if (Date.now() - timestamp < 5 * 60 * 1000) {
           setStarknetWallet(data);
           logPerf('Cache Hit', performance.now() - startTime);
@@ -117,7 +188,6 @@ export function WalletButton() {
             isConnected: true
           };
           setStarknetWallet(walletState);
-          // Cache the successful connection
           sessionStorage.setItem('starknet_wallet_cache', JSON.stringify({
             timestamp: Date.now(),
             data: walletState
@@ -141,35 +211,29 @@ export function WalletButton() {
     }
   }, [authenticated, clearStarknetState, isLoadingWallet]);
 
-  // Log initial mount time and check connection
-  React.useEffect(() => {
+  useEffect(() => {
     const walletType = starknetWallet.isConnected ? 'Starknet' : authenticated ? 'EVM' : 'None'
     logPerf('Wallet Mount', performance.now() - mountTime.current, walletType)
-    
-    // Check for existing Starknet connection
     checkStarknetConnection()
   }, [authenticated, starknetWallet.isConnected, checkStarknetConnection])
 
-  // Handle EVM wallet changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (authenticated && starknetWallet.isConnected) {
       clearStarknetState()
     }
   }, [authenticated, starknetWallet.isConnected, clearStarknetState])
 
-  // Only check Starknet connection when user interacts with wallet button
-  const handleWalletClick = () => {
+  const handleWalletClick = useCallback(() => {
     if (!ready) return
     if (!authenticated && !starknetWallet.isConnected) {
       checkStarknetConnection()
     }
     setShowWalletModal(true)
-  }
+  }, [ready, authenticated, starknetWallet.isConnected, checkStarknetConnection])
 
-  const handleDisconnect = React.useCallback(async () => {
+  const handleDisconnect = useCallback(async () => {
     const startTime = performance.now()
     try {
-      // Handle EVM wallet disconnection
       if (authenticated) {
         await logout()
         logPerf('EVM Disconnect', performance.now() - startTime)
@@ -177,14 +241,12 @@ export function WalletButton() {
         return
       }
 
-      // Handle Starknet wallet disconnection
       if (starknetWallet.isConnected) {
         await disconnect({ clearLastWallet: true })
         setStarknetWallet({
           wallet: null,
           isConnected: false
         })
-        // Clear stored wallet data
         localStorage.removeItem('starknet_wallet')
         sessionStorage.removeItem('starknet_wallet_cache')
         logPerf('Starknet Disconnect', performance.now() - startTime)
@@ -196,66 +258,36 @@ export function WalletButton() {
     }
   }, [authenticated, logout, starknetWallet.isConnected])
 
-  const handleCopyAddress = (address: string) => {
+  const handleCopyAddress = useCallback((address: string) => {
     navigator.clipboard.writeText(address)
-  }
+  }, [])
 
-  // Show connected state for either Starknet or EVM wallet
   if (starknetWallet.isConnected || (authenticated && evmAddress)) {
     const address = starknetWallet.address || evmAddress || ''
     const walletType = starknetWallet.isConnected ? 'Starknet' : 'EVM'
 
     return (
       <>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              className="font-mono text-sm"
-            >
-              {starknetWallet.isConnected ? '🌟' : '⚡️'} {shortAddress(address)}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72">
-            <div className="flex flex-col px-2 py-1.5 gap-1">
-              <div className="flex items-center gap-2 px-2 py-1.5">
-                <Wallet2 className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Connected {walletType} Wallet</span>
-              </div>
-              <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-muted/50">
-                <span className="font-mono text-sm">{shortAddress(address)}</span>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6 ml-auto hover:bg-muted"
-                  onClick={() => handleCopyAddress(address)}
-                >
-                  <Copy className="w-3 h-3" />
-                </Button>
-              </div>
-            </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onClick={handleDisconnect}
-              className="px-2 py-1.5 text-sm font-medium text-red-500 focus:text-red-500 focus:bg-red-500/10 data-[highlighted]:text-red-500 data-[highlighted]:bg-red-500/10 transition-colors"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Disconnect
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <ConnectedWallet 
+          address={address}
+          walletType={walletType}
+          onDisconnect={handleDisconnect}
+          onCopy={handleCopyAddress}
+        />
 
         {showWalletModal && (
           <React.Suspense fallback={null}>
             <WalletConnectModal
               isOpen={showWalletModal}
               onClose={() => setShowWalletModal(false)}
-              onStarknetConnect={(wallet: StarknetWindowObject, address: string) => {
+              onStarknetConnect={async (wallet, address) => {
                 setStarknetWallet({
                   wallet,
                   address,
                   isConnected: true
                 });
+                setShowWalletModal(false);
+                localStorage.setItem('starknet_wallet', JSON.stringify({ address, isConnected: true }));
               }}
             />
           </React.Suspense>
@@ -266,42 +298,29 @@ export function WalletButton() {
 
   return (
     <>
-      <Button
+      <DisconnectedWallet 
         onClick={handleWalletClick}
-        disabled={!ready || isLoadingWallet}
-        className="bg-gradient-to-r from-yellow-500 to-pink-500 text-white hover:opacity-90 min-w-[140px] transition-all"
-      >
-        {!ready || isLoadingWallet ? (
-          <span className="flex items-center">
-            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Loading...
-          </span>
-        ) : (
-          <>
-            <Wallet2 className="mr-2 h-4 w-4" />
-            Connect Wallet
-          </>
-        )}
-      </Button>
+        isLoading={isLoadingWallet}
+      />
 
       {showWalletModal && (
         <React.Suspense fallback={null}>
           <WalletConnectModal
             isOpen={showWalletModal}
             onClose={() => setShowWalletModal(false)}
-            onStarknetConnect={(wallet: StarknetWindowObject, address: string) => {
+            onStarknetConnect={async (wallet, address) => {
               setStarknetWallet({
                 wallet,
                 address,
                 isConnected: true
               });
+              setShowWalletModal(false);
+              localStorage.setItem('starknet_wallet', JSON.stringify({ address, isConnected: true }));
             }}
           />
         </React.Suspense>
       )}
     </>
   )
-} 
+})
+WalletButton.displayName = 'WalletButton' 

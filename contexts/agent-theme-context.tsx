@@ -26,7 +26,7 @@ const defaultTheme: ThemeContextValue = {
 const AgentThemeContext = createContext<ThemeContextValue>(defaultTheme)
 
 export function AgentThemeProvider({ agentId, children }: AgentThemeProviderProps) {
-  const { agent, isLoading } = useAgent({ id: agentId })
+  const { data: agent, isLoading } = useAgent({ id: agentId })
   const isLeftCurve = agent?.type === 'leftcurve'
   const mode: AgentType = isLeftCurve ? 'leftcurve' : 'rightcurve'
 

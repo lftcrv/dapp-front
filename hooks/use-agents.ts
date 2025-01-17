@@ -1,25 +1,17 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { Agent } from '@/lib/types'
 import { agentService } from '@/lib/services/api/agents'
+import { useAsyncState } from '@/lib/core/state'
 
 export function useAgents() {
-  const [agents, setAgents] = useState<Agent[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
+  const state = useAsyncState<Agent[]>()
 
   async function fetchAgents() {
-    try {
-      setIsLoading(true)
-      setError(null)
-      const data = await agentService.getAllAgents()
-      setAgents(data)
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch agents'))
-    } finally {
-      setIsLoading(false)
-    }
+    state.setLoading(true)
+    const result = await agentService.getAll()
+    state.handleResult(result)
   }
 
   useEffect(() => {
@@ -27,36 +19,25 @@ export function useAgents() {
   }, [])
 
   return {
-    agents,
-    isLoading,
-    error,
+    ...state,
     refetch: fetchAgents
   }
 }
 
 export function useAgent({ id, initialData }: { id: string, initialData?: Agent }) {
-  const [agent, setAgent] = useState<Agent | null>(initialData || null)
-  const [isLoading, setIsLoading] = useState(!initialData)
-  const [error, setError] = useState<Error | null>(null)
+  const state = useAsyncState<Agent>(initialData)
 
   useEffect(() => {
     async function fetchAgent() {
-      try {
-        setIsLoading(true)
-        setError(null)
-        const data = await agentService.getAgentById(id)
-        setAgent(data)
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('Failed to fetch agent'))
-      } finally {
-        setIsLoading(false)
-      }
+      if (initialData) return
+      
+      state.setLoading(true)
+      const result = await agentService.getById(id)
+      state.handleResult(result)
     }
 
-    if (!initialData) {
-      fetchAgent()
-    }
+    fetchAgent()
   }, [id, initialData])
 
-  return { agent, isLoading, error }
+  return state
 } 
