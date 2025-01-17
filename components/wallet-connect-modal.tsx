@@ -38,6 +38,9 @@ export function WalletConnectModal({ isOpen, onClose, onStarknetConnect }: Walle
     const startTime = performance.now();
     showToast('CONNECTING', 'loading');
     
+    // Close the current modal first
+    onClose();
+    
     try {
       const { wallet, connectorData } = await connect({
         modalMode: "alwaysAsk",
@@ -48,13 +51,11 @@ export function WalletConnectModal({ isOpen, onClose, onStarknetConnect }: Walle
 
       if (wallet && connectorData?.account) {
         onStarknetConnect(wallet, connectorData.account);
+        logPerf('Starknet Connection', performance.now() - startTime, 'Starknet');
         showToast('CONNECTED', 'success');
-        logPerf('Successful Connect', performance.now() - startTime, 'Starknet');
-        onClose();
       }
     } catch {
       showToast('CONNECTION_ERROR', 'error');
-      logPerf('Connection Error', performance.now() - startTime, 'Starknet');
     } finally {
       setIsConnecting(false);
     }
