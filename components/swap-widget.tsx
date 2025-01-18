@@ -128,7 +128,7 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
           onClick={() => window.open('https://app.avnu.fi', '_blank')}
         >
           <LinkIcon className="h-3 w-3" />
-          Get LINK
+          Get $LEFT
           <ExternalLink className="h-3 w-3 opacity-50" />
         </Button>
       </div>
@@ -147,8 +147,8 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
 
         <TabsContent value="buy" className="space-y-4">
           <SwapInput
-            label="Pay with LINK"
-            balance="0.00 LINK"
+            label="Pay with $LEFT"
+            balance="0.00 $LEFT"
             value={amount}
             onChange={setAmount}
             isLeftCurve={isLeftCurve}

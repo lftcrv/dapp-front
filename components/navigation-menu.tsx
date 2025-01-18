@@ -35,22 +35,14 @@ const navigation = [
   }
 ] as const
 
-// Optimized prefetch hook with segment awareness
-const usePrefetch = () => {
-  const router = useRouter()
-  const pathname = usePathname()
-  
+// Development-only performance tracking
+const usePerformanceTracking = (name: string) => {
   React.useEffect(() => {
-    // Only prefetch non-active routes
-    navigation
-      .filter(item => item.segment !== pathname.split('/')[1])
-      .forEach(item => {
-        // Delay prefetch slightly to prioritize current route
-        setTimeout(() => {
-          router.prefetch(item.href)
-        }, 100)
-      })
-  }, [router, pathname])
+    if (process.env.NODE_ENV === 'development') {
+      startTiming(`${name} Render`)
+      return () => endTiming(`${name} Render`)
+    }
+  }, [name])
 }
 
 // Optimized dynamic import with better error boundary
@@ -93,6 +85,7 @@ const NavLink = memo(({ href, isActive, children }: { href: string, isActive: bo
     <Link
       href={href}
       onClick={handleClick}
+      prefetch={true}
       className={`text-sm transition-colors hover:text-primary relative ${
         isActive ? 'text-primary font-medium' : 'text-muted-foreground'
       }`}
@@ -153,22 +146,17 @@ export const NavigationMenu = memo(() => {
   const [isOpen, setIsOpen] = React.useState(false)
   const pathname = usePathname()
 
-  // Use the prefetch hook
-  usePrefetch()
+  // Development-only performance tracking
+  usePerformanceTracking('NavigationMenu')
 
-  // Track initial render with component name
+  // Track navigation changes with segment info (development only)
   React.useEffect(() => {
-    const name = 'NavigationMenu'
-    startTiming(`${name} Render`)
-    return () => endTiming(`${name} Render`)
-  }, [])
-
-  // Track navigation changes with segment info
-  React.useEffect(() => {
-    const segment = pathname.split('/')[1] || 'home'
-    startTiming(`Navigation Change (${segment})`)
-    measureNavigation()
-    return () => endTiming(`Navigation Change (${segment})`)
+    if (process.env.NODE_ENV === 'development') {
+      const segment = pathname.split('/')[1] || 'home'
+      startTiming(`Navigation Change (${segment})`)
+      measureNavigation()
+      return () => endTiming(`Navigation Change (${segment})`)
+    }
   }, [pathname])
 
   // Close mobile menu when route changes
