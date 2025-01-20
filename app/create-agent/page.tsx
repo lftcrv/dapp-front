@@ -265,7 +265,10 @@ export default function CreateAgentPage() {
         adjectives: formData.adjectives.filter(Boolean)
       }
 
-      const result = await createAgent(formData.name, characterConfig)
+      // Convert agentType to curveSide
+      const curveSide = agentType === 'leftcurve' ? 'LEFT' : 'RIGHT'
+
+      const result = await createAgent(formData.name, characterConfig, curveSide)
       
       if (result.success) {
         showToast('AGENT_SUCCESS', 'success')

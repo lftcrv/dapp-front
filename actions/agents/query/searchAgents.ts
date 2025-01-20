@@ -13,7 +13,7 @@ export interface SearchAgentsParams {
 export async function searchAgents(params: SearchAgentsParams) {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL
-    const apiKey = process.env.ELIZA_API_KEY
+    const apiKey = process.env.API_KEY
 
     if (!apiUrl || !apiKey) {
       throw new Error('Missing API configuration')

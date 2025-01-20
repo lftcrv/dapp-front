@@ -5,7 +5,7 @@ import { Agent } from '@/lib/types'
 export async function getAgents() {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL
-    const apiKey = process.env.ELIZA_API_KEY
+    const apiKey = process.env.API_KEY
 
     if (!apiUrl || !apiKey) {
       throw new Error('Missing API configuration')
@@ -47,7 +47,7 @@ export async function getAgents() {
 export async function getAgentById(id: string) {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL
-    const apiKey = process.env.ELIZA_API_KEY
+    const apiKey = process.env.API_KEY
 
     if (!apiUrl || !apiKey) {
       throw new Error('Missing API configuration')

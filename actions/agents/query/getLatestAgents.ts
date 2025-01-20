@@ -5,7 +5,7 @@ import { Agent } from '@/lib/types'
 export async function getLatestAgents(limit: number = 10) {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL
-    const apiKey = process.env.ELIZA_API_KEY
+    const apiKey = process.env.API_KEY
 
     if (!apiUrl || !apiKey) {
       throw new Error('Missing API configuration')

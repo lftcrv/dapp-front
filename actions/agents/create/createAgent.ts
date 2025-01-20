@@ -2,25 +2,41 @@
 
 import { CharacterConfig } from '@/lib/types'
 
-export async function createAgent(name: string, characterConfig: CharacterConfig) {
+export async function createAgent(
+  name: string, 
+  characterConfig: CharacterConfig,
+  curveSide: 'LEFT' | 'RIGHT'
+) {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL
-    const apiKey = process.env.ELIZA_API_KEY
+    const apiKey = process.env.API_KEY
+
+    console.log('API URL:', apiUrl)
+    console.log('API Key:', apiKey)
 
     if (!apiUrl || !apiKey) {
       throw new Error('Missing API configuration')
     }
 
+    const headers = {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey
+    }
+    console.log('Request Headers:', headers)
+
     const response = await fetch(`${apiUrl}/api/eliza-agent`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey
-      },
-      body: JSON.stringify({ name, characterConfig })
+      headers,
+      body: JSON.stringify({ 
+        name, 
+        characterConfig,
+        curveSide 
+      })
     })
 
+    console.log('Response Status:', response.status)
     const data = await response.json()
+    console.log('Response Data:', data)
 
     if (!response.ok) {
       // Handle specific error cases
