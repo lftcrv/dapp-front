@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Trade } from '@/lib/types'
 import { memo, useCallback, useMemo } from 'react'
-import { ArrowUpRight, ArrowDownRight, RefreshCcw } from 'lucide-react'
+import { ArrowUpRight, ArrowDownRight, RefreshCcw, History } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 const formatTimeAgo = (timestamp: string): string => {
@@ -175,6 +175,19 @@ const ErrorState = memo(({ error, onRetry }: ErrorStateProps) => (
 ))
 ErrorState.displayName = 'ErrorState'
 
+const EmptyState = memo(() => (
+  <div className="flex flex-col items-center justify-center py-8 text-center space-y-3">
+    <div className="rounded-full bg-muted/10 p-3">
+      <History className="w-6 h-6 text-muted-foreground" />
+    </div>
+    <h3 className="font-medium text-muted-foreground">No trades yet</h3>
+    <p className="text-sm text-muted-foreground/60">
+      This agent hasn&apos;t made any trades yet. Check back soon!
+    </p>
+  </div>
+))
+EmptyState.displayName = 'EmptyState'
+
 interface TradeHistoryProps {
   agentId?: string
   className?: string
@@ -209,16 +222,26 @@ export const TradeHistory = memo(({
       style={{ maxHeight }}
     >
       <AnimatePresence mode="popLayout">
-        {trades.map((trade: Trade, index: number) => (
-          <TradeItem 
-            key={trade.id} 
-            trade={trade} 
-            isLatest={index === 0} 
-          />
-        ))}
+        {trades.length > 0 ? (
+          trades.map((trade: Trade, index: number) => (
+            <TradeItem 
+              key={trade.id} 
+              trade={trade} 
+              isLatest={index === 0} 
+            />
+          ))
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <EmptyState />
+          </motion.div>
+        )}
       </AnimatePresence>
       
-      {hasMore && (
+      {hasMore && trades.length > 0 && (
         <LoadMoreButton 
           onClick={handleLoadMore} 
           isLoading={isLoading}

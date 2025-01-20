@@ -1,11 +1,11 @@
 'use client'
 
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { connect, disconnect as starknetDisconnect } from 'starknetkit';
-import { showToast } from '@/components/ui/custom-toast';
-import { InjectedConnector } from 'starknetkit/injected';
+import { connect, disconnect } from 'starknetkit';
+import { toast } from 'sonner';
 import { usePrivy } from '@privy-io/react-auth';
 import { useAccount } from 'wagmi';
+import type { StarknetWindowObject } from 'get-starknet-core';
 
 interface WalletContextType {
   address?: string;
@@ -26,43 +26,38 @@ export function useWallet() {
   return context;
 }
 
+const showError = (message: string) => toast.error(message);
+const showSuccess = (message: string) => toast.success(message);
+const showInfo = (message: string) => toast.info(message);
+
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [address, setAddress] = useState<string>();
   const [isConnecting, setIsConnecting] = useState(false);
   const [walletType, setWalletType] = useState<'argent' | 'braavos' | 'evm'>();
   
-  const { login: privyLogin, ready: privyReady, authenticated } = usePrivy();
+  const { login: privyLogin, ready: privyReady, authenticated, logout } = usePrivy();
   const { address: evmAddress, isConnected: isEvmConnected } = useAccount();
 
   // Update address when EVM wallet changes
   useEffect(() => {
-    console.log('[WalletContext] EVM state change:', { isEvmConnected, evmAddress, walletType });
     if (isEvmConnected && evmAddress) {
       setAddress(evmAddress);
       setWalletType('evm');
     } else if (walletType === 'evm') {
-      // Clear state when EVM wallet is disconnected
       setAddress(undefined);
       setWalletType(undefined);
     }
   }, [evmAddress, isEvmConnected, walletType]);
 
   const connectToEVM = useCallback(async () => {
-    if (!privyReady || isConnecting) {
-      console.log('[WalletContext] EVM connect blocked:', { privyReady, isConnecting });
-      return;
-    }
-    console.time('[WalletContext] EVM connect');
+    if (!privyReady || isConnecting) return;
+    
     try {
       setIsConnecting(true);
       await privyLogin();
-      console.timeEnd('[WalletContext] EVM connect');
     } catch (error) {
-      console.timeEnd('[WalletContext] EVM connect');
-      console.error('[WalletContext] EVM connection error:', error);
-      showToast('error', '😭 NGMI...', {
-        description: '↘️ Failed to connect EVM wallet. Try again! 📉'
-      });
+      console.error('EVM connection error:', error);
+      showError('Failed to connect EVM wallet');
       setAddress(undefined);
       setWalletType(undefined);
     } finally {
@@ -72,7 +67,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   const cleanupStarknet = useCallback(async () => {
     try {
-      await starknetDisconnect({ clearLastWallet: true });
+      await disconnect({ clearLastWallet: true });
     } catch (error) {
       console.log("StarkNet disconnect error (expected):", error);
     } finally {
@@ -81,26 +76,20 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const disconnect = useCallback(async () => {
+  const disconnectWallet = useCallback(async () => {
     const currentType = walletType;
     
-    // Clear state first to ensure UI updates immediately
     setAddress(undefined);
     setWalletType(undefined);
     
     if (currentType === 'evm') {
-      // For EVM, we just clear the state since Privy handles disconnection
-      showToast('info', '👋 GM -> GN', {
-        description: '🌙 EVM wallet disconnected... See you soon!'
-      });
+      await logout();
+      showInfo('EVM wallet disconnected');
     } else if (currentType) {
-      // For Starknet wallets
       await cleanupStarknet();
-      showToast('info', '👋 GM -> GN', {
-        description: `🌙 ${currentType === 'braavos' ? 'Braavos' : 'Argent'} wallet disconnected... See you soon!`
-      });
+      showInfo(`${currentType === 'braavos' ? 'Braavos' : 'Argent'} wallet disconnected`);
     }
-  }, [cleanupStarknet, walletType]);
+  }, [cleanupStarknet, walletType, logout]);
 
   // Handle automatic reconnection for Starknet
   useEffect(() => {
@@ -108,16 +97,20 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
     const checkConnection = async () => {
       try {
-        const { wallet, connectorData } = await connect({
+        const { wallet } = await connect({
           modalMode: "neverAsk",
           modalTheme: "dark",
           dappName: "LeftCurve",
         });
 
-        if (!mounted) return;
+        if (!mounted || !wallet) return;
 
-        if (wallet && connectorData?.account) {
-          setAddress(connectorData.account);
+        const [account] = await wallet.request({
+          type: 'wallet_requestAccounts'
+        });
+
+        if (account) {
+          setAddress(account);
           setWalletType(wallet.id === 'braavos' ? 'braavos' : 'argent');
         }
       } catch (error) {
@@ -125,7 +118,6 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    // Only check Starknet connection if not authenticated with Privy
     if (!authenticated && !isEvmConnected) {
       checkConnection();
     }
@@ -136,51 +128,33 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   }, [authenticated, isEvmConnected]);
 
   const connectToStarknet = useCallback(async () => {
-    if (isConnecting) {
-      console.log('[WalletContext] Starknet connect blocked:', { isConnecting });
-      return;
-    }
+    if (isConnecting) return;
 
     let cleanup: (() => void) | undefined;
-    console.time('[WalletContext] Starknet connect');
     
     try {
       setIsConnecting(true);
       
-      const { wallet, connectorData } = await connect({
+      const { wallet } = await connect({
         modalMode: "alwaysAsk",
         modalTheme: "dark",
         dappName: "LeftCurve",
-        webWalletUrl: "https://web.argent.xyz",
-        connectors: [
-          new InjectedConnector({ 
-            options: { 
-              id: "argentX",
-              name: "Argent X",
-            }
-          }),
-          new InjectedConnector({ 
-            options: { 
-              id: "braavos",
-              name: "Braavos",
-            }
-          }),
-        ],
-      });
+      }) as { wallet: StarknetWindowObject | undefined };
 
-      console.log('[WalletContext] Starknet connection result:', { wallet, connectorData });
-
-      if (!wallet || !connectorData?.account) {
+      if (!wallet) {
         throw new Error("Failed to connect wallet");
       }
 
-      // Set wallet info
-      setAddress(connectorData.account);
-      setWalletType(wallet.id === 'braavos' ? 'braavos' : 'argent');
+      const [account] = await wallet.request({
+        type: 'wallet_requestAccounts'
+      });
 
-      // Setup wallet event listeners
+      if (account) {
+        setAddress(account);
+        setWalletType(wallet.id === 'braavos' ? 'braavos' : 'argent');
+      }
+
       const handleAccountsChanged = (accounts?: string[]) => {
-        console.log('[WalletContext] Starknet accounts changed:', accounts);
         if (accounts?.[0]) {
           setAddress(accounts[0]);
         } else {
@@ -189,7 +163,6 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       };
 
       const handleNetworkChanged = async () => {
-        console.log('[WalletContext] Starknet network changed');
         await cleanupStarknet();
         connectToStarknet();
       };
@@ -202,17 +175,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         wallet.off('networkChanged', handleNetworkChanged);
       };
 
-      console.timeEnd('[WalletContext] Starknet connect');
-      showToast('success', '🧠 WAGMI FRENS!', {
-        description: `↗️ Your ${wallet.id === 'braavos' ? 'Braavos' : 'Argent'} wallet is now connected! 📈`
-      });
+      showSuccess(`${wallet.id === 'braavos' ? 'Braavos' : 'Argent'} wallet connected`);
     } catch (error) {
-      console.timeEnd('[WalletContext] Starknet connect');
       if (error instanceof Error && !error.message.includes('User rejected')) {
-        console.error('[WalletContext] Starknet connection error:', error);
-        showToast('error', '😭 NGMI...', {
-          description: '↘️ Failed to connect. Try again! 📉'
-        });
+        console.error('Starknet connection error:', error);
+        showError('Failed to connect Starknet wallet');
       }
       await cleanupStarknet();
       if (cleanup) cleanup();
@@ -229,7 +196,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         walletType,
         connectToStarknet,
         connectToEVM,
-        disconnect,
+        disconnect: disconnectWallet,
       }}
     >
       {children}

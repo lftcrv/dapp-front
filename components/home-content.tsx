@@ -14,7 +14,7 @@ const TopAgents = dynamic(() => {
     })
   }
   return import('@/components/top-agents').then(mod => {
-    const Component = mod.TopAgents as FC
+    const Component = mod.TopAgents as FC<{ agents: Agent[], isLoading?: boolean, error?: Error | null }>
     Component.displayName = 'TopAgents'
     return Component
   })
@@ -23,15 +23,15 @@ const TopAgents = dynamic(() => {
   ssr: false
 })
 
-const AgentTable = dynamic(() => {
+const AgentsContainer = dynamic(() => {
   if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
     window.requestIdleCallback(() => {
-      import('@/components/agent-table')
+      import('@/components/agents/agents-container')
     })
   }
-  return import('@/components/agent-table').then(mod => {
-    const Component = mod.AgentTable as FC<{ agents: Agent[] }>
-    Component.displayName = 'AgentTable'
+  return import('@/components/agents/agents-container').then(mod => {
+    const Component = mod.AgentsContainer as FC<{ agents: Agent[], isLoading: boolean, error: Error | null }>
+    Component.displayName = 'AgentsContainer'
     return Component
   })
 }, {
@@ -41,17 +41,19 @@ const AgentTable = dynamic(() => {
 
 interface HomeContentProps {
   agents: Agent[]
+  isLoading?: boolean
+  error?: Error | null
 }
 
-export const HomeContent = memo(({ agents }: HomeContentProps) => {
+export const HomeContent = memo(({ agents, isLoading = false, error = null }: HomeContentProps) => {
   return (
     <>
       <Suspense fallback={<TopAgentsSkeleton />}>
-        <TopAgents />
+        <TopAgents agents={agents} isLoading={isLoading} error={error} />
       </Suspense>
 
       <Suspense fallback={<AgentTableSkeleton />}>
-        <AgentTable agents={agents} />
+        <AgentsContainer agents={agents} isLoading={isLoading} error={error} />
       </Suspense>
     </>
   )

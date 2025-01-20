@@ -3,7 +3,7 @@ import { Agent } from '@/lib/types'
 import { AgentCard } from '@/components/ui/agent-card'
 import { PriceChart } from '@/components/price-chart'
 import { isInBondingPhase } from '@/lib/utils'
-import { useAgentTheme } from '@/contexts/agent-theme-context'
+import { useAgentTheme } from '@/lib/agent-theme-context'
 import { usePrices } from '@/hooks/use-prices'
 import { Loading } from "@/components/ui/loading"
 

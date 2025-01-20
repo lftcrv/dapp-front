@@ -2,7 +2,6 @@
 
 import { memo, useEffect, useRef, useState, useMemo } from 'react'
 import { Agent } from '@/lib/types'
-import { useAgents } from '@/hooks/use-agents'
 import { motion } from 'framer-motion'
 import { UserCircle, Sparkles, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -102,13 +101,18 @@ const AgentList = memo(({ title, subtitle, agents, type }: AgentListProps) => {
       .slice(0, 5)
   , [agents, type])
 
-  const loopedAgents = useMemo(() => 
-    [...sortedAgents, ...sortedAgents, ...sortedAgents]
-  , [sortedAgents])
+  const loopedAgents = useMemo(() => {
+    // Only create a loop if we have at least 3 agents
+    if (sortedAgents.length >= 3) {
+      return [...sortedAgents, ...sortedAgents, ...sortedAgents]
+    }
+    // Otherwise just show what we have
+    return sortedAgents
+  }, [sortedAgents])
 
   useEffect(() => {
     const container = containerRef.current
-    if (!container) return
+    if (!container || sortedAgents.length < 3) return // Don't scroll if not enough agents
 
     const scroll = () => {
       if (isPaused) return
@@ -117,14 +121,16 @@ const AgentList = memo(({ title, subtitle, agents, type }: AgentListProps) => {
       if (container.scrollTop >= maxScroll * 2 || container.scrollTop <= 0) {
         container.scrollTop = maxScroll
       } else {
-        container.scrollTop += type === 'leftcurve' ? -1 : 1
+        // Slower scroll speed when fewer agents
+        const scrollSpeed = Math.min(1, sortedAgents.length / 5)
+        container.scrollTop += type === 'leftcurve' ? -scrollSpeed : scrollSpeed
       }
     }
 
     container.scrollTop = container.scrollHeight / 3
     const intervalId = setInterval(scroll, 30)
     return () => clearInterval(intervalId)
-  }, [type, isPaused])
+  }, [type, isPaused, sortedAgents.length])
 
   const emoji = type === 'leftcurve' ? '🦧' : '🐙'
   const Icon = type === 'leftcurve' ? Sparkles : Zap
@@ -198,9 +204,13 @@ const LoadingState = () => (
   </div>
 )
 
-export const TopAgents = memo(() => {
-  const { data: agents, isLoading, error } = useAgents()
+interface TopAgentsProps {
+  agents: Agent[]
+  isLoading?: boolean
+  error?: Error | null
+}
 
+export const TopAgents = memo(({ agents, isLoading = false, error = null }: TopAgentsProps) => {
   if (isLoading) {
     return <LoadingState />
   }
