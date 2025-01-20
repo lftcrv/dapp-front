@@ -4,7 +4,7 @@ import { AlertCircle } from 'lucide-react'
 import { useAgents } from '@/hooks/use-agents'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { HomeSkeleton } from '@/components/home-skeleton'
+import { TopAgentsSkeleton, AgentTableSkeleton } from '@/components/home-skeleton'
 import { HomeContent } from '@/components/home-content'
 import dynamic from 'next/dynamic'
 import { memo } from 'react'
@@ -26,44 +26,50 @@ const HomeHeader = dynamic(() => import('@/components/home-header').then(mod => 
   ssr: false
 })
 
-const ErrorState = memo(({ onRetry }: { onRetry: () => void }) => (
-  <div className="container max-w-7xl mx-auto px-4 pt-24">
-    <Alert variant="destructive">
-      <AlertCircle className="h-4 w-4" />
-      <AlertDescription>
-        Failed to load agents. Please try again.
-        <Button 
-          variant="link" 
-          onClick={onRetry}
-          className="ml-2 h-auto p-0"
-        >
-          Retry
-        </Button>
-      </AlertDescription>
-    </Alert>
-  </div>
-))
-ErrorState.displayName = 'ErrorState'
-
-export const HomePageContent = memo(() => {
+const AgentData = memo(() => {
   const { data: agents, isLoading, error, refetch } = useAgents()
 
-  if (error) {
-    return <ErrorState onRetry={refetch} />
-  }
-
   if (isLoading) {
-    return <HomeSkeleton />
+    return (
+      <>
+        <TopAgentsSkeleton />
+        <AgentTableSkeleton />
+      </>
+    )
   }
 
-  if (!agents) {
-    return null
+  if (error || !agents || agents.length === 0) {
+    return (
+      <>
+        <TopAgentsSkeleton />
+        <div className="mt-8">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Failed to load agents. Please try again.
+              <Button 
+                variant="link" 
+                onClick={refetch}
+                className="ml-2 h-auto p-0"
+              >
+                Retry
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
+      </>
+    )
   }
 
+  return <HomeContent agents={agents} isLoading={isLoading} error={error} />
+})
+AgentData.displayName = 'AgentData'
+
+export const HomePageContent = memo(() => {
   return (
-    <div className="space-y-8 pb-20">
+    <div className="container max-w-7xl mx-auto px-4 pt-24 space-y-8 pb-20">
       <HomeHeader />
-      <HomeContent agents={agents} />
+      <AgentData />
     </div>
   )
 })

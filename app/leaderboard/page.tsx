@@ -63,7 +63,10 @@ export default function LeaderboardPage() {
       <div className="flex-1 flex flex-col items-center w-full">
         <div className="container relative">
           <PageHeader />
-          <ProtocolFees />
+          
+          <div className="mb-8">
+            <ProtocolFees />
+          </div>
           
           {error ? (
             <ErrorState onRetry={refetch} />

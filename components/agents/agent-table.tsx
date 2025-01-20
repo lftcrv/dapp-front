@@ -6,33 +6,36 @@ import { AgentAvatar } from "@/components/ui/agent-avatar"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowUpDown, Search, Skull, Users } from "lucide-react"
+import { ArrowUpDown, Search, Users } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 import { PriceChange } from "@/components/price-change"
-import { useAgentTable } from "@/hooks/use-agent-table"
-import { memo, useCallback } from 'react'
+import { memo } from 'react'
 
 interface TableHeaderProps {
   label: string
   sortKey: keyof Agent
-  currentSort: { key: keyof Agent; direction: 'asc' | 'desc' }
-  onSort: (key: keyof Agent) => void
+  currentSort?: { key: keyof Agent; direction: 'asc' | 'desc' }
+  onSort?: (key: keyof Agent) => void
 }
 
-const TableHeaderCell = memo(({ label, sortKey, currentSort, onSort }: TableHeaderProps) => (
-  <Button 
-    variant="ghost" 
-    onClick={() => onSort(sortKey)}
-    className={cn(
-      "text-xs font-semibold hover:text-primary p-0",
-      currentSort.key === sortKey && "text-primary"
-    )}
-  >
-    {label} <ArrowUpDown className="ml-1 h-3 w-3" />
-  </Button>
-))
+const TableHeaderCell = memo(({ label, sortKey, currentSort, onSort }: TableHeaderProps) => {
+  const isActive = currentSort && currentSort.key === sortKey
+
+  return (
+    <Button 
+      variant="ghost" 
+      onClick={() => onSort?.(sortKey)}
+      className={cn(
+        "text-xs font-semibold hover:text-primary p-0",
+        isActive && "text-primary"
+      )}
+    >
+      {label} <ArrowUpDown className="ml-1 h-3 w-3" />
+    </Button>
+  )
+})
 TableHeaderCell.displayName = 'TableHeaderCell'
 
 interface SearchBarProps {
@@ -167,20 +170,19 @@ interface AgentTableProps {
   agents: Agent[]
   isLoading?: boolean
   error?: Error | null
+  sortConfig?: { key: keyof Agent; direction: 'asc' | 'desc' }
+  onSort?: (key: keyof Agent) => void
 }
 
-export function AgentTable({ agents, isLoading, error }: AgentTableProps) {
-  const { 
-    sortConfig, 
-    searchTerm, 
-    setSearchTerm, 
-    toggleSort, 
-    agents: sortedAgents 
-  } = useAgentTable(agents)
-
-  const handleSort = useCallback((key: keyof Agent) => {
-    toggleSort(key)
-  }, [toggleSort])
+export function AgentTable({ 
+  agents, 
+  isLoading = false, 
+  error = null,
+  sortConfig,  // Make it optional without default
+  onSort      // Make it optional without default
+}: AgentTableProps) {
+  // Disable sorting if no config provided
+  const showSortControls = Boolean(sortConfig && onSort)
 
   if (isLoading) {
     return <LoadingState />
@@ -197,74 +199,69 @@ export function AgentTable({ agents, isLoading, error }: AgentTableProps) {
   }
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-        <div>
-          <h2 className="font-sketch text-2xl flex items-center gap-2">
-            <span className="text-orange-500">DEGEN</span>
-            <Skull className="w-5 h-5" />
-            <span className="text-purple-500">SIGMA</span>
-          </h2>
-          <div className="flex items-center gap-2 mt-1">
-            <p className="text-xs text-gray-400">default:</p>
-            <Button 
-              variant="ghost"
-              size="sm"
-              onClick={() => handleSort('createdAt')}
-              className="h-6 text-xs font-mono hover:text-primary p-0"
-            >
-              {sortConfig.key === 'createdAt' && sortConfig.direction === 'desc' ? 'newest first' : 'oldest first'}
-              <ArrowUpDown className="ml-1 h-3 w-3" />
-            </Button>
-          </div>
-        </div>
-        <SearchBar value={searchTerm} onChange={setSearchTerm} />
-      </div>
-      <div className="relative overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-white/5">
-              <TableHead className="w-[50px] text-xs py-2">
-                <TableHeaderCell label="#" sortKey="id" currentSort={sortConfig} onSort={handleSort} />
-              </TableHead>
-              <TableHead className="text-xs py-2">
-                <TableHeaderCell label="Agent" sortKey="name" currentSort={sortConfig} onSort={handleSort} />
-              </TableHead>
-              <TableHead className="text-xs py-2">
-                <span className={cn(
-                  "inline-flex items-center cursor-pointer",
-                  "hover:opacity-80 transition-opacity"
-                )} onClick={() => handleSort('type')}>
-                  <span className="text-orange-500">🦧</span>
-                  <span className="mx-1">/</span>
-                  <span className="text-purple-500">🐙</span>
-                </span>
-              </TableHead>
-              <TableHead className="text-right text-xs py-2">
-                <TableHeaderCell label="Price" sortKey="price" currentSort={sortConfig} onSort={handleSort} />
-              </TableHead>
-              <TableHead className="text-right text-xs py-2">24h</TableHead>
-              <TableHead className="text-right text-xs py-2">
-                <TableHeaderCell label="Market Cap" sortKey="marketCap" currentSort={sortConfig} onSort={handleSort} />
-              </TableHead>
-              <TableHead className="text-right text-xs py-2">
-                <TableHeaderCell label="Holders" sortKey="holders" currentSort={sortConfig} onSort={handleSort} />
-              </TableHead>
-              <TableHead className="text-right text-xs py-2">
-                <TableHeaderCell label="Score" sortKey="creativityIndex" currentSort={sortConfig} onSort={handleSort} />
-              </TableHead>
-              <TableHead className="text-right text-xs py-2">
-                <TableHeaderCell label="Status" sortKey="status" currentSort={sortConfig} onSort={handleSort} />
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedAgents.map((agent, index) => (
-              <AgentRow key={agent.id} agent={agent} index={index} />
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+    <div className="relative overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-white/5">
+            <TableHead className="w-[50px] text-xs py-2">
+              {showSortControls ? (
+                <TableHeaderCell label="#" sortKey="id" currentSort={sortConfig} onSort={onSort} />
+              ) : (
+                "#"
+              )}
+            </TableHead>
+            <TableHead className="text-xs py-2">
+              {showSortControls ? (
+                <TableHeaderCell label="Agent" sortKey="name" currentSort={sortConfig} onSort={onSort} />
+              ) : (
+                "Agent"
+              )}
+            </TableHead>
+            <TableHead className="text-xs py-2">Type</TableHead>
+            <TableHead className="text-right text-xs py-2">
+              {showSortControls ? (
+                <TableHeaderCell label="Price" sortKey="price" currentSort={sortConfig} onSort={onSort} />
+              ) : (
+                "Price"
+              )}
+            </TableHead>
+            <TableHead className="text-right text-xs py-2">24h</TableHead>
+            <TableHead className="text-right text-xs py-2">
+              {showSortControls ? (
+                <TableHeaderCell label="Market Cap" sortKey="marketCap" currentSort={sortConfig} onSort={onSort} />
+              ) : (
+                "Market Cap"
+              )}
+            </TableHead>
+            <TableHead className="text-right text-xs py-2">
+              {showSortControls ? (
+                <TableHeaderCell label="Holders" sortKey="holders" currentSort={sortConfig} onSort={onSort} />
+              ) : (
+                "Holders"
+              )}
+            </TableHead>
+            <TableHead className="text-right text-xs py-2">
+              {showSortControls ? (
+                <TableHeaderCell label="Score" sortKey="performanceIndex" currentSort={sortConfig} onSort={onSort} />
+              ) : (
+                "Score"
+              )}
+            </TableHead>
+            <TableHead className="text-right text-xs py-2">
+              {showSortControls ? (
+                <TableHeaderCell label="Status" sortKey="status" currentSort={sortConfig} onSort={onSort} />
+              ) : (
+                "Status"
+              )}
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {agents.map((agent, index) => (
+            <AgentRow key={agent.id} agent={agent} index={index} />
+          ))}
+        </TableBody>
+      </Table>
     </div>
   )
 } 

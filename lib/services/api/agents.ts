@@ -2,19 +2,6 @@ import { Agent, AgentType, AgentStatus } from '@/lib/types'
 import { getAgents, getAgentById } from '@/actions/agents/query/getAgents'
 import { BaseService, IServiceConfig } from '@/lib/core/service'
 import { withErrorHandling, Result } from '@/lib/core/error-handler'
-// TODO: REMOVE IN PRODUCTION - Development-only imports
-import agentsData from '@/data/agents.json'
-
-interface RawAgent extends Omit<Agent, 'type' | 'status'> {
-  type: string
-  status: string
-}
-
-const mapAgent = (agent: RawAgent): Agent => ({
-  ...agent,
-  type: agent.type as AgentType,
-  status: agent.status as AgentStatus
-})
 
 export class AgentService extends BaseService<Agent> {
   constructor(config: IServiceConfig = {}) {
@@ -23,27 +10,52 @@ export class AgentService extends BaseService<Agent> {
 
   async getAll(): Promise<Result<Agent[]>> {
     return withErrorHandling(async () => {
+      console.log('AgentService: Fetching all agents')
       const result = await getAgents()
-      if (result.success && result.data && result.data.length > 0) {
-        return result.data
+      console.log('AgentService getAll result:', {
+        success: result.success,
+        hasData: !!result.data,
+        dataLength: result.data?.length,
+        error: result.error
+      })
+      
+      if (!result.success) {
+        console.error('AgentService: Failed to fetch agents:', result.error)
+        throw new Error(result.error || 'Failed to fetch agents')
       }
       
-      // TODO: REMOVE IN PRODUCTION
-      return agentsData.agents.map(mapAgent)
+      if (!result.data || result.data.length === 0) {
+        console.warn('AgentService: No agents found in response')
+        throw new Error('No agents found')
+      }
+      
+      console.log('AgentService: Successfully fetched', result.data.length, 'agents')
+      return result.data
     }, 'Failed to fetch agents')
   }
 
   async getById(id: string): Promise<Result<Agent>> {
     return withErrorHandling(async () => {
+      console.log('AgentService: Fetching agent by id:', id)
       const result = await getAgentById(id)
-      if (result.success && result.data) {
-        return result.data
+      console.log('AgentService getById result:', {
+        success: result.success,
+        hasData: !!result.data,
+        error: result.error
+      })
+      
+      if (!result.success) {
+        console.error('AgentService: Failed to fetch agent:', result.error)
+        throw new Error(result.error || 'Failed to fetch agent')
       }
       
-      // TODO: REMOVE IN PRODUCTION
-      const agent = agentsData.agents.find(agent => agent.id === id)
-      if (!agent) throw new Error('Agent not found')
-      return mapAgent(agent)
+      if (!result.data) {
+        console.warn('AgentService: Agent not found:', id)
+        throw new Error('Agent not found')
+      }
+      
+      console.log('AgentService: Successfully fetched agent:', id)
+      return result.data
     }, 'Failed to fetch agent')
   }
 
