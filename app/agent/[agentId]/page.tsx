@@ -10,7 +10,7 @@ import { AgentStatsCard } from '@/components/agent-stats-card'
 import { PriceActionCard } from '@/components/agent/price-action-card'
 import { TradeHistoryCard } from '@/components/agent/trade-history-card'
 import { ChatCard } from '@/components/agent/chat-card'
-import { AgentThemeProvider, useAgentTheme } from '@/contexts/agent-theme-context'
+import { AgentThemeProvider, useAgentTheme } from '@/lib/agent-theme-context'
 import { AnimatedSection } from '@/components/ui/animated-section'
 import { useAgent } from '@/hooks/use-agents'
 import { Loading } from "@/components/ui/loading"
@@ -31,14 +31,10 @@ function AgentNotFound() {
 
 function AgentContent({ agentId }: { agentId: string }) {
   const { data: agent, isLoading, error } = useAgent({ id: agentId })
-  const theme = useAgentTheme()
+  const { cardStyle } = useAgentTheme()
   
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loading size="lg" />
-      </div>
-    )
+    return <Loading />
   }
 
   if (error || !agent) {
@@ -57,7 +53,7 @@ function AgentContent({ agentId }: { agentId: string }) {
         </AnimatedSection>
 
         <AnimatedSection className="space-y-6" direction="right" delay={0.4}>
-          <Card className={cn("border-2", theme.cardStyle)}>
+          <Card className={cn("border-2", cardStyle)}>
             <SwapWidget agent={agent} />
           </Card>
           <BondingCurveChart agent={agent} />

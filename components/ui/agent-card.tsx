@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { Agent } from '@/lib/types'
 import { LucideIcon } from 'lucide-react'
-import { useAgentTheme } from '@/contexts/agent-theme-context'
+import { useAgentTheme } from '@/lib/agent-theme-context'
 
 interface AgentCardProps {
   agent: Agent

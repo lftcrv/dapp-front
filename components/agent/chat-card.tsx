@@ -2,7 +2,7 @@ import { MessageCircle } from 'lucide-react'
 import { Agent } from '@/lib/types'
 import { AgentCard } from '@/components/ui/agent-card'
 import { AgentChat } from '@/components/agent-chat'
-import { useAgentTheme } from '@/contexts/agent-theme-context'
+import { useAgentTheme } from '@/lib/agent-theme-context'
 
 interface ChatCardProps {
   agent: Agent
