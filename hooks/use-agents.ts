@@ -9,15 +9,8 @@ export function useAgents() {
   const state = useAsyncState<Agent[]>()
 
   async function fetchAgents() {
-    console.log('useAgents: Starting fetch')
     state.setLoading(true)
     const result = await agentService.getAll()
-    console.log('useAgents: Got result:', {
-      success: result.success,
-      hasData: !!result.data,
-      dataLength: result.data?.length,
-      error: result.error
-    })
     state.handleResult(result)
   }
 

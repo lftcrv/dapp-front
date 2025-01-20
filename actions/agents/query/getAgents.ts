@@ -39,16 +39,9 @@ export async function getAgents() {
     const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL
     const apiKey = process.env.API_KEY
 
-    console.log('Fetching agents with config:', {
-      apiUrl,
-      hasApiKey: !!apiKey,
-    })
-
     if (!apiUrl || !apiKey) {
       throw new Error('Missing API configuration')
     }
-
-    console.log('Making request to:', `${apiUrl}/api/eliza-agent`)
     
     const response = await fetch(`${apiUrl}/api/eliza-agent`, {
       headers: {
@@ -59,32 +52,19 @@ export async function getAgents() {
       next: { revalidate: 10 }
     })
 
-    console.log('Response status:', response.status)
     const data = await response.json()
-    console.log('Response data:', data)
 
     if (!response.ok) {
       // Handle specific error cases
       if (response.status === 401) {
-        console.error('API Key error:', { 
-          status: response.status,
-          data,
-          headers: Object.fromEntries(response.headers.entries())
-        })
         throw new Error('Invalid API key')
       } else if (response.status >= 500) {
-        console.error('Server error:', {
-          status: response.status,
-          data,
-          headers: Object.fromEntries(response.headers.entries())
-        })
         throw new Error('Server error - please try again later')
       }
       throw new Error(data.message || 'Failed to fetch agents')
     }
 
     const mappedAgents = data.data.agents.map(mapApiAgentToAgent)
-    console.log('Mapped agents:', mappedAgents)
 
     return {
       success: true,
@@ -92,11 +72,6 @@ export async function getAgents() {
     }
 
   } catch (error) {
-    console.error('Error in getAgents:', {
-      error,
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
-    })
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unexpected error occurred'
@@ -109,53 +84,32 @@ export async function getAgentById(id: string) {
     const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL
     const apiKey = process.env.API_KEY
 
-    console.log('Fetching agent by id:', id, 'with config:', {
-      apiUrl,
-      hasApiKey: !!apiKey,
-    })
-
     if (!apiUrl || !apiKey) {
       throw new Error('Missing API configuration')
     }
 
-    console.log('Making request to:', `${apiUrl}/api/eliza-agent/${id}`)
     const response = await fetch(`${apiUrl}/api/eliza-agent/${id}`, {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey
       },
-      // Add caching for 5 seconds
       next: { revalidate: 5 }
     })
 
-    console.log('Response status:', response.status)
     const data = await response.json()
-    console.log('Response data:', data)
 
     if (!response.ok) {
       if (response.status === 401) {
-        console.error('API Key error:', { 
-          status: response.status,
-          data,
-          headers: Object.fromEntries(response.headers.entries())
-        })
         throw new Error('Invalid API key')
       } else if (response.status === 404) {
-        console.warn('Agent not found:', id)
         throw new Error('Agent not found')
       } else if (response.status >= 500) {
-        console.error('Server error:', {
-          status: response.status,
-          data,
-          headers: Object.fromEntries(response.headers.entries())
-        })
         throw new Error('Server error - please try again later')
       }
       throw new Error(data.message || 'Failed to fetch agent')
     }
 
     const mappedAgent = mapApiAgentToAgent(data.data.agent)
-    console.log('Mapped agent:', mappedAgent)
 
     return {
       success: true,
@@ -163,11 +117,6 @@ export async function getAgentById(id: string) {
     }
 
   } catch (error) {
-    console.error('Error in getAgentById:', {
-      error,
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
-    })
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unexpected error occurred'
