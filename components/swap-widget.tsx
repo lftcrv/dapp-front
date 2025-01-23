@@ -5,7 +5,7 @@ import { Agent } from '@/lib/types'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useWallet } from '@/lib/wallet-context'
+import { useWallet } from '@/app/context/wallet-context'
 import { ArrowDownUp, ExternalLink, Link as LinkIcon } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
@@ -78,7 +78,7 @@ SwapDivider.displayName = 'SwapDivider'
 
 export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
   const [amount, setAmount] = useState('')
-  const { address } = useWallet()
+  const { currentAddress: address } = useWallet()
   const { toast } = useToast()
   const isLeftCurve = agent.type === 'leftcurve'
 

@@ -26,18 +26,18 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           theme: 'dark',
           accentColor: '#676FFF',
           logo: '/degen.png',
+          showWalletLoginFirst: true,
         },
-        // Using proper chain type from Privy
         supportedChains: [
           mainnet,
           sepolia
         ],
-        loginMethods: ['email', 'wallet'],
+        loginMethods: ['wallet', 'email', 'google', 'twitter', 'discord', 'github'],
         embeddedWallets: {
           createOnLogin: 'users-without-wallets',
-          // Remove unsupported option
-          // noPromptOnSignature: true,
         },
+        defaultChain: mainnet,
+        walletConnectCloudProjectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
       }}
     >
       <QueryClientProvider client={queryClient}>

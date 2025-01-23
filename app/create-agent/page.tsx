@@ -9,10 +9,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent } from '@/components/ui/card'
-import { Brain, Flame, MessageSquare, Pencil, ArrowLeft, Plus, X, Loader2 } from 'lucide-react'
+import { Brain, Flame, MessageSquare, Pencil, ArrowLeft, Plus, X, Loader2, Wallet } from 'lucide-react'
 import { createAgent } from '@/actions/agents/create/createAgent'
 import type { CharacterConfig } from '@/lib/types'
 import { showToast } from '@/lib/toast'
+import { useWallet } from '@/app/context/wallet-context'
 
 type TabType = 'basic' | 'personality' | 'examples'
 const TABS: TabType[] = ['basic', 'personality', 'examples']
@@ -62,6 +63,34 @@ const initialFormData: FormDataType = {
 
 export default function CreateAgentPage() {
   const router = useRouter()
+  const { 
+    activeWalletType, 
+    connectStarknet, 
+    loginWithPrivy,
+    starknetWallet,
+    privyAuthenticated,
+    isLoading,
+    privyReady 
+  } = useWallet()
+
+  // Compute wallet connection state
+  const isWalletConnected = React.useMemo(() => {
+    if (isLoading || !privyReady) return false
+    return starknetWallet.isConnected || privyAuthenticated
+  }, [isLoading, privyReady, starknetWallet.isConnected, privyAuthenticated])
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log('Create Agent Page State:', {
+      activeWalletType,
+      starknetConnected: starknetWallet.isConnected,
+      privyAuthenticated,
+      isLoading,
+      privyReady,
+      isWalletConnected
+    })
+  }, [activeWalletType, starknetWallet.isConnected, privyAuthenticated, isLoading, privyReady, isWalletConnected])
+
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [agentType, setAgentType] = useState<'leftcurve' | 'rightcurve'>('leftcurve')
   const [currentTab, setCurrentTab] = useState<TabType>('basic')
@@ -348,7 +377,33 @@ export default function CreateAgentPage() {
   return (
     <>
       <div className="flex min-h-screen flex-col items-center justify-start pt-24">
-        <div className="container max-w-2xl mx-auto px-4 pb-24">
+        <div className="container max-w-2xl mx-auto px-4 pb-24 relative">
+          {/* Blur overlay when wallet is not connected */}
+          {!isWalletConnected && (
+            <div className="absolute inset-0 backdrop-blur-sm bg-background/50 z-50 flex flex-col items-center justify-center gap-6 rounded-lg">
+              <div className="text-center space-y-4">
+                <h3 className="text-2xl font-bold">Connect Wallet to Create Agent</h3>
+                <p className="text-muted-foreground">You need to connect a wallet to deploy your agent</p>
+              </div>
+              <div className="flex gap-4">
+                <Button 
+                  onClick={connectStarknet}
+                  className="bg-gradient-to-r from-yellow-500 to-red-500 hover:opacity-90"
+                >
+                  <Wallet className="mr-2 h-4 w-4" />
+                  Connect Starknet
+                </Button>
+                <Button 
+                  onClick={loginWithPrivy}
+                  className="bg-gradient-to-r from-purple-500 to-blue-500 hover:opacity-90"
+                >
+                  <Wallet className="mr-2 h-4 w-4" />
+                  Connect EVM
+                </Button>
+              </div>
+            </div>
+          )}
+
           <motion.div
             className="space-y-8 w-full"
             initial={{ opacity: 0, y: 20 }}

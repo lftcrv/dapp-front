@@ -1,6 +1,6 @@
 'use client'
 
-import { useWallet } from '@/lib/wallet-context'
+import { useWallet } from '@/app/context/wallet-context'
 import { Card } from './ui/card'
 import { Button } from './ui/button'
 import { cn } from '@/lib/utils'
@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import { useProtocolFees } from '@/hooks/use-protocol-fees'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { memo, useEffect, useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { ProtocolFeesData } from '@/lib/types'
 
 interface TooltipHelpProps {
@@ -281,62 +281,34 @@ const DistributionCard = memo(({ address, feesData, userSharePercentage }: Distr
 ))
 DistributionCard.displayName = 'DistributionCard'
 
-export const ProtocolFees = memo(() => {
-  const { address, walletType } = useWallet()
+export function ProtocolFees() {
+  const { currentAddress: address } = useWallet()
   const { 
     feesData, 
-    timeLeft,
-    isLoading,
-    error,
-    userShare,
-    userSharePercentage,
-    isClaiming,
-    claimRewards
+    timeLeft: distributionTimeLeft,
+    isClaiming, 
+    claimRewards 
   } = useProtocolFees()
 
-  // Move debug log to effect to prevent re-renders
-  useEffect(() => {
-    console.log('[ProtocolFees] State:', { 
-      address, 
-      walletType,
-      isLoading,
-      hasError: !!error,
-      hasFeesData: !!feesData
-    });
-  }, [address, walletType, isLoading, error, feesData])
+  const timeLeft = useMemo(() => {
+    if (!feesData) return '--:--:--'
+    return distributionTimeLeft
+  }, [feesData, distributionTimeLeft])
 
-  // Memoize loading state
-  const loadingContent = useMemo(() => (
-    <TooltipProvider>
-      <div className="grid grid-cols-3 gap-4">
-        <MainCard
-          address={undefined}
-          feesData={null}
-          timeLeft="-"
-          userShare="-"
-          userSharePercentage="-"
-          isClaiming={false}
-          onClaim={() => {}}
-        />
-        <DistributionCard
-          address={undefined}
-          feesData={null}
-          userSharePercentage="-"
-        />
-      </div>
-    </TooltipProvider>
-  ), [])
+  const userShare = useMemo(() => {
+    if (!feesData || !address) return '0'
+    return feesData.userShares[address] || '0'
+  }, [feesData, address])
 
-  // Memoize error state
-  const errorContent = useMemo(() => error && (
-    <Card className="p-4 text-center space-y-2">
-      <div className="text-red-500">Failed to load protocol fees</div>
-      <div className="text-sm text-muted-foreground">{error.message}</div>
-    </Card>
-  ), [error])
+  const userSharePercentage = useMemo(() => {
+    if (!feesData || !address) return '0'
+    const share = feesData.userShares[address]
+    if (!share) return '0'
+    const totalShares = Object.values(feesData.userShares).reduce((a, b) => a + Number(b), 0)
+    return totalShares > 0 ? ((Number(share) / totalShares) * 100).toFixed(2) : '0'
+  }, [feesData, address])
 
-  // Memoize main content
-  const mainContent = useMemo(() => (
+  return (
     <TooltipProvider>
       <div className="grid grid-cols-3 gap-4">
         <MainCard
@@ -355,18 +327,6 @@ export const ProtocolFees = memo(() => {
         />
       </div>
     </TooltipProvider>
-  ), [
-    address,
-    feesData,
-    timeLeft,
-    userShare,
-    userSharePercentage,
-    isClaiming,
-    claimRewards
-  ])
-
-  if (isLoading) return loadingContent
-  if (error) return errorContent
-  return mainContent
-})
+  )
+}
 ProtocolFees.displayName = 'ProtocolFees'

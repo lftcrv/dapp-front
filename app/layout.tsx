@@ -5,7 +5,7 @@ import { LayoutSkeleton } from '@/components/layout-skeleton'
 import { NavigationWrapper } from '@/components/navigation-wrapper'
 import { Toaster } from 'sonner'
 import Providers from './providers'
-import { WalletProvider } from '@/lib/wallet-context'
+import { WalletProvider } from '@/app/context/wallet-context'
 import './globals.css'
 import { Metadata } from 'next'
 
