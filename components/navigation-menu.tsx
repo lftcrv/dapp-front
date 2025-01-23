@@ -1,6 +1,13 @@
 'use client'
 
-import * as React from 'react'
+import { 
+  useState, 
+  useEffect, 
+  useCallback, 
+  Suspense,
+  type ReactNode,
+  type MouseEvent
+} from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
@@ -37,7 +44,7 @@ const navigation = [
 
 // Development-only performance tracking
 const usePerformanceTracking = (name: string) => {
-  React.useEffect(() => {
+  useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       startTiming(`${name} Render`)
       return () => endTiming(`${name} Render`)
@@ -70,10 +77,10 @@ const Logo = memo(() => (
 ))
 Logo.displayName = 'Logo'
 
-const NavLink = memo(({ href, isActive, children }: { href: string, isActive: boolean, children: React.ReactNode }) => {
+const NavLink = memo(({ href, isActive, children }: { href: string, isActive: boolean, children: ReactNode }) => {
   const router = useRouter()
   
-  const handleClick = React.useCallback((e: React.MouseEvent) => {
+  const handleClick = useCallback((e: MouseEvent) => {
     e.preventDefault()
     startRouteTransition()
     // Use replace for same-segment navigation to avoid history stack
@@ -143,14 +150,14 @@ const MobileMenuButton = memo(({ isOpen, onClick }: { isOpen: boolean, onClick: 
 MobileMenuButton.displayName = 'MobileMenuButton'
 
 export const NavigationMenu = memo(() => {
-  const [isOpen, setIsOpen] = React.useState(false)
+  const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
 
   // Development-only performance tracking
   usePerformanceTracking('NavigationMenu')
 
   // Track navigation changes with segment info (development only)
-  React.useEffect(() => {
+  useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       const segment = pathname.split('/')[1] || 'home'
       startTiming(`Navigation Change (${segment})`)
@@ -160,13 +167,13 @@ export const NavigationMenu = memo(() => {
   }, [pathname])
 
   // Close mobile menu when route changes
-  React.useEffect(() => {
+  useEffect(() => {
     setIsOpen(false)
   }, [pathname])
 
   // Handle escape key
-  React.useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
+  useEffect(() => {
+    const handleEscape = (e: globalThis.KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsOpen(false)
       }
@@ -192,12 +199,12 @@ export const NavigationMenu = memo(() => {
                 {item.name}
               </NavLink>
             ))}
-            <React.Suspense fallback={null}>
+            <Suspense fallback={null}>
               <DepositButton />
-            </React.Suspense>
-            <React.Suspense fallback={<WalletButtonSkeleton />}>
+            </Suspense>
+            <Suspense fallback={<WalletButtonSkeleton />}>
               <WalletButtonContainer />
-            </React.Suspense>
+            </Suspense>
           </div>
 
           {/* Mobile menu button */}
@@ -228,14 +235,14 @@ export const NavigationMenu = memo(() => {
                 </NavLink>
               ))}
               <div className="px-3 py-2">
-                <React.Suspense fallback={null}>
+                <Suspense fallback={null}>
                   <DepositButton />
-                </React.Suspense>
+                </Suspense>
               </div>
               <div className="px-3 py-2">
-                <React.Suspense fallback={<WalletButtonSkeleton />}>
+                <Suspense fallback={<WalletButtonSkeleton />}>
                   <WalletButtonContainer />
-                </React.Suspense>
+                </Suspense>
               </div>
             </div>
           </motion.div>

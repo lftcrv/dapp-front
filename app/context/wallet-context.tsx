@@ -1,6 +1,14 @@
 'use client'
 
-import * as React from 'react'
+import { 
+  createContext, 
+  useContext, 
+  useState, 
+  useCallback, 
+  useEffect, 
+  useMemo,
+  type ReactNode 
+} from 'react'
 import { usePrivy } from '@privy-io/react-auth'
 import { connect, disconnect } from 'starknetkit'
 import { InjectedConnector } from 'starknetkit/injected'
@@ -32,14 +40,14 @@ interface WalletContextType {
   currentAddress?: string
 }
 
-const WalletContext = React.createContext<WalletContextType | undefined>(undefined)
+const WalletContext = createContext<WalletContextType | undefined>(undefined)
 
-export function WalletProvider({ children }: { children: React.ReactNode }) {
+export function WalletProvider({ children }: { children: ReactNode }) {
   // 1. All useState hooks
-  const [isLoadingWallet, setIsLoadingWallet] = React.useState(false)
-  const [isManuallyConnecting, setIsManuallyConnecting] = React.useState(false)
-  const [isConnectModalOpen, setIsConnectModalOpen] = React.useState(false)
-  const [starknetWallet, setStarknetWallet] = React.useState<StarknetWalletState>({
+  const [isLoadingWallet, setIsLoadingWallet] = useState(false)
+  const [isManuallyConnecting, setIsManuallyConnecting] = useState(false)
+  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
+  const [starknetWallet, setStarknetWallet] = useState<StarknetWalletState>({
     wallet: null,
     isConnected: false
   })
@@ -54,7 +62,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   } = usePrivy()
 
   // 3. All useCallback hooks
-  const clearStarknetState = React.useCallback(() => {
+  const clearStarknetState = useCallback(() => {
     setStarknetWallet({
       wallet: null,
       isConnected: false
@@ -63,7 +71,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     sessionStorage.removeItem('starknet_wallet_cache')
   }, [])
 
-  const handleAccountsChanged = React.useCallback((accounts?: string[]) => {
+  const handleAccountsChanged = useCallback((accounts?: string[]) => {
     if (accounts?.[0] && accounts[0] !== starknetWallet.address) {
       setStarknetWallet(prev => ({
         ...prev,
@@ -72,7 +80,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     }
   }, [starknetWallet.address])
 
-  const handleNetworkChanged = React.useCallback(async (chainId?: string, accounts?: string[]) => {
+  const handleNetworkChanged = useCallback(async (chainId?: string, accounts?: string[]) => {
     setStarknetWallet(prev => ({
       ...prev,
       chainId: chainId || undefined,
@@ -80,7 +88,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     }))
   }, [])
 
-  const connectStarknet = React.useCallback(async () => {
+  const connectStarknet = useCallback(async () => {
     if (isLoadingWallet || privyAuthenticated || isConnectModalOpen) return
     
     setIsLoadingWallet(true)
@@ -137,7 +145,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     }
   }, [clearStarknetState, isLoadingWallet, privyAuthenticated, isConnectModalOpen, handleAccountsChanged, handleNetworkChanged])
 
-  const disconnectStarknet = React.useCallback(async () => {
+  const disconnectStarknet = useCallback(async () => {
     try {
       // First remove event listeners if they exist
       if (starknetWallet.wallet?.off) {
@@ -161,7 +169,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     }
   }, [clearStarknetState, starknetWallet.wallet, handleAccountsChanged, handleNetworkChanged])
 
-  const loginWithPrivy = React.useCallback(async () => {
+  const loginWithPrivy = useCallback(async () => {
     if (!privyReady || privyAuthenticated) return
     try {
       await login()
@@ -170,7 +178,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     }
   }, [login, privyReady, privyAuthenticated])
 
-  const logoutFromPrivy = React.useCallback(async () => {
+  const logoutFromPrivy = useCallback(async () => {
     if (!privyAuthenticated) return
     try {
       await logout()
@@ -180,7 +188,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   }, [logout, privyAuthenticated])
 
   // 4. All useEffect hooks
-  React.useEffect(() => {
+  useEffect(() => {
     const checkStarknetConnection = async () => {
       if (isLoadingWallet || privyAuthenticated || isManuallyConnecting || isConnectModalOpen) return
       
@@ -247,13 +255,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     checkStarknetConnection()
   }, [clearStarknetState, isLoadingWallet, privyAuthenticated, isManuallyConnecting, isConnectModalOpen, handleAccountsChanged, handleNetworkChanged])
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (privyAuthenticated && starknetWallet.isConnected) {
       disconnectStarknet()
     }
   }, [privyAuthenticated, starknetWallet.isConnected, disconnectStarknet])
 
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       if (starknetWallet.wallet?.off) {
         try {
@@ -267,7 +275,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   }, [starknetWallet.wallet, handleAccountsChanged, handleNetworkChanged])
 
   // 5. Final useMemo
-  const value = React.useMemo((): WalletContextType => ({
+  const value = useMemo((): WalletContextType => ({
     starknetWallet,
     connectStarknet,
     disconnectStarknet,
@@ -299,7 +307,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useWallet() {
-  const context = React.useContext(WalletContext)
+  const context = useContext(WalletContext)
   if (context === undefined) {
     throw new Error('useWallet must be used within a WalletProvider')
   }
