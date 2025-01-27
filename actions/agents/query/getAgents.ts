@@ -21,13 +21,13 @@ function mapApiAgentToAgent(apiAgent: ApiAgent): Agent {
   return {
     id: apiAgent.id,
     name: apiAgent.name,
-    symbol: apiAgent.name.substring(0, 4).toUpperCase(), // Generate a symbol from name
+    symbol: apiAgent.name.substring(0, 4).toUpperCase(),
     type: apiAgent.curveSide === 'LEFT' ? 'leftcurve' : 'rightcurve',
     status: apiAgent.status === 'STARTING' ? 'bonding' : 'live',
     price: apiAgent.LatestMarketData?.price || 0,
     marketCap: apiAgent.LatestMarketData?.marketCap || 0,
     holders: apiAgent.LatestMarketData?.holders || 0,
-    creator: 'unknown', // Add default value
+    creator: 'unknown',
     createdAt: apiAgent.createdAt,
     creativityIndex: apiAgent.degenScore || 0,
     performanceIndex: apiAgent.winScore || 0
@@ -42,7 +42,7 @@ export async function getAgents() {
     if (!apiUrl || !apiKey) {
       throw new Error('Missing API configuration')
     }
-    
+
     const response = await fetch(`${apiUrl}/api/eliza-agent`, {
       headers: {
         'Content-Type': 'application/json',
@@ -72,6 +72,7 @@ export async function getAgents() {
     }
 
   } catch (error) {
+    console.error('Error fetching agents:', error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unexpected error occurred'

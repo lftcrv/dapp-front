@@ -8,6 +8,7 @@ import { Badge } from './ui/badge'
 import { Rocket, LineChart } from 'lucide-react'
 import { Skeleton } from './ui/skeleton'
 import { Alert, AlertDescription } from './ui/alert'
+import { useBondingCurve } from '@/hooks/use-bonding-curve'
 
 type Interval = '15m' | '1h' | '4h' | '1d'
 
@@ -28,6 +29,7 @@ interface PriceChartProps {
   inBondingCurve?: boolean
   isLoading?: boolean
   error?: Error | null
+  agentId?: string
 }
 
 const LoadingState = memo(() => (
@@ -60,7 +62,8 @@ const ChartControls = memo(({
   showMarketCap, 
   setShowMarketCap,
   tradingPair,
-  inBondingCurve
+  inBondingCurve,
+  bondingPercentage
 }: { 
   interval: Interval
   setInterval: (i: Interval) => void
@@ -68,6 +71,7 @@ const ChartControls = memo(({
   setShowMarketCap: (show: boolean) => void
   tradingPair: string
   inBondingCurve: boolean
+  bondingPercentage?: number
 }) => (
   <div className="flex items-center justify-between px-2">
     <div className="flex items-center gap-4">
@@ -104,7 +108,8 @@ const ChartControls = memo(({
     </div>
     {inBondingCurve && (
       <Badge variant="outline" className="font-mono text-xs">
-        <Rocket className="mr-1 h-3 w-3" /> Bonding Curve
+        <Rocket className="mr-1 h-3 w-3" /> 
+        Bonding Curve {bondingPercentage ? `(${bondingPercentage.toFixed(1)}%)` : ''}
       </Badge>
     )}
   </div>
@@ -151,7 +156,8 @@ export const PriceChart = memo(({
   quoteToken = 'USDC',
   inBondingCurve = true,
   isLoading,
-  error
+  error,
+  agentId
 }: PriceChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -159,6 +165,9 @@ export const PriceChart = memo(({
   const [interval, setInterval] = useState<Interval>('15m')
   const [showMarketCap, setShowMarketCap] = useState(false)
   const tradingPair = `${baseToken}/${quoteToken}`
+
+  const bondingCurveData = useBondingCurve({ agentId: agentId || '' })
+  const bondingPercentage = agentId && !bondingCurveData.isLoading ? bondingCurveData.percentage : null
 
   const aggregateData = useCallback((rawData: CandleData[], intervalType: Interval) => {
     if (intervalType === '15m') return rawData
@@ -326,6 +335,7 @@ export const PriceChart = memo(({
         setShowMarketCap={setShowMarketCap}
         tradingPair={tradingPair}
         inBondingCurve={inBondingCurve}
+        bondingPercentage={bondingPercentage ?? undefined}
       />
       <div ref={chartContainerRef} />
       <div 

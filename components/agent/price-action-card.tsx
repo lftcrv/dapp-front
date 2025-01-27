@@ -38,6 +38,7 @@ export function PriceActionCard({ agent }: PriceActionCardProps) {
         symbol={agent.symbol}
         baseToken={agent.symbol}
         inBondingCurve={isInBondingPhase(agent.price, agent.holders)}
+        agentId={agent.id}
       />
     </AgentCard>
   )

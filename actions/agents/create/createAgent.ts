@@ -5,7 +5,8 @@ import { CharacterConfig } from '@/lib/types'
 export async function createAgent(
   name: string, 
   characterConfig: CharacterConfig,
-  curveSide: 'LEFT' | 'RIGHT'
+  curveSide: 'LEFT' | 'RIGHT',
+  creatorAddress: string
 ) {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL
@@ -13,9 +14,14 @@ export async function createAgent(
 
     console.log('API URL:', apiUrl)
     console.log('API Key:', apiKey)
+    console.log('Creator Wallet:', creatorAddress)
 
     if (!apiUrl || !apiKey) {
       throw new Error('Missing API configuration')
+    }
+
+    if (!creatorAddress) {
+      throw new Error('Creator wallet address is required')
     }
 
     const headers = {
@@ -24,14 +30,18 @@ export async function createAgent(
     }
     console.log('Request Headers:', headers)
 
+    const requestBody = { 
+      name, 
+      characterConfig,
+      curveSide,
+      creatorWallet: creatorAddress
+    }
+    console.log('Request Body:', requestBody)
+
     const response = await fetch(`${apiUrl}/api/eliza-agent`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ 
-        name, 
-        characterConfig,
-        curveSide 
-      })
+      body: JSON.stringify(requestBody)
     })
 
     console.log('Response Status:', response.status)

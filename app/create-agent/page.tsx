@@ -70,7 +70,8 @@ export default function CreateAgentPage() {
     starknetWallet,
     privyAuthenticated,
     isLoading,
-    privyReady 
+    privyReady,
+    currentAddress
   } = useWallet()
 
   // Compute wallet connection state
@@ -243,6 +244,12 @@ export default function CreateAgentPage() {
   const handleDeploy = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    // Get wallet address
+    if (!currentAddress) {
+      showToast('CONNECTION_ERROR', 'error')
+      return
+    }
+
     // Validate required fields
     if (!formData.name.trim()) {
       showToast('AGENT_ERROR', 'error')
@@ -297,7 +304,7 @@ export default function CreateAgentPage() {
       // Convert agentType to curveSide
       const curveSide = agentType === 'leftcurve' ? 'LEFT' : 'RIGHT'
 
-      const result = await createAgent(formData.name, characterConfig, curveSide)
+      const result = await createAgent(formData.name, characterConfig, curveSide, currentAddress)
       
       if (result.success) {
         showToast('AGENT_SUCCESS', 'success')
