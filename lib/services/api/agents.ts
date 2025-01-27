@@ -10,51 +10,32 @@ export class AgentService extends BaseService<Agent> {
 
   async getAll(): Promise<Result<Agent[]>> {
     return withErrorHandling(async () => {
-      console.log('AgentService: Fetching all agents')
       const result = await getAgents()
-      console.log('AgentService getAll result:', {
-        success: result.success,
-        hasData: !!result.data,
-        dataLength: result.data?.length,
-        error: result.error
-      })
       
       if (!result.success) {
-        console.error('AgentService: Failed to fetch agents:', result.error)
         throw new Error(result.error || 'Failed to fetch agents')
       }
       
       if (!result.data || result.data.length === 0) {
-        console.warn('AgentService: No agents found in response')
         throw new Error('No agents found')
       }
       
-      console.log('AgentService: Successfully fetched', result.data.length, 'agents')
       return result.data
     }, 'Failed to fetch agents')
   }
 
   async getById(id: string): Promise<Result<Agent>> {
     return withErrorHandling(async () => {
-      console.log('AgentService: Fetching agent by id:', id)
       const result = await getAgentById(id)
-      console.log('AgentService getById result:', {
-        success: result.success,
-        hasData: !!result.data,
-        error: result.error
-      })
       
       if (!result.success) {
-        console.error('AgentService: Failed to fetch agent:', result.error)
         throw new Error(result.error || 'Failed to fetch agent')
       }
       
       if (!result.data) {
-        console.warn('AgentService: Agent not found:', id)
         throw new Error('Agent not found')
       }
       
-      console.log('AgentService: Successfully fetched agent:', id)
       return result.data
     }, 'Failed to fetch agent')
   }

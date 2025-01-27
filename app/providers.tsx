@@ -19,32 +19,32 @@ const queryClient = new QueryClient()
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <PrivyProvider
-      appId={PRIVY_APP_ID}
-      config={{
-        appearance: {
-          theme: 'dark',
-          accentColor: '#676FFF',
-          logo: '/degen.png',
-        },
-        // Using proper chain type from Privy
-        supportedChains: [
-          mainnet,
-          sepolia
-        ],
-        loginMethods: ['email', 'wallet'],
-        embeddedWallets: {
-          createOnLogin: 'users-without-wallets',
-          // Remove unsupported option
-          // noPromptOnSignature: true,
-        },
-      }}
-    >
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <PrivyProvider
+        appId={PRIVY_APP_ID}
+        config={{
+          appearance: {
+            theme: 'dark',
+            accentColor: '#676FFF',
+            logo: '/degen.png',
+            showWalletLoginFirst: true,
+          },
+          supportedChains: [
+            mainnet,
+            sepolia
+          ],
+          loginMethods: ['wallet', 'email', 'google', 'twitter', 'discord', 'github'],
+          embeddedWallets: {
+            createOnLogin: 'users-without-wallets',
+          },
+          defaultChain: mainnet,
+          walletConnectCloudProjectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
+        }}
+      >
         <WagmiProvider config={wagmiConfig}>
           {children}
         </WagmiProvider>
-      </QueryClientProvider>
-    </PrivyProvider>
+      </PrivyProvider>
+    </QueryClientProvider>
   )
 } 
