@@ -44,6 +44,8 @@ export async function createAgent(
         throw new Error('Invalid API key')
       } else if (response.status === 400) {
         throw new Error(data.message || 'Invalid agent configuration')
+      } else if (response.status === 408 || data.message?.includes('timeout')) {
+        throw new Error('Agent creation timed out - please try again')
       } else if (response.status >= 500) {
         throw new Error('Server error - please try again later')
       }

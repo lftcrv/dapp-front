@@ -301,11 +301,13 @@ export default function CreateAgentPage() {
       
       if (result.success) {
         showToast('AGENT_SUCCESS', 'success')
-        router.push('/agents')
+        router.push('/')
       } else {
+        console.error('Agent creation failed:', result.error)
         showToast('AGENT_ERROR', 'error')
       }
-    } catch {
+    } catch (error) {
+      console.error('Agent creation error:', error)
       showToast('AGENT_ERROR', 'error')
     } finally {
       setIsSubmitting(false)

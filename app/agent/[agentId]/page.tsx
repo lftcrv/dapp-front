@@ -85,7 +85,7 @@ function AgentContent({ agentId }: { agentId: string }) {
 
 export default function AgentPage() {
   const params = useParams()
-  const agentId = params.agentId as string
+  const agentId = params?.agentId as string || ''
   
   return (
     <main className="flex min-h-screen flex-col items-center justify-start pt-24">

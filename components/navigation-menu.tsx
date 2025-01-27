@@ -159,7 +159,7 @@ export const NavigationMenu = memo(() => {
   // Track navigation changes with segment info (development only)
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      const segment = pathname.split('/')[1] || 'home'
+      const segment = pathname?.split('/')[1] || 'home'
       startTiming(`Navigation Change (${segment})`)
       measureNavigation()
       return () => endTiming(`Navigation Change (${segment})`)
