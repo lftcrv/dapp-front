@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { simulateBuyTokens, simulateSellTokens, getBondingCurvePercentage } from '@/actions/agents/token/getTokenInfo'
 
 interface UseBondingCurveProps {
@@ -14,6 +14,7 @@ interface BondingCurveData {
   percentage: number | null
   isLoading: boolean
   error: string | null
+  isInBondingPhase: boolean
 }
 
 export function useBondingCurve({ agentId, interval = 5000 }: UseBondingCurveProps): BondingCurveData {
@@ -22,11 +23,16 @@ export function useBondingCurve({ agentId, interval = 5000 }: UseBondingCurvePro
     sellPrice: null,
     percentage: null,
     isLoading: true,
-    error: null
+    error: null,
+    isInBondingPhase: true
   })
+
+  // Use a ref to track if we've detected a 404 to avoid re-renders
+  const hasTokenNotFoundRef = useRef(false)
 
   useEffect(() => {
     let mounted = true
+    let timer: NodeJS.Timeout | null = null
 
     async function fetchData() {
       // Skip API calls if no agentId is provided
@@ -36,12 +42,18 @@ export function useBondingCurve({ agentId, interval = 5000 }: UseBondingCurvePro
           sellPrice: null,
           percentage: null,
           isLoading: false,
-          error: null
+          error: null,
+          isInBondingPhase: true
         })
         return
       }
 
       try {
+        // If we already got a 404, don't make more API calls
+        if (hasTokenNotFoundRef.current) {
+          return
+        }
+
         // Simulate prices for 1 token (18 decimals)
         const [buyResult, sellResult, percentageResult] = await Promise.all([
           simulateBuyTokens(agentId, "1000000000000000000"),
@@ -50,6 +62,29 @@ export function useBondingCurve({ agentId, interval = 5000 }: UseBondingCurvePro
         ])
 
         if (!mounted) return
+
+        // For new agents without tokens, we'll get 404s - this is expected
+        const isNewAgent = [buyResult, sellResult, percentageResult].some(
+          result => !result.success && result.error?.includes('not found')
+        )
+
+        if (isNewAgent) {
+          hasTokenNotFoundRef.current = true
+          // Clear any existing timer
+          if (timer) {
+            clearInterval(timer)
+            timer = null
+          }
+          setData({
+            buyPrice: null,
+            sellPrice: null,
+            percentage: null,
+            isLoading: false,
+            error: "Token contract not deployed yet. Please wait for deployment to complete.",
+            isInBondingPhase: true
+          })
+          return
+        }
 
         // Check each result individually for better error messages
         if (!buyResult.success) {
@@ -67,7 +102,8 @@ export function useBondingCurve({ agentId, interval = 5000 }: UseBondingCurvePro
           sellPrice: sellResult.data ?? null,
           percentage: percentageResult.data ?? null,
           isLoading: false,
-          error: null
+          error: null,
+          isInBondingPhase: true
         })
       } catch (error) {
         if (!mounted) return
@@ -77,17 +113,25 @@ export function useBondingCurve({ agentId, interval = 5000 }: UseBondingCurvePro
           sellPrice: null,
           percentage: null,
           isLoading: false,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error',
+          isInBondingPhase: true
         }))
       }
     }
 
+    // Initial fetch
     fetchData()
-    const timer = interval > 0 ? setInterval(fetchData, interval) : null
+
+    // Only set up polling if we haven't detected a 404
+    if (!hasTokenNotFoundRef.current && interval > 0) {
+      timer = setInterval(fetchData, interval)
+    }
 
     return () => {
       mounted = false
-      if (timer) clearInterval(timer)
+      if (timer) {
+        clearInterval(timer)
+      }
     }
   }, [agentId, interval])
 
