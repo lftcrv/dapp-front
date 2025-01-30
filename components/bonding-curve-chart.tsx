@@ -5,8 +5,9 @@ import { Agent } from '@/lib/types'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Lock, Unlock, Rocket, Sparkles } from 'lucide-react'
-import { cn, calculateBondingProgress, isInBondingPhase } from '@/lib/utils'
+import { cn, calculateBondingProgress } from '@/lib/utils'
 import { getLatestPrice } from '@/lib/dummy-prices'
+import { useBondingCurve } from '@/hooks/use-bonding-curve'
 
 interface BondingCurveChartProps {
   agent: Agent
@@ -124,21 +125,35 @@ export const BondingCurveChart = memo(({ agent, className }: BondingCurveChartPr
   const currentPrice = getLatestPrice(agent.symbol) || agent.price
   const isLeftCurve = agent.type === 'leftcurve'
 
+  // Only enable polling if the agent is in bonding phase
+  const shouldPoll = agent.status === 'bonding'
+  const bondingCurveData = useBondingCurve({ 
+    agentId: agent.id,
+    enabled: shouldPoll,
+    interval: shouldPoll ? 5000 : 0
+  })
+
   const {
     progress,
     nextPrice,
     remainingLiquidity,
     isInBonding,
     progressColor
-  } = useMemo(() => ({
-    progress: calculateBondingProgress(currentPrice, agent.holders),
-    nextPrice: (currentPrice * 1.1).toFixed(3),
-    remainingLiquidity: 10000 - (agent.holders * currentPrice * 1000),
-    isInBonding: isInBondingPhase(currentPrice, agent.holders),
-    progressColor: isLeftCurve 
-      ? 'bg-gradient-to-r from-yellow-500 via-orange-500 to-pink-500 animate-gradient'
-      : 'bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 animate-gradient'
-  }), [currentPrice, agent.holders, isLeftCurve])
+  } = useMemo(() => {
+    // Use bonding curve data if available
+    const bondingPercentage = bondingCurveData.percentage ?? calculateBondingProgress(currentPrice, agent.holders)
+    const isInBondingState = shouldPoll && !bondingCurveData.error
+    
+    return {
+      progress: bondingPercentage,
+      nextPrice: (currentPrice * 1.1).toFixed(3),
+      remainingLiquidity: 10000 - (agent.holders * currentPrice * 1000),
+      isInBonding: isInBondingState,
+      progressColor: isLeftCurve 
+        ? 'bg-gradient-to-r from-yellow-500 via-orange-500 to-pink-500 animate-gradient'
+        : 'bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 animate-gradient'
+    }
+  }, [currentPrice, agent.holders, isLeftCurve, bondingCurveData, shouldPoll])
 
   return (
     <Card className={cn(

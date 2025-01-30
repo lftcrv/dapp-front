@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useState, useCallback, useMemo } from 'react'
+import { memo, useState, useCallback, useMemo, useEffect } from 'react'
 import { Agent } from '@/lib/types'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,7 @@ import { useWallet } from '@/app/context/wallet-context'
 import { ArrowDownUp, ExternalLink, Link as LinkIcon } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import { simulateBuyTokens, simulateSellTokens } from '@/actions/agents/token/getTokenInfo'
 
 interface SwapWidgetProps {
   agent: Agent
@@ -78,9 +79,47 @@ SwapDivider.displayName = 'SwapDivider'
 
 export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
   const [amount, setAmount] = useState('')
+  const [simulatedAmount, setSimulatedAmount] = useState('')
+  const [activeTab, setActiveTab] = useState('buy')
   const { currentAddress: address } = useWallet()
   const { toast } = useToast()
   const isLeftCurve = agent.type === 'leftcurve'
+
+  // Simulate swap when amount changes
+  useEffect(() => {
+    const simulateSwap = async () => {
+      if (!amount || !agent.id) {
+        setSimulatedAmount('')
+        return
+      }
+
+      try {
+        const inputAmount = parseFloat(amount)
+        if (isNaN(inputAmount) || inputAmount === 0 || !isFinite(inputAmount)) {
+          setSimulatedAmount('')
+          return
+        }
+
+        const amountInWei = BigInt(Math.floor(inputAmount * 1e18)).toString()
+        const result = await (activeTab === 'buy' 
+          ? simulateBuyTokens(agent.id, amountInWei)
+          : simulateSellTokens(agent.id, amountInWei))
+        
+        if (result.success && result.data) {
+          const outputAmount = Number(result.data) / 1e18
+          setSimulatedAmount(outputAmount.toFixed(6))
+        } else {
+          setSimulatedAmount('')
+        }
+      } catch (error) {
+        console.error('Failed to simulate swap:', error)
+        setSimulatedAmount('')
+      }
+    }
+
+    const timer = setTimeout(simulateSwap, 500)
+    return () => clearTimeout(timer)
+  }, [amount, agent.id, activeTab])
 
   const handleSwap = useCallback(() => {
     if (!address) {
@@ -133,7 +172,7 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
         </Button>
       </div>
       
-      <Tabs defaultValue="buy" className="w-full">
+      <Tabs defaultValue="buy" className="w-full" onValueChange={setActiveTab}>
         <TabsList className="grid grid-cols-2 mb-4">
           <TabsTrigger value="buy" className={cn(
             "font-medium",
@@ -150,7 +189,12 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
             label="Pay with $LEFT"
             balance="0.00 $LEFT"
             value={amount}
-            onChange={setAmount}
+            onChange={(value) => {
+              const num = parseFloat(value)
+              if (value === '' || (!isNaN(num) && isFinite(num))) {
+                setAmount(value)
+              }
+            }}
             isLeftCurve={isLeftCurve}
           />
 
@@ -159,8 +203,8 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
           <SwapInput
             label={`Receive ${agent.name}`}
             balance={`0.00 ${agent.name}`}
-            value={amount ? (parseFloat(amount) / agent.price).toFixed(6) : ''}
-            estimate={amount ? (parseFloat(amount) * agent.price).toFixed(2) : '0.00'}
+            value={simulatedAmount}
+            estimate={amount || '0.00'}
             readOnly
             isLeftCurve={isLeftCurve}
           />
@@ -182,20 +226,25 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
 
         <TabsContent value="sell" className="space-y-4">
           <SwapInput
-            label={`Sell ${agent.name}`}
+            label={`Pay with ${agent.name}`}
             balance={`0.00 ${agent.name}`}
             value={amount}
-            onChange={setAmount}
+            onChange={(value) => {
+              const num = parseFloat(value)
+              if (value === '' || (!isNaN(num) && isFinite(num))) {
+                setAmount(value)
+              }
+            }}
             isLeftCurve={isLeftCurve}
           />
 
           <SwapDivider isLeftCurve={isLeftCurve} />
 
           <SwapInput
-            label="Receive LINK"
-            balance="0.00 LINK"
-            value={amount ? (parseFloat(amount) * agent.price).toFixed(6) : ''}
-            estimate={amount ? (parseFloat(amount) * agent.price).toFixed(2) : '0.00'}
+            label="Receive $LEFT"
+            balance="0.00 $LEFT"
+            value={simulatedAmount}
+            estimate={amount || '0.00'}
             readOnly
             isLeftCurve={isLeftCurve}
           />

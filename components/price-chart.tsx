@@ -205,13 +205,62 @@ export const PriceChart = memo(({
     return Array.from(groupedData.values())
   }, [])
 
-  const chartData = useMemo(() => 
-    data ? aggregateData(data, interval) : []
-  , [data, interval, aggregateData])
+  const chartData = useMemo(() => {
+    console.log('Chart data calculation:', {
+      hasData: !!data?.length,
+      inBondingCurve,
+      buyPrice: bondingCurveData.buyPrice,
+      isLoading: bondingCurveData.isLoading
+    })
+
+    // If we have historical data, use it
+    if (data?.length) return aggregateData(data, interval)
+    
+    // Generate initial data points for bonding curve
+    if (inBondingCurve && !bondingCurveData.isLoading && bondingCurveData.buyPrice) {
+      const initialPrice = Number(bondingCurveData.buyPrice) / 1e18
+      const now = Math.floor(Date.now() / 1000)
+      
+      // Create a simple line chart for initial state (ascending order)
+      const dataPoints = [
+        {
+          time: (now - 3600) as UTCTimestamp, // 1 hour ago
+          open: initialPrice,
+          high: initialPrice,
+          low: initialPrice,
+          close: initialPrice,
+          volume: 0
+        },
+        {
+          time: now as UTCTimestamp, // current time
+          open: initialPrice,
+          high: initialPrice,
+          low: initialPrice,
+          close: initialPrice,
+          volume: 0
+        }
+      ]
+
+      console.log('Generated initial points:', dataPoints)
+      return dataPoints
+    }
+    
+    return []
+  }, [data, interval, aggregateData, inBondingCurve, bondingCurveData])
 
   useEffect(() => {
-    if (!chartContainerRef.current || !chartData.length) return
+    if (!chartContainerRef.current) {
+      console.log('No chart container')
+      return
+    }
+    
+    if (!chartData.length) {
+      console.log('No chart data available')
+      return
+    }
 
+    console.log('Creating chart with data:', chartData)
+    
     const chart = createChart(chartContainerRef.current, {
       layout: {
         background: { 
@@ -221,8 +270,8 @@ export const PriceChart = memo(({
         textColor: '#999',
       },
       grid: {
-        vertLines: { color: 'rgba(42, 46, 57, 0.2)' },
-        horzLines: { color: 'rgba(42, 46, 57, 0.2)' },
+        vertLines: { visible: false },
+        horzLines: { visible: false }
       },
       crosshair: {
         mode: CrosshairMode.Normal,
@@ -230,13 +279,7 @@ export const PriceChart = memo(({
       timeScale: {
         timeVisible: true,
         secondsVisible: false,
-        borderColor: '#2A2E39',
-        tickMarkFormatter: (time: number) => {
-          const date = new Date(time * 1000)
-          return interval === '1d' 
-            ? date.toLocaleDateString()
-            : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        },
+        borderVisible: false,
       },
       width: chartContainerRef.current.clientWidth,
       height: 400,
