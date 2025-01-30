@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useState, useCallback, useMemo } from 'react'
+import { memo, useState, useCallback, useMemo, useEffect } from 'react'
 import { Agent } from '@/lib/types'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,7 @@ import { useWallet } from '@/app/context/wallet-context'
 import { ArrowDownUp, ExternalLink, Link as LinkIcon } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import { simulateBuyTokens, simulateSellTokens } from '@/actions/agents/token/getTokenInfo'
 
 interface SwapWidgetProps {
   agent: Agent
@@ -78,9 +79,65 @@ SwapDivider.displayName = 'SwapDivider'
 
 export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
   const [amount, setAmount] = useState('')
+  const [simulatedAmount, setSimulatedAmount] = useState('')
+  const [activeTab, setActiveTab] = useState('buy')
+  const [error, setError] = useState<string | null>(null)
   const { currentAddress: address } = useWallet()
   const { toast } = useToast()
   const isLeftCurve = agent.type === 'leftcurve'
+
+  // Simulate swap when amount changes
+  useEffect(() => {
+    const simulateSwap = async () => {
+      if (!amount || !agent.id) {
+        setSimulatedAmount('')
+        setError(null)
+        return
+      }
+
+      try {
+        const inputAmount = parseFloat(amount)
+        if (isNaN(inputAmount) || inputAmount === 0 || !isFinite(inputAmount)) {
+          setSimulatedAmount('')
+          setError(null)
+          return
+        }
+
+        // For sell, we need to convert the agent token amount to wei
+        // For buy, we convert the LEFT amount to wei
+        const amountInWei = BigInt(Math.floor(inputAmount * 1e18)).toString()
+        const result = await (activeTab === 'buy' 
+          ? simulateBuyTokens(agent.id, amountInWei)  // Buying with LEFT
+          : simulateSellTokens(agent.id, amountInWei)) // Selling agent tokens
+        
+        if (result.success && result.data) {
+          const outputAmount = Number(result.data) / 1e18
+          setSimulatedAmount(outputAmount.toFixed(6))
+          setError(null)
+        } else {
+          setSimulatedAmount('')
+          // Check if it's the unwrap error (insufficient liquidity)
+          if (result.error?.includes('Option::unwrap failed')) {
+            setError('Insufficient liquidity in the bonding curve')
+          } else {
+            setError(result.error || 'Failed to simulate swap')
+          }
+        }
+      } catch (error) {
+        console.error('Failed to simulate swap:', error)
+        setSimulatedAmount('')
+        // Check for the specific contract error
+        if (error instanceof Error && error.message.includes('Option::unwrap failed')) {
+          setError('Insufficient liquidity in the bonding curve')
+        } else {
+          setError('Failed to simulate swap')
+        }
+      }
+    }
+
+    const timer = setTimeout(simulateSwap, 500)
+    return () => clearTimeout(timer)
+  }, [amount, agent.id, activeTab])
 
   const handleSwap = useCallback(() => {
     if (!address) {
@@ -133,7 +190,12 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
         </Button>
       </div>
       
-      <Tabs defaultValue="buy" className="w-full">
+      <Tabs defaultValue="buy" className="w-full" onValueChange={(value) => {
+        setActiveTab(value)
+        setError(null)
+        setAmount('')
+        setSimulatedAmount('')
+      }}>
         <TabsList className="grid grid-cols-2 mb-4">
           <TabsTrigger value="buy" className={cn(
             "font-medium",
@@ -150,7 +212,12 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
             label="Pay with $LEFT"
             balance="0.00 $LEFT"
             value={amount}
-            onChange={setAmount}
+            onChange={(value) => {
+              const num = parseFloat(value)
+              if (value === '' || (!isNaN(num) && isFinite(num))) {
+                setAmount(value)
+              }
+            }}
             isLeftCurve={isLeftCurve}
           />
 
@@ -159,17 +226,23 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
           <SwapInput
             label={`Receive ${agent.name}`}
             balance={`0.00 ${agent.name}`}
-            value={amount ? (parseFloat(amount) / agent.price).toFixed(6) : ''}
-            estimate={amount ? (parseFloat(amount) * agent.price).toFixed(2) : '0.00'}
+            value={simulatedAmount}
+            estimate={amount || '0.00'}
             readOnly
             isLeftCurve={isLeftCurve}
           />
+
+          {error && (
+            <div className="text-sm text-red-500 px-1">
+              {error}
+            </div>
+          )}
 
           <Button 
             className={buttonStyle}
             size="lg"
             onClick={handleSwap}
-            disabled={!address || !amount}
+            disabled={!address || !amount || !!error}
           >
             {buttonText}
           </Button>
@@ -182,29 +255,40 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
 
         <TabsContent value="sell" className="space-y-4">
           <SwapInput
-            label={`Sell ${agent.name}`}
+            label={`Pay with ${agent.name}`}
             balance={`0.00 ${agent.name}`}
             value={amount}
-            onChange={setAmount}
+            onChange={(value) => {
+              const num = parseFloat(value)
+              if (value === '' || (!isNaN(num) && isFinite(num))) {
+                setAmount(value)
+              }
+            }}
             isLeftCurve={isLeftCurve}
           />
 
           <SwapDivider isLeftCurve={isLeftCurve} />
 
           <SwapInput
-            label="Receive LINK"
-            balance="0.00 LINK"
-            value={amount ? (parseFloat(amount) * agent.price).toFixed(6) : ''}
-            estimate={amount ? (parseFloat(amount) * agent.price).toFixed(2) : '0.00'}
+            label="Receive $LEFT"
+            balance="0.00 $LEFT"
+            value={simulatedAmount}
+            estimate={amount || '0.00'}
             readOnly
             isLeftCurve={isLeftCurve}
           />
+
+          {error && (
+            <div className="text-sm text-red-500 px-1">
+              {error}
+            </div>
+          )}
 
           <Button 
             className={buttonStyle}
             size="lg"
             onClick={handleSwap}
-            disabled={!address || !amount}
+            disabled={!address || !amount || !!error}
           >
             {buttonText}
           </Button>

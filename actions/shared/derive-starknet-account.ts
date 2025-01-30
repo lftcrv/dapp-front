@@ -1,11 +1,11 @@
 import { type User } from '@/types/user'
 
 // DEBUG LOGS: Prefix for easy removal
-const DEBUG = {
-  log: (...args: any[]) => console.log('[Starknet Derivation]:', ...args),
-  error: (...args: any[]) => console.error('[Starknet Derivation Error]:', ...args),
-  signature: (...args: any[]) => console.log('[Signature Storage]:', ...args)
-}
+// const DEBUG = {
+//   log: (...args: any[]) => console.log('[Starknet Derivation]:', ...args),
+//   error: (...args: any[]) => console.error('[Starknet Derivation Error]:', ...args),
+//   signature: (...args: any[]) => console.log('[Signature Storage]:', ...args)
+// }
 
 // Simple helper to manage signatures in localStorage
 export const signatureStorage = {
