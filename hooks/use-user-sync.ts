@@ -28,4 +28,4 @@ export function useUserSync() {
   }, [privyReady, address, syncUser]);
 
   return { syncUser };
-} 
+}

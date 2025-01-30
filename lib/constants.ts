@@ -1,13 +1,14 @@
 // App metadata
-export const APP_NAME = 'LeftCurve'
-export const APP_DESCRIPTION = 'Discover and invest in unique trading agents powered by memes and AI'
+export const APP_NAME = 'LeftCurve';
+export const APP_DESCRIPTION =
+  'Discover and invest in unique trading agents powered by memes and AI';
 
 // Wallet configuration
 export const WALLET_CONFIG = {
   dappName: APP_NAME,
   mainnetRPC: process.env.NEXT_PUBLIC_MAINNET_RPC,
   testnetRPC: process.env.NEXT_PUBLIC_TESTNET_RPC,
-}
+};
 
 // Theme configuration
 export const THEME = {
@@ -19,7 +20,7 @@ export const THEME = {
       },
     },
   },
-}
+};
 
 // API endpoints
 export const API_ENDPOINTS = {
@@ -27,4 +28,4 @@ export const API_ENDPOINTS = {
   createAgent: '/api/agents/create',
   myAgents: '/api/agents/my',
   leaderboard: '/api/leaderboard',
-} 
+};

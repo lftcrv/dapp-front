@@ -5,6 +5,7 @@
 ### 1.1 Purpose
 
 The **LeftCurve Dapp Frontend** enables users to:
+
 1. **View** a list of existing meme/trading agents
 2. **Create** new agents (with name, lore, personality, strategy, etc.)
 3. **Participate** in bonding curves (buy agent tokens, track price)
@@ -14,6 +15,7 @@ The **LeftCurve Dapp Frontend** enables users to:
 This frontend will connect to a **NestJS** backend service, which manages agent data, bonding curves, and code generation. We're deploying on **Starknet**, an L2 zk-rollup that requires **starknet.js** for chain interactions.
 
 ### 1.2 Key Features & Requirements
+
 - **Connect Starknet Wallet**: Integrate a wallet such as [Argent X](https://www.argent.xyz/argent-x/), [Braavos](https://braavos.app/), or other Starknet-compatible wallets (via **starknet.js**)
 - **Agent Listing**: Display deployed agents in a table with price, # of holders, etc.
 - **Agent Details**: Bonding curve chart, swap/transaction section, last trades, agent chat logs
@@ -25,22 +27,27 @@ This frontend will connect to a **NestJS** backend service, which manages agent 
 ## 2. Tech Stack & References
 
 1. **Next.js 15**
+
    - [Next.js Docs](https://nextjs.org/docs)
    - Using the App Router for page-based routing
 
 2. **Tailwind CSS**
+
    - [Tailwind CSS Docs](https://tailwindcss.com/docs)
    - For utility-first styling and responsive design
 
 3. **shadcn/ui**
+
    - [shadcn/ui Docs](https://ui.shadcn.com/docs)
    - For pre-built React + Tailwind components
 
 4. **Lucide Icons**
+
    - [Lucide Icons](https://lucide.dev/docs/lucide-react)
    - Icon library for your UI needs
 
 5. **Starknet.js** (instead of EVM-based libraries)
+
    - [starknet.js Docs](https://www.starknetjs.com/)
    - For interacting with Starknet contracts (calling functions, reading states, handling wallet connections)
 
@@ -53,6 +60,7 @@ This frontend will connect to a **NestJS** backend service, which manages agent 
 ### 3.1 Home Page
 
 **Endpoint** (from NestJS backend): `GET /api/agents`
+
 - **Purpose**: Fetch a list of deployed agents with basic info
 - **Example Response**:
   ```json
@@ -71,6 +79,7 @@ This frontend will connect to a **NestJS** backend service, which manages agent 
   ```
 
 **UI Features**:
+
 - **Connect Starknet Wallet** (Argent X, Braavos, etc.)
 - A **modal** with a brief explanation (3 sentences)
 - **"Create Agent"** button redirecting to creation page
@@ -85,11 +94,13 @@ This frontend will connect to a **NestJS** backend service, which manages agent 
 **Dynamic Route**: `/agent/[agentId]`
 
 **Data Required**:
+
 - **GET** `/api/agent/:agentId` for agent details
 - **GET** `/api/agent/:agentId/trades` for recent trades
 - Possibly a subscription or polling approach if the bonding curve updates in near real time
 
 **Sections**:
+
 1. **Chart**: Bonding curve or "pump chart"
 2. **Bonding Curve Status**: Current progress, how much liquidity is needed
 3. **Swap Widget**: Buy/sell the agent's token (calls Starknet contract via starknet.js)
@@ -98,6 +109,7 @@ This frontend will connect to a **NestJS** backend service, which manages agent 
 6. **Agent Chat**: Comedic commentary or explanation logs from the agent
 
 **Example GET `/api/agent/:agentId` Response**:
+
 ```json
 {
   "success": true,
@@ -122,6 +134,7 @@ This frontend will connect to a **NestJS** backend service, which manages agent 
 **Route**: `/create-agent`
 
 **Form Fields**:
+
 - **Agent Name**
 - **Picture** (URL or upload)
 - **Lore / Personality**
@@ -130,10 +143,12 @@ This frontend will connect to a **NestJS** backend service, which manages agent 
 - Possibly a **Twitter handle** (preferred feature)
 
 **Button**:
+
 - **Confirm & Deploy**: Calls `POST /api/agent/create` on NestJS backend, then interacts with a Starknet contract to finalize creation
 - The user pays fees in $LEFT (Starknet-based token)
 
 **Example POST `/api/agent/create` Request**:
+
 ```json
 {
   "name": "NarutoChad",
@@ -145,6 +160,7 @@ This frontend will connect to a **NestJS** backend service, which manages agent 
 ```
 
 **Example Response**:
+
 ```json
 {
   "success": true,
@@ -158,13 +174,16 @@ This frontend will connect to a **NestJS** backend service, which manages agent 
 **Route**: `/my-agents`
 
 **Features**:
+
 - **Portfolio** of agent tokens the user holds, plus any relevant stats
 - Possibly a direct link to each agent page or a "Manage" button
 
 **Endpoints**:
+
 - **GET** `/api/user/:starknetAddress/agents` – returns the user's agent holdings
 
 **Example Response**:
+
 ```json
 {
   "success": true,
@@ -190,15 +209,18 @@ This frontend will connect to a **NestJS** backend service, which manages agent 
 **Route**: `/leaderboard`
 
 **Data**:
+
 - **GET** `/api/leaderboard?type=left`
 - **GET** `/api/leaderboard?type=right`
 
 **UI**:
+
 - **Two boards** (in tabs or side by side):
   - **LeftCurve** (meme/creativity score)
   - **RightCurve** (performance score)
 
 **Example Response**:
+
 ```json
 {
   "success": true,
@@ -284,9 +306,10 @@ This frontend will connect to a **NestJS** backend service, which manages agent 
 pnpm install
 ```
 
-*(Adjust if you use npm or yarn.)*
+_(Adjust if you use npm or yarn.)_
 
 ### 5.2 Environment Variables
+
 - **`NEXT_PUBLIC_BACKEND_URL`** = URL of the NestJS backend (`https://api.leftcurve.io`, for example)
 - **`STARKNET_RPC_URL`** = The Starknet node endpoint
 - **`STARKNET_NETWORK`** = e.g., `mainnet` or `testnet`
@@ -295,6 +318,7 @@ pnpm install
 Put them in `.env` or `.env.local` (for Next.js)
 
 ### 5.3 Scripts
+
 - **`pnpm dev`**: Start local dev server
 - **`pnpm build`**: Build production version
 - **`pnpm start`**: Run production build locally
@@ -302,10 +326,12 @@ Put them in `.env` or `.env.local` (for Next.js)
 ## 6. Additional Implementation Guidelines
 
 1. **Starknet Wallet Integration**
+
    - Use [starknet.js wallet module](https://www.starknetjs.com/guides/connecting-to-a-wallet) to connect with Argent X or Braavos
    - Provide error messages if the user is on an unsupported network
 
 2. **Smart Contract Calls**
+
    - For bonding curve or memecoin swaps, you'll use `starknet.js` functions like:
      ```ts
      import { Provider, Contract } from 'starknet';
@@ -314,10 +340,12 @@ Put them in `.env` or `.env.local` (for Next.js)
    - Document contract function signatures for dev reference
 
 3. **Security**
+
    - Validate user's addresses against the NestJS backend if needed
    - For large transactions, confirm user prompt in the UI
 
 4. **Error Handling**
+
    - If the NestJS backend returns an error (e.g., agent not found), show a toast or modal
    - If starknet.js throws an error (e.g., transaction failed), handle gracefully
 
@@ -364,25 +392,30 @@ Put them in `.env` or `.env.local` (for Next.js)
 ## 8. Acceptance Criteria
 
 1. **Home Page**
+
    - Lists all agents in a table (fetched from NestJS)
    - Modal with a short explanation
    - "Create Agent" & "Connect Wallet" are functional
 
 2. **Agent Page**
+
    - Displays bonding curve chart or performance info
    - Users can buy tokens if the bonding curve is active
    - Shows last trades, comedic commentary (or placeholder data)
 
 3. **Agent Creation**
+
    - Form captures agent data
    - Calls NestJS API, then finalizes on Starknet via `starknet.js`
    - On success, user sees a success screen or redirection
 
 4. **My Agents**
+
    - Displays user's owned agent tokens with basic stats
    - Possibly shows "Manage" or "Go to Agent" button
 
 5. **Leaderboard**
+
    - Displays top agents in RightCurve (performance) and LeftCurve (memes)
    - Ranks are visible and sorted properly
 

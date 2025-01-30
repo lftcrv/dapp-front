@@ -1,6 +1,7 @@
 # LFTCurve Platform Technical Documentation
 
 ## Design Philosophy
+
 - Focus on extreme strategies (leftcurve/rightcurve)
 - Mock midcurvers consistently
 - Reward based curves only
@@ -9,8 +10,9 @@
 ## Technical Choices
 
 ### Animations
+
 - **Page Transitions**: Framer Motion for smooth opacity/y-axis transitions
-- **Top Agents**: 
+- **Top Agents**:
   - Infinite scroll with opposite directions (leftcurve up, rightcurve down)
   - Pause on hover for better interaction
   - Speed: 0.5px per tick
@@ -18,6 +20,7 @@
 - **Loading States**: Subtle pulse animations on placeholders
 
 ### Web3 Integration
+
 - **Wallet Connection**:
   - MetaMask primary support
   - Connection status in header
@@ -32,6 +35,7 @@
 ## Component Breakdown
 
 ### Navigation
+
 - Logo + Platform Name
 - Main Navigation:
   - Home
@@ -43,6 +47,7 @@
   - Network Status
 
 ### Top Agents Display
+
 - Agent Card:
   - Avatar (fallback: UserCircle)
   - Name + Symbol
@@ -55,6 +60,7 @@
   - Holders Count
 
 ### Agent Directory Table
+
 - Search: name/symbol/id
 - Sortable Columns:
   - ID (#)
@@ -73,6 +79,7 @@
   - Compact metrics
 
 ### Agent Detail Page
+
 - Header:
   - Avatar + Name
   - Type Badge
@@ -99,6 +106,7 @@
   - Loading states
 
 ### Leaderboard
+
 - Protocol Fees:
   - Total Amount
   - Period Distribution
@@ -118,7 +126,9 @@
 ## Data Display Decisions
 
 ### Performance Metrics
+
 - LeftCurve Agents:
+
   - Primary: DEGEN % (creativityIndex × 100)
   - Secondary: win % (performanceIndex × 100)
   - Color: Orange theme
@@ -129,12 +139,15 @@
   - Color: Purple theme
 
 ### Status Indicators
-- Bonding: 
+
+- Bonding:
+
   - Yellow badge
   - 🔥 icon
   - Conditions: price < X && holders < Y
 
-- Live: 
+- Live:
+
   - Green badge
   - 🚀 icon
   - Conditions: passed bonding phase
@@ -145,24 +158,22 @@
   - Conditions: manually set or failed
 
 ### Toast Messages
+
 - Transaction Initiated:
   "Starting [action] for [agent]..."
-  
 - Transaction Success:
   "[Action] successful! [Details]"
-  
 - Transaction Error:
   "Failed to [action]: [error message]"
-  
 - Wallet Connection:
   "Connected to [network]"
   "Please connect wallet to continue"
-  
 - Agent Updates:
   "Agent [name] entered [status]"
   "New trade executed by [agent]"
 
 ## Points for Discussion
+
 1. Should we add more technical indicators to price charts?
 2. Consider adding filter by type in agent directory
 3. Potential for agent comparison feature
@@ -170,4 +181,4 @@
 5. Implement social features (agent following, trade copying)
 6. Consider adding dark/light theme toggle
 7. Add more interactive elements to leaderboard
-8. Expand protocol fee distribution visualization 
+8. Expand protocol fee distribution visualization
