@@ -1,23 +1,23 @@
-"use client";
+'use client';
 
-import { AlertCircle } from "lucide-react";
-import { useAgents } from "@/hooks/use-agents";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { AlertCircle } from 'lucide-react';
+import { useAgents } from '@/hooks/use-agents';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import {
   TopAgentsSkeleton,
   AgentTableSkeleton,
-} from "@/components/home-skeleton";
-import { HomeContent } from "@/components/home-content";
-import dynamic from "next/dynamic";
-import { memo } from "react";
-import type { FC } from "react";
+} from '@/components/home-skeleton';
+import { HomeContent } from '@/components/home-content';
+import dynamic from 'next/dynamic';
+import { memo } from 'react';
+import type { FC } from 'react';
 
 const HomeHeader = dynamic(
   () =>
-    import("@/components/home-header").then((mod) => {
+    import('@/components/home-header').then((mod) => {
       const Component = mod.default as FC;
-      Component.displayName = "HomeHeader";
+      Component.displayName = 'HomeHeader';
       return Component;
     }),
   {
@@ -70,7 +70,7 @@ const AgentData = memo(() => {
 
   return <HomeContent agents={agents} isLoading={isLoading} error={error} />;
 });
-AgentData.displayName = "AgentData";
+AgentData.displayName = 'AgentData';
 
 export const HomePageContent = memo(() => {
   return (
@@ -80,4 +80,4 @@ export const HomePageContent = memo(() => {
     </div>
   );
 });
-HomePageContent.displayName = "HomePageContent";
+HomePageContent.displayName = 'HomePageContent';

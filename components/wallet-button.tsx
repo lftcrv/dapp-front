@@ -1,29 +1,29 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { Button } from "@/components/ui/button";
-import { shortAddress } from "@/lib/utils";
-import { Wallet2, LogOut, Copy } from "lucide-react";
+import * as React from 'react';
+import { Button } from '@/components/ui/button';
+import { shortAddress } from '@/lib/utils';
+import { Wallet2, LogOut, Copy } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import { showToast } from "@/lib/toast";
-import { memo, useCallback, useState } from "react";
-import { useWallet } from "@/app/context/wallet-context";
+} from '@/components/ui/dropdown-menu';
+import { showToast } from '@/lib/toast';
+import { memo, useCallback, useState } from 'react';
+import { useWallet } from '@/app/context/wallet-context';
 
 const WalletConnectModal = React.lazy(() =>
-  import("./wallet-connect-modal").then((mod) => ({
+  import('./wallet-connect-modal').then((mod) => ({
     default: mod.WalletConnectModal,
   })),
 );
 
 interface WalletInfoProps {
   address: string;
-  walletType: "starknet" | "privy";
+  walletType: 'starknet' | 'privy';
   onCopy: (address: string) => void;
 }
 
@@ -32,7 +32,7 @@ const WalletInfo = memo(({ address, walletType, onCopy }: WalletInfoProps) => (
     <div className="flex items-center gap-2 px-2 py-1.5">
       <Wallet2 className="w-4 h-4 text-muted-foreground" />
       <span className="text-sm font-medium">
-        Connected {walletType === "starknet" ? "Starknet" : "EVM"} Wallet
+        Connected {walletType === 'starknet' ? 'Starknet' : 'EVM'} Wallet
       </span>
     </div>
     <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-muted/50">
@@ -48,11 +48,11 @@ const WalletInfo = memo(({ address, walletType, onCopy }: WalletInfoProps) => (
     </div>
   </div>
 ));
-WalletInfo.displayName = "WalletInfo";
+WalletInfo.displayName = 'WalletInfo';
 
 interface ConnectedWalletProps {
   address: string;
-  walletType: "starknet" | "privy";
+  walletType: 'starknet' | 'privy';
   onDisconnect: () => void;
   onCopy: (address: string) => void;
 }
@@ -62,7 +62,7 @@ const ConnectedWallet = memo(
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="font-mono text-sm">
-          {walletType === "starknet" ? "🌟" : "⚡️"} {shortAddress(address)}
+          {walletType === 'starknet' ? '🌟' : '⚡️'} {shortAddress(address)}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-72">
@@ -79,7 +79,7 @@ const ConnectedWallet = memo(
     </DropdownMenu>
   ),
 );
-ConnectedWallet.displayName = "ConnectedWallet";
+ConnectedWallet.displayName = 'ConnectedWallet';
 
 interface DisconnectedWalletProps {
   onClick: () => void;
@@ -89,11 +89,11 @@ interface DisconnectedWalletProps {
 const DisconnectedWallet = memo(
   ({ onClick, isLoading }: DisconnectedWalletProps) => (
     <Button variant="outline" onClick={onClick} disabled={isLoading}>
-      {isLoading ? "Checking..." : "Connect Wallet"}
+      {isLoading ? 'Checking...' : 'Connect Wallet'}
     </Button>
   ),
 );
-DisconnectedWallet.displayName = "DisconnectedWallet";
+DisconnectedWallet.displayName = 'DisconnectedWallet';
 
 export const WalletButton = memo(() => {
   const [showWalletModal, setShowWalletModal] = useState(false);
@@ -114,15 +114,15 @@ export const WalletButton = memo(() => {
 
   const handleDisconnect = useCallback(async () => {
     try {
-      if (activeWalletType === "starknet") {
+      if (activeWalletType === 'starknet') {
         await disconnectStarknet();
-        showToast("DISCONNECT", "success");
-      } else if (activeWalletType === "privy") {
+        showToast('DISCONNECT', 'success');
+      } else if (activeWalletType === 'privy') {
         await logoutFromPrivy();
-        showToast("EVM_DISCONNECT", "success");
+        showToast('EVM_DISCONNECT', 'success');
       }
     } catch {
-      showToast("DEFAULT_ERROR", "error");
+      showToast('DEFAULT_ERROR', 'error');
     }
   }, [activeWalletType, disconnectStarknet, logoutFromPrivy]);
 
@@ -131,8 +131,8 @@ export const WalletButton = memo(() => {
   }, []);
 
   if (starknetWallet.isConnected || privyAuthenticated) {
-    const address = starknetWallet.address || privyAddress || "";
-    const walletType = activeWalletType as "starknet" | "privy";
+    const address = starknetWallet.address || privyAddress || '';
+    const walletType = activeWalletType as 'starknet' | 'privy';
 
     return (
       <>
@@ -178,4 +178,4 @@ export const WalletButton = memo(() => {
     </>
   );
 });
-WalletButton.displayName = "WalletButton";
+WalletButton.displayName = 'WalletButton';

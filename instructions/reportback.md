@@ -74,9 +74,9 @@ interface Agent {
   id: string;
   name: string;
   avatar: string;
-  type: "leftcurve" | "rightcurve";
-  curveSide: "LEFT" | "RIGHT";
-  status: "live" | "bonding" | "ended";
+  type: 'leftcurve' | 'rightcurve';
+  curveSide: 'LEFT' | 'RIGHT';
+  status: 'live' | 'bonding' | 'ended';
   symbol: string;
   price: number;
   holders: number;

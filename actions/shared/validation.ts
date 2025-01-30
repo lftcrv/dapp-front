@@ -1,4 +1,4 @@
-import { ApiErrorType, ValidationError } from "./types";
+import { ApiErrorType, ValidationError } from './types';
 
 /**
  * Validates API configuration
@@ -20,15 +20,15 @@ export function validatePagination(
 
   if (limit !== undefined && (limit < 1 || limit > 100)) {
     errors.push({
-      field: "limit",
-      message: "Limit must be between 1 and 100",
+      field: 'limit',
+      message: 'Limit must be between 1 and 100',
     });
   }
 
   if (offset !== undefined && offset < 0) {
     errors.push({
-      field: "offset",
-      message: "Offset must be non-negative",
+      field: 'offset',
+      message: 'Offset must be non-negative',
     });
   }
 
@@ -43,15 +43,15 @@ export function validateSearchQuery(query?: string): ValidationError[] {
 
   if (!query?.trim()) {
     errors.push({
-      field: "query",
-      message: "Search query is required",
+      field: 'query',
+      message: 'Search query is required',
     });
   }
 
   if (query && query.length < 2) {
     errors.push({
-      field: "query",
-      message: "Search query must be at least 2 characters",
+      field: 'query',
+      message: 'Search query must be at least 2 characters',
     });
   }
 

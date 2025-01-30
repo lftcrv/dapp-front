@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { ButtonHTMLAttributes, forwardRef } from "react";
-import { Button } from "@/components/ui/button";
-import { THEME } from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import { ButtonHTMLAttributes, forwardRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { THEME } from '@/lib/constants';
+import { cn } from '@/lib/utils';
 
 interface GradientButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   isLoading?: boolean;
@@ -15,7 +15,7 @@ export const GradientButton = forwardRef<
   GradientButtonProps
 >(
   (
-    { className, children, isLoading, loadingText = "Loading...", ...props },
+    { className, children, isLoading, loadingText = 'Loading...', ...props },
     ref,
   ) => {
     const { from, to } = THEME.colors.primary.gradient;
@@ -36,4 +36,4 @@ export const GradientButton = forwardRef<
   },
 );
 
-GradientButton.displayName = "GradientButton";
+GradientButton.displayName = 'GradientButton';

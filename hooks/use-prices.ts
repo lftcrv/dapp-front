@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import type { PriceData } from "@/lib/types";
-import pricesData from "@/data/prices.json";
+import { useState, useEffect } from 'react';
+import type { PriceData } from '@/lib/types';
+import pricesData from '@/data/prices.json';
 
 interface UsePricesOptions {
   symbol?: string;
@@ -29,7 +29,7 @@ export function usePrices({ symbol, initialData }: UsePricesOptions = {}) {
         setPrices(data);
       } catch (err) {
         setError(
-          err instanceof Error ? err : new Error("Failed to fetch prices"),
+          err instanceof Error ? err : new Error('Failed to fetch prices'),
         );
       } finally {
         setIsLoading(false);

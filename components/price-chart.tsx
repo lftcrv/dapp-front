@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { memo, useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { memo, useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   createChart,
   ColorType,
@@ -9,16 +9,16 @@ import {
   CrosshairMode,
   SeriesDataItemTypeMap,
   Time,
-} from "lightweight-charts";
-import { cn } from "@/lib/utils";
-import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
-import { Rocket, LineChart } from "lucide-react";
-import { Skeleton } from "./ui/skeleton";
-import { Alert, AlertDescription } from "./ui/alert";
-import { useBondingCurve } from "@/hooks/use-bonding-curve";
+} from 'lightweight-charts';
+import { cn } from '@/lib/utils';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { Rocket, LineChart } from 'lucide-react';
+import { Skeleton } from './ui/skeleton';
+import { Alert, AlertDescription } from './ui/alert';
+import { useBondingCurve } from '@/hooks/use-bonding-curve';
 
-type Interval = "15m" | "1h" | "4h" | "1d";
+type Interval = '15m' | '1h' | '4h' | '1d';
 
 interface CandleData {
   time: number;
@@ -53,7 +53,7 @@ const LoadingState = memo(() => (
     <Skeleton className="h-[400px] w-full" />
   </div>
 ));
-LoadingState.displayName = "LoadingState";
+LoadingState.displayName = 'LoadingState';
 
 const ErrorState = memo(({ error }: { error: Error }) => (
   <Alert variant="destructive">
@@ -62,7 +62,7 @@ const ErrorState = memo(({ error }: { error: Error }) => (
     </AlertDescription>
   </Alert>
 ));
-ErrorState.displayName = "ErrorState";
+ErrorState.displayName = 'ErrorState';
 
 const ChartControls = memo(
   ({
@@ -91,19 +91,19 @@ const ChartControls = memo(
             variant="outline"
             onClick={() => setShowMarketCap(!showMarketCap)}
             className={cn(
-              "text-xs font-mono flex items-center gap-1.5",
-              showMarketCap && "bg-primary text-primary-foreground",
+              'text-xs font-mono flex items-center gap-1.5',
+              showMarketCap && 'bg-primary text-primary-foreground',
             )}
           >
             <LineChart className="h-3 w-3" />
-            {showMarketCap ? "MCAP" : "PRICE"}
+            {showMarketCap ? 'MCAP' : 'PRICE'}
           </Button>
           <div className="flex items-center gap-2">
-            {(["15m", "1h", "4h", "1d"] as const).map((i) => (
+            {(['15m', '1h', '4h', '1d'] as const).map((i) => (
               <Button
                 key={i}
                 size="sm"
-                variant={interval === i ? "default" : "outline"}
+                variant={interval === i ? 'default' : 'outline'}
                 onClick={() => setInterval(i)}
                 className="text-xs font-mono"
               >
@@ -116,14 +116,14 @@ const ChartControls = memo(
       {inBondingCurve && (
         <Badge variant="outline" className="font-mono text-xs">
           <Rocket className="mr-1 h-3 w-3" />
-          Bonding Curve{" "}
-          {bondingPercentage ? `(${bondingPercentage.toFixed(1)}%)` : ""}
+          Bonding Curve{' '}
+          {bondingPercentage ? `(${bondingPercentage.toFixed(1)}%)` : ''}
         </Badge>
       )}
     </div>
   ),
 );
-ChartControls.displayName = "ChartControls";
+ChartControls.displayName = 'ChartControls';
 
 const formatLegend = (
   price: { time: Time; open: number; high: number; low: number; close: number },
@@ -142,9 +142,9 @@ const formatLegend = (
 
   const date = new Date((price.time as number) * 1000);
   const timeStr =
-    interval === "1d"
+    interval === '1d'
       ? date.toLocaleDateString()
-      : date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   return `
     <div class="font-mono text-xs">
@@ -162,9 +162,9 @@ const formatLegend = (
 export const PriceChart = memo(
   ({
     data,
-    symbol = "",
+    symbol = '',
     baseToken = symbol,
-    quoteToken = "USDC",
+    quoteToken = 'USDC',
     inBondingCurve = true,
     isLoading,
     error,
@@ -173,11 +173,11 @@ export const PriceChart = memo(
     const chartContainerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<IChartApi | null>(null);
     const legendRef = useRef<HTMLDivElement>(null);
-    const [interval, setInterval] = useState<Interval>("15m");
+    const [interval, setInterval] = useState<Interval>('15m');
     const [showMarketCap, setShowMarketCap] = useState(false);
     const tradingPair = `${baseToken}/${quoteToken}`;
 
-    const bondingCurveData = useBondingCurve({ agentId: agentId || "" });
+    const bondingCurveData = useBondingCurve({ agentId: agentId || '' });
     const bondingPercentage =
       agentId && !bondingCurveData.isLoading
         ? bondingCurveData.percentage
@@ -185,13 +185,13 @@ export const PriceChart = memo(
 
     const aggregateData = useCallback(
       (rawData: CandleData[], intervalType: Interval) => {
-        if (intervalType === "15m") return rawData;
+        if (intervalType === '15m') return rawData;
 
         const intervalMinutes =
           {
-            "1h": 60,
-            "4h": 240,
-            "1d": 1440,
+            '1h': 60,
+            '4h': 240,
+            '1d': 1440,
           }[intervalType] || 15;
 
         const groupedData = new Map<number, CandleData>();
@@ -272,9 +272,9 @@ export const PriceChart = memo(
         layout: {
           background: {
             type: ColorType.Solid,
-            color: "transparent",
+            color: 'transparent',
           },
-          textColor: "#999",
+          textColor: '#999',
         },
         grid: {
           vertLines: { visible: false },
@@ -293,19 +293,19 @@ export const PriceChart = memo(
       });
 
       const candlestickSeries = chart.addCandlestickSeries({
-        upColor: "#22c55e",
-        downColor: "#ef4444",
+        upColor: '#22c55e',
+        downColor: '#ef4444',
         borderVisible: false,
-        wickUpColor: "#22c55e",
-        wickDownColor: "#ef4444",
+        wickUpColor: '#22c55e',
+        wickDownColor: '#ef4444',
       });
 
       const volumeSeries = chart.addHistogramSeries({
-        color: "#26a69a50",
+        color: '#26a69a50',
         priceFormat: {
-          type: "volume",
+          type: 'volume',
         },
-        priceScaleId: "",
+        priceScaleId: '',
       });
 
       const formattedData = chartData.map((d) => {
@@ -322,7 +322,7 @@ export const PriceChart = memo(
       const volumeData = chartData.map((d) => ({
         time: d.time as UTCTimestamp,
         value: d.volume,
-        color: d.close > d.open ? "#22c55e44" : "#ef444444",
+        color: d.close > d.open ? '#22c55e44' : '#ef444444',
       }));
 
       candlestickSeries.setData(formattedData);
@@ -340,14 +340,14 @@ export const PriceChart = memo(
                     interval,
                     showMarketCap,
                   )
-                : "";
+                : '';
             return;
           }
 
           const price = param.seriesData.get(
             candlestickSeries,
-          ) as SeriesDataItemTypeMap["Candlestick"];
-          if (price && "open" in price) {
+          ) as SeriesDataItemTypeMap['Candlestick'];
+          if (price && 'open' in price) {
             legend.innerHTML = formatLegend(
               price,
               tradingPair,
@@ -378,10 +378,10 @@ export const PriceChart = memo(
         }
       };
 
-      window.addEventListener("resize", handleResize);
+      window.addEventListener('resize', handleResize);
 
       return () => {
-        window.removeEventListener("resize", handleResize);
+        window.removeEventListener('resize', handleResize);
         chart.remove();
       };
     }, [chartData, interval, showMarketCap, tradingPair]);
@@ -414,4 +414,4 @@ export const PriceChart = memo(
     );
   },
 );
-PriceChart.displayName = "PriceChart";
+PriceChart.displayName = 'PriceChart';

@@ -1,6 +1,6 @@
-import fs from "fs";
-import path from "path";
-import { stark } from "starknet";
+import fs from 'fs';
+import path from 'path';
+import { stark } from 'starknet';
 
 interface User {
   id: string;
@@ -13,7 +13,7 @@ interface User {
   updatedAt: string;
 }
 
-const USERS_FILE_PATH = path.join(process.cwd(), "data", "users.json");
+const USERS_FILE_PATH = path.join(process.cwd(), 'data', 'users.json');
 
 // Helper to read users file
 function readUsersFile(): { users: User[] } {
@@ -21,7 +21,7 @@ function readUsersFile(): { users: User[] } {
     fs.writeFileSync(USERS_FILE_PATH, JSON.stringify({ users: [] }, null, 2));
     return { users: [] };
   }
-  const data = fs.readFileSync(USERS_FILE_PATH, "utf-8");
+  const data = fs.readFileSync(USERS_FILE_PATH, 'utf-8');
   return JSON.parse(data);
 }
 
@@ -34,13 +34,13 @@ function writeUsersFile(data: { users: User[] }) {
 export function findUser(address: string): User | undefined {
   const { users } = readUsersFile();
   const normalizedSearchAddress = address.toLowerCase();
-  console.log("Finding user for address:", normalizedSearchAddress);
+  console.log('Finding user for address:', normalizedSearchAddress);
 
   const user = users.find((user) => {
     const normalizedStarknetAddress = user.starknetAddress?.toLowerCase();
     const normalizedEvmAddress = user.evmAddress?.toLowerCase();
 
-    console.log("Comparing with user:", {
+    console.log('Comparing with user:', {
       starknetAddress: normalizedStarknetAddress,
       evmAddress: normalizedEvmAddress,
     });
@@ -51,7 +51,7 @@ export function findUser(address: string): User | undefined {
     );
   });
 
-  console.log("Found user:", user);
+  console.log('Found user:', user);
   return user;
 }
 

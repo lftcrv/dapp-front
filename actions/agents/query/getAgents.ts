@@ -1,12 +1,12 @@
-"use server";
+'use server';
 
-import { Agent } from "@/lib/types";
+import { Agent } from '@/lib/types';
 
 interface ApiAgent {
   id: string;
   name: string;
-  curveSide: "LEFT" | "RIGHT";
-  status: "STARTING" | "RUNNING" | "STOPPED";
+  curveSide: 'LEFT' | 'RIGHT';
+  status: 'STARTING' | 'RUNNING' | 'STOPPED';
   createdAt: string;
   degenScore: number;
   winScore: number;
@@ -22,12 +22,12 @@ function mapApiAgentToAgent(apiAgent: ApiAgent): Agent {
     id: apiAgent.id,
     name: apiAgent.name,
     symbol: apiAgent.name.substring(0, 4).toUpperCase(),
-    type: apiAgent.curveSide === "LEFT" ? "leftcurve" : "rightcurve",
-    status: apiAgent.status === "STARTING" ? "bonding" : "live",
+    type: apiAgent.curveSide === 'LEFT' ? 'leftcurve' : 'rightcurve',
+    status: apiAgent.status === 'STARTING' ? 'bonding' : 'live',
     price: apiAgent.LatestMarketData?.price || 0,
     marketCap: apiAgent.LatestMarketData?.marketCap || 0,
     holders: apiAgent.LatestMarketData?.holders || 0,
-    creator: "unknown",
+    creator: 'unknown',
     createdAt: apiAgent.createdAt,
     creativityIndex: apiAgent.degenScore || 0,
     performanceIndex: apiAgent.winScore || 0,
@@ -40,13 +40,13 @@ export async function getAgents() {
     const apiKey = process.env.API_KEY;
 
     if (!apiUrl || !apiKey) {
-      throw new Error("Missing API configuration");
+      throw new Error('Missing API configuration');
     }
 
     const response = await fetch(`${apiUrl}/api/eliza-agent`, {
       headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
       },
       // Add caching for 10 seconds
       next: { revalidate: 10 },
@@ -57,11 +57,11 @@ export async function getAgents() {
     if (!response.ok) {
       // Handle specific error cases
       if (response.status === 401) {
-        throw new Error("Invalid API key");
+        throw new Error('Invalid API key');
       } else if (response.status >= 500) {
-        throw new Error("Server error - please try again later");
+        throw new Error('Server error - please try again later');
       }
-      throw new Error(data.message || "Failed to fetch agents");
+      throw new Error(data.message || 'Failed to fetch agents');
     }
 
     const mappedAgents = data.data.agents.map(mapApiAgentToAgent);
@@ -71,11 +71,11 @@ export async function getAgents() {
       data: mappedAgents,
     };
   } catch (error) {
-    console.error("Error fetching agents:", error);
+    console.error('Error fetching agents:', error);
     return {
       success: false,
       error:
-        error instanceof Error ? error.message : "An unexpected error occurred",
+        error instanceof Error ? error.message : 'An unexpected error occurred',
     };
   }
 }
@@ -86,13 +86,13 @@ export async function getAgentById(id: string) {
     const apiKey = process.env.API_KEY;
 
     if (!apiUrl || !apiKey) {
-      throw new Error("Missing API configuration");
+      throw new Error('Missing API configuration');
     }
 
     const response = await fetch(`${apiUrl}/api/eliza-agent/${id}`, {
       headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
       },
       next: { revalidate: 5 },
     });
@@ -101,13 +101,13 @@ export async function getAgentById(id: string) {
 
     if (!response.ok) {
       if (response.status === 401) {
-        throw new Error("Invalid API key");
+        throw new Error('Invalid API key');
       } else if (response.status === 404) {
-        throw new Error("Agent not found");
+        throw new Error('Agent not found');
       } else if (response.status >= 500) {
-        throw new Error("Server error - please try again later");
+        throw new Error('Server error - please try again later');
       }
-      throw new Error(data.message || "Failed to fetch agent");
+      throw new Error(data.message || 'Failed to fetch agent');
     }
 
     const mappedAgent = mapApiAgentToAgent(data.data.agent);
@@ -120,7 +120,7 @@ export async function getAgentById(id: string) {
     return {
       success: false,
       error:
-        error instanceof Error ? error.message : "An unexpected error occurred",
+        error instanceof Error ? error.message : 'An unexpected error occurred',
     };
   }
 }

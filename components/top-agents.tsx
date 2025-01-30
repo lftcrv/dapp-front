@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import { memo, useEffect, useRef, useState, useMemo } from "react";
-import { Agent } from "@/lib/types";
-import { motion } from "framer-motion";
-import { UserCircle, Sparkles, Zap } from "lucide-react";
-import { cn } from "@/lib/utils";
-import Link from "next/link";
-import { AgentAvatar } from "@/components/ui/agent-avatar";
-import { Skeleton } from "@/components/ui/skeleton";
+import { memo, useEffect, useRef, useState, useMemo } from 'react';
+import { Agent } from '@/lib/types';
+import { motion } from 'framer-motion';
+import { UserCircle, Sparkles, Zap } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import Link from 'next/link';
+import { AgentAvatar } from '@/components/ui/agent-avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface AgentListProps {
   title: string;
   subtitle: string;
   agents: Agent[];
-  type: "leftcurve" | "rightcurve";
+  type: 'leftcurve' | 'rightcurve';
 }
 
 const AgentItem = memo(
@@ -23,19 +23,19 @@ const AgentItem = memo(
     index,
   }: {
     agent: Agent;
-    type: "leftcurve" | "rightcurve";
+    type: 'leftcurve' | 'rightcurve';
     index: number;
   }) => (
     <Link href={`/agent/${agent.id}`}>
       <motion.div
         className={cn(
-          "group rounded-lg p-2 transition-all duration-200 cursor-pointer",
-          type === "leftcurve"
-            ? "hover:bg-orange-500/10 hover:border-orange-500/30"
-            : "hover:bg-purple-500/10 hover:border-purple-500/30",
-          index % 5 === 0 && "bg-white/5",
+          'group rounded-lg p-2 transition-all duration-200 cursor-pointer',
+          type === 'leftcurve'
+            ? 'hover:bg-orange-500/10 hover:border-orange-500/30'
+            : 'hover:bg-purple-500/10 hover:border-purple-500/30',
+          index % 5 === 0 && 'bg-white/5',
         )}
-        initial={{ opacity: 0, x: type === "leftcurve" ? -20 : 20 }}
+        initial={{ opacity: 0, x: type === 'leftcurve' ? -20 : 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.3, delay: 0.1 * (index % 5) }}
       >
@@ -51,8 +51,8 @@ const AgentItem = memo(
             {index % 5 === 0 && (
               <div
                 className={cn(
-                  "absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-[10px]",
-                  type === "leftcurve" ? "bg-orange-500" : "bg-purple-500",
+                  'absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-[10px]',
+                  type === 'leftcurve' ? 'bg-orange-500' : 'bg-purple-500',
                 )}
               >
                 👑
@@ -65,10 +65,10 @@ const AgentItem = memo(
               <div>
                 <div
                   className={cn(
-                    "font-medium text-xs transition-colors truncate flex items-center gap-1.5",
-                    type === "leftcurve"
-                      ? "group-hover:text-orange-500"
-                      : "group-hover:text-purple-500",
+                    'font-medium text-xs transition-colors truncate flex items-center gap-1.5',
+                    type === 'leftcurve'
+                      ? 'group-hover:text-orange-500'
+                      : 'group-hover:text-purple-500',
                   )}
                 >
                   {agent.name}
@@ -86,14 +86,14 @@ const AgentItem = memo(
                 </div>
                 <div
                   className={cn(
-                    "font-mono text-[10px] font-bold",
-                    type === "leftcurve"
-                      ? "text-orange-500"
-                      : "text-purple-500",
+                    'font-mono text-[10px] font-bold',
+                    type === 'leftcurve'
+                      ? 'text-orange-500'
+                      : 'text-purple-500',
                   )}
                 >
                   {(
-                    (type === "leftcurve"
+                    (type === 'leftcurve'
                       ? agent.creativityIndex
                       : agent.performanceIndex) * 100
                   ).toFixed(0)}
@@ -107,7 +107,7 @@ const AgentItem = memo(
     </Link>
   ),
 );
-AgentItem.displayName = "AgentItem";
+AgentItem.displayName = 'AgentItem';
 
 const AgentList = memo(({ title, subtitle, agents, type }: AgentListProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -119,9 +119,9 @@ const AgentList = memo(({ title, subtitle, agents, type }: AgentListProps) => {
         .filter((a) => a.type === type)
         .sort((a, b) => {
           const scoreA =
-            type === "leftcurve" ? a.creativityIndex : a.performanceIndex;
+            type === 'leftcurve' ? a.creativityIndex : a.performanceIndex;
           const scoreB =
-            type === "leftcurve" ? b.creativityIndex : b.performanceIndex;
+            type === 'leftcurve' ? b.creativityIndex : b.performanceIndex;
           return scoreB - scoreA;
         })
         .slice(0, 5),
@@ -151,7 +151,7 @@ const AgentList = memo(({ title, subtitle, agents, type }: AgentListProps) => {
         // Slower scroll speed when fewer agents
         const scrollSpeed = Math.min(1, sortedAgents.length / 5);
         container.scrollTop +=
-          type === "leftcurve" ? -scrollSpeed : scrollSpeed;
+          type === 'leftcurve' ? -scrollSpeed : scrollSpeed;
       }
     };
 
@@ -160,29 +160,29 @@ const AgentList = memo(({ title, subtitle, agents, type }: AgentListProps) => {
     return () => clearInterval(intervalId);
   }, [type, isPaused, sortedAgents.length]);
 
-  const emoji = type === "leftcurve" ? "🦧" : "🐙";
-  const Icon = type === "leftcurve" ? Sparkles : Zap;
+  const emoji = type === 'leftcurve' ? '🦧' : '🐙';
+  const Icon = type === 'leftcurve' ? Sparkles : Zap;
 
   return (
     <motion.div
       className={cn(
-        "rounded-xl border p-3 backdrop-blur-sm flex-1",
-        type === "leftcurve"
-          ? "border-orange-500/20 bg-orange-950/5 hover:border-orange-500/30"
-          : "border-purple-500/20 bg-purple-950/5 hover:border-purple-500/30",
+        'rounded-xl border p-3 backdrop-blur-sm flex-1',
+        type === 'leftcurve'
+          ? 'border-orange-500/20 bg-orange-950/5 hover:border-orange-500/30'
+          : 'border-purple-500/20 bg-purple-950/5 hover:border-purple-500/30',
       )}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: type === "leftcurve" ? 0.2 : 0.4 }}
+      transition={{ duration: 0.5, delay: type === 'leftcurve' ? 0.2 : 0.4 }}
     >
       <div className="mb-2">
         <h2
           className={cn(
-            "font-sketch text-2xl text-center flex items-center justify-center gap-2",
-            type === "leftcurve" ? "text-orange-500" : "text-purple-500",
+            'font-sketch text-2xl text-center flex items-center justify-center gap-2',
+            type === 'leftcurve' ? 'text-orange-500' : 'text-purple-500',
           )}
         >
-          {type === "leftcurve" ? (
+          {type === 'leftcurve' ? (
             <>
               {emoji} {title} <Icon className="w-5 h-5 animate-pulse" />
             </>
@@ -194,8 +194,8 @@ const AgentList = memo(({ title, subtitle, agents, type }: AgentListProps) => {
         </h2>
         <p
           className={cn(
-            "text-xs font-mono text-center",
-            type === "leftcurve" ? "text-orange-500/50" : "text-purple-500/50",
+            'text-xs font-mono text-center',
+            type === 'leftcurve' ? 'text-orange-500/50' : 'text-purple-500/50',
           )}
         >
           {subtitle}
@@ -220,7 +220,7 @@ const AgentList = memo(({ title, subtitle, agents, type }: AgentListProps) => {
     </motion.div>
   );
 });
-AgentList.displayName = "AgentList";
+AgentList.displayName = 'AgentList';
 
 const LoadingState = () => (
   <div className="flex gap-4">
@@ -287,4 +287,4 @@ export const TopAgents = memo(
     );
   },
 );
-TopAgents.displayName = "TopAgents";
+TopAgents.displayName = 'TopAgents';

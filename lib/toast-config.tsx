@@ -1,19 +1,19 @@
-import { toast } from "sonner";
-import { ReactNode } from "react";
+import { toast } from 'sonner';
+import { ReactNode } from 'react';
 
 const baseStyle = {
-  background: "rgb(255, 255, 255)",
-  color: "rgb(23, 23, 23)",
-  border: "1px solid rgb(238, 238, 238)",
-  borderRadius: "12px",
-  padding: "12px",
-  boxShadow: "rgba(0, 0, 0, 0.02) 0px 0px 0px 1px",
+  background: 'rgb(255, 255, 255)',
+  color: 'rgb(23, 23, 23)',
+  border: '1px solid rgb(238, 238, 238)',
+  borderRadius: '12px',
+  padding: '12px',
+  boxShadow: 'rgba(0, 0, 0, 0.02) 0px 0px 0px 1px',
   fontFamily:
-    "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif",
-  fontSize: "14px",
-  lineHeight: "1.5",
-  backdropFilter: "blur(16px)",
-  WebkitBackdropFilter: "blur(16px)",
+    'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif',
+  fontSize: '14px',
+  lineHeight: '1.5',
+  backdropFilter: 'blur(16px)',
+  WebkitBackdropFilter: 'blur(16px)',
 };
 
 type ToastOptions = Parameters<typeof toast>[1] & {
@@ -42,14 +42,14 @@ export const showToast = {
   leftcurve: (title: string, description: ReactNode) => {
     toast(<ToastContent icon="🚀" title={title} description={description} />, {
       style: baseStyle,
-      className: "font-sans",
+      className: 'font-sans',
       duration: 5000,
     } as ToastOptions);
   },
   rightcurve: (title: string, description: ReactNode) => {
     toast(<ToastContent icon="😴" title={title} description={description} />, {
       style: baseStyle,
-      className: "font-sans",
+      className: 'font-sans',
       duration: 5000,
     } as ToastOptions);
   },
@@ -59,10 +59,10 @@ export const showToast = {
       {
         style: {
           ...baseStyle,
-          border: "1px solid rgb(254, 226, 226)",
-          background: "rgb(254, 242, 242)",
+          border: '1px solid rgb(254, 226, 226)',
+          background: 'rgb(254, 242, 242)',
         },
-        className: "font-sans",
+        className: 'font-sans',
         duration: 5000,
       } as ToastOptions,
     );

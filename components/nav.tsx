@@ -1,8 +1,8 @@
-import { ConnectWallet } from "./connect-wallet";
-import { DepositButton } from "./deposit-button";
-import { memo } from "react";
-import { motion } from "framer-motion";
-import Link from "next/link";
+import { ConnectWallet } from './connect-wallet';
+import { DepositButton } from './deposit-button';
+import { memo } from 'react';
+import { motion } from 'framer-motion';
+import Link from 'next/link';
 
 const Logo = memo(() => (
   <motion.div
@@ -19,7 +19,7 @@ const Logo = memo(() => (
     </Link>
   </motion.div>
 ));
-Logo.displayName = "Logo";
+Logo.displayName = 'Logo';
 
 const Actions = memo(() => (
   <motion.div
@@ -32,7 +32,7 @@ const Actions = memo(() => (
     <ConnectWallet />
   </motion.div>
 ));
-Actions.displayName = "Actions";
+Actions.displayName = 'Actions';
 
 const Nav = memo(() => {
   return (
@@ -53,6 +53,6 @@ const Nav = memo(() => {
     </motion.nav>
   );
 });
-Nav.displayName = "Nav";
+Nav.displayName = 'Nav';
 
 export { Nav };

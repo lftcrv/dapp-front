@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
-import { Trade } from "@/lib/types";
-import { tradeService } from "@/lib/services/api/trades";
-import { useAsyncState } from "@/lib/core/state";
+import { useState, useEffect } from 'react';
+import { Trade } from '@/lib/types';
+import { tradeService } from '@/lib/services/api/trades';
+import { useAsyncState } from '@/lib/core/state';
 
 interface UseTradesOptions {
   agentId?: string;

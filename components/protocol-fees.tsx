@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useWallet } from "@/app/context/wallet-context";
-import { Card } from "./ui/card";
-import { Button } from "./ui/button";
-import { cn } from "@/lib/utils";
+import { useWallet } from '@/app/context/wallet-context';
+import { Card } from './ui/card';
+import { Button } from './ui/button';
+import { cn } from '@/lib/utils';
 import {
   Timer,
   TrendingUp,
@@ -16,16 +16,16 @@ import {
   Flame,
   Trophy,
   Crown,
-} from "lucide-react";
-import { useProtocolFees } from "@/hooks/use-protocol-fees";
+} from 'lucide-react';
+import { useProtocolFees } from '@/hooks/use-protocol-fees';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { memo, useMemo } from "react";
-import { ProtocolFeesData } from "@/lib/types";
+} from '@/components/ui/tooltip';
+import { memo, useMemo } from 'react';
+import { ProtocolFeesData } from '@/lib/types';
 
 interface TooltipHelpProps {
   content: string;
@@ -41,7 +41,7 @@ const TooltipHelp = memo(({ content }: TooltipHelpProps) => (
     </TooltipContent>
   </Tooltip>
 ));
-TooltipHelp.displayName = "TooltipHelp";
+TooltipHelp.displayName = 'TooltipHelp';
 
 interface StatCardProps {
   icon: React.ReactNode;
@@ -58,7 +58,7 @@ const StatCard = memo(({ icon, label, value }: StatCardProps) => (
     <div className="text-base font-bold">{value}</div>
   </Card>
 ));
-StatCard.displayName = "StatCard";
+StatCard.displayName = 'StatCard';
 
 interface NextDistributionProps {
   timeLeft: string;
@@ -75,19 +75,19 @@ const NextDistribution = memo(
           <span className="font-medium">Next Distribution</span>
         </div>
         <div className="text-2xl font-mono font-bold text-primary tracking-widest animate-glow">
-          {address ? timeLeft : "-"}
+          {address ? timeLeft : '-'}
         </div>
       </div>
       <div className="flex items-center gap-2">
         <TrendingUp className="h-3 w-3 text-primary" />
         <span className="text-sm">
-          Your Share: {address ? userShare : "-"} $LEFT
+          Your Share: {address ? userShare : '-'} $LEFT
         </span>
       </div>
     </div>
   ),
 );
-NextDistribution.displayName = "NextDistribution";
+NextDistribution.displayName = 'NextDistribution';
 
 interface DistributionInfoProps {
   feesData: ProtocolFeesData | null;
@@ -109,7 +109,7 @@ const DistributionInfo = memo(
           <DollarSign className="h-4 w-4 text-primary" />
           <span className="text-sm">Period Fees</span>
         </div>
-        <span className="font-bold">{feesData?.periodFees || "-"} $LEFT</span>
+        <span className="font-bold">{feesData?.periodFees || '-'} $LEFT</span>
       </div>
       <div className="space-y-2">
         <div className="flex items-center gap-2">
@@ -119,18 +119,18 @@ const DistributionInfo = memo(
         <div className="space-y-1 text-sm">
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">LeftCurve</span>
-            <span>{feesData?.distribution.leftCurve.percentage || "-"}%</span>
+            <span>{feesData?.distribution.leftCurve.percentage || '-'}%</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">RightCurve</span>
-            <span>{feesData?.distribution.rightCurve.percentage || "-"}%</span>
+            <span>{feesData?.distribution.rightCurve.percentage || '-'}%</span>
           </div>
         </div>
       </div>
     </div>
   ),
 );
-DistributionInfo.displayName = "DistributionInfo";
+DistributionInfo.displayName = 'DistributionInfo';
 
 interface ClaimButtonProps {
   address?: string;
@@ -143,21 +143,21 @@ const ClaimButton = memo(
   ({ address, userShare, isClaiming, onClaim }: ClaimButtonProps) => (
     <Button
       className={cn(
-        "w-full font-medium text-lg py-6 group relative overflow-hidden",
+        'w-full font-medium text-lg py-6 group relative overflow-hidden',
         !address || Number(userShare) === 0
-          ? "opacity-50"
-          : "animate-pulse hover:animate-none",
+          ? 'opacity-50'
+          : 'animate-pulse hover:animate-none',
       )}
       disabled={!address || Number(userShare) === 0 || isClaiming}
       onClick={onClaim}
     >
       <span className="relative z-10 flex items-center justify-center gap-2">
         {!address ? (
-          "Connect Wallet to Claim"
+          'Connect Wallet to Claim'
         ) : Number(userShare) === 0 ? (
-          "No Rewards Available"
+          'No Rewards Available'
         ) : isClaiming ? (
-          "Claiming..."
+          'Claiming...'
         ) : (
           <>
             Claim {userShare} $LEFT
@@ -169,7 +169,7 @@ const ClaimButton = memo(
     </Button>
   ),
 );
-ClaimButton.displayName = "ClaimButton";
+ClaimButton.displayName = 'ClaimButton';
 
 interface MainCardProps {
   address?: string;
@@ -203,7 +203,7 @@ const MainCard = memo(
           <TooltipHelp content="Total protocol fees generated since launch. Distributed to $LEFT holders based on their curve position." />
         </div>
         <div className="text-3xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary/50 bg-clip-text text-transparent">
-          {feesData ? feesData.totalFees : "-"} $LEFT
+          {feesData ? feesData.totalFees : '-'} $LEFT
         </div>
         {!address && (
           <div className="text-sm text-muted-foreground">
@@ -222,17 +222,17 @@ const MainCard = memo(
         <StatCard
           icon={<DollarSign className="h-4 w-4 text-primary" />}
           label="Period Fees"
-          value={`${feesData ? feesData.periodFees : "-"} $LEFT`}
+          value={`${feesData ? feesData.periodFees : '-'} $LEFT`}
         />
         <StatCard
           icon={<Brain className="h-4 w-4 text-primary" />}
           label="Your Position"
-          value={`Top ${address ? userSharePercentage : "-"}%`}
+          value={`Top ${address ? userSharePercentage : '-'}%`}
         />
         <StatCard
           icon={<Crown className="h-4 w-4 text-primary" />}
           label="Your Share"
-          value={`${address ? userShare : "-"} $LEFT`}
+          value={`${address ? userShare : '-'} $LEFT`}
         />
       </div>
 
@@ -245,7 +245,7 @@ const MainCard = memo(
     </Card>
   ),
 );
-MainCard.displayName = "MainCard";
+MainCard.displayName = 'MainCard';
 
 interface DistributionCardProps {
   address?: string;
@@ -284,7 +284,7 @@ const DistributionCard = memo(
               <span className="text-sm">Period Fees</span>
             </div>
             <span className="font-bold">
-              {feesData?.periodFees || "-"} $LEFT
+              {feesData?.periodFees || '-'} $LEFT
             </span>
           </div>
           <div className="space-y-2">
@@ -296,13 +296,13 @@ const DistributionCard = memo(
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">LeftCurve</span>
                 <span>
-                  {feesData?.distribution.leftCurve.percentage || "-"}%
+                  {feesData?.distribution.leftCurve.percentage || '-'}%
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">RightCurve</span>
                 <span>
-                  {feesData?.distribution.rightCurve.percentage || "-"}%
+                  {feesData?.distribution.rightCurve.percentage || '-'}%
                 </span>
               </div>
             </div>
@@ -315,7 +315,7 @@ const DistributionCard = memo(
     </Card>
   ),
 );
-DistributionCard.displayName = "DistributionCard";
+DistributionCard.displayName = 'DistributionCard';
 
 export function ProtocolFees() {
   const { currentAddress: address } = useWallet();
@@ -327,26 +327,26 @@ export function ProtocolFees() {
   } = useProtocolFees();
 
   const timeLeft = useMemo(() => {
-    if (!feesData) return "--:--:--";
+    if (!feesData) return '--:--:--';
     return distributionTimeLeft;
   }, [feesData, distributionTimeLeft]);
 
   const userShare = useMemo(() => {
-    if (!feesData || !address) return "0";
-    return feesData.userShares[address] || "0";
+    if (!feesData || !address) return '0';
+    return feesData.userShares[address] || '0';
   }, [feesData, address]);
 
   const userSharePercentage = useMemo(() => {
-    if (!feesData || !address) return "0";
+    if (!feesData || !address) return '0';
     const share = feesData.userShares[address];
-    if (!share) return "0";
+    if (!share) return '0';
     const totalShares = Object.values(feesData.userShares).reduce(
       (a, b) => a + Number(b),
       0,
     );
     return totalShares > 0
       ? ((Number(share) / totalShares) * 100).toFixed(2)
-      : "0";
+      : '0';
   }, [feesData, address]);
 
   return (
@@ -370,4 +370,4 @@ export function ProtocolFees() {
     </TooltipProvider>
   );
 }
-ProtocolFees.displayName = "ProtocolFees";
+ProtocolFees.displayName = 'ProtocolFees';

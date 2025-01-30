@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import { memo, useState, useCallback, useMemo, useEffect } from "react";
-import { Agent } from "@/lib/types";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useWallet } from "@/app/context/wallet-context";
-import { ArrowDownUp, ExternalLink, Link as LinkIcon } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { memo, useState, useCallback, useMemo, useEffect } from 'react';
+import { Agent } from '@/lib/types';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useWallet } from '@/app/context/wallet-context';
+import { ArrowDownUp, ExternalLink, Link as LinkIcon } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import {
   simulateBuyTokens,
   simulateSellTokens,
-} from "@/actions/agents/token/getTokenInfo";
+} from '@/actions/agents/token/getTokenInfo';
 
 interface SwapWidgetProps {
   agent: Agent;
@@ -41,10 +41,10 @@ const SwapInput = memo(
   }: SwapInputProps) => (
     <div
       className={cn(
-        "rounded-lg border-2 p-3 space-y-2",
+        'rounded-lg border-2 p-3 space-y-2',
         isLeftCurve
-          ? "bg-yellow-500/5 border-yellow-500/20"
-          : "bg-purple-500/5 border-purple-500/20",
+          ? 'bg-yellow-500/5 border-yellow-500/20'
+          : 'bg-purple-500/5 border-purple-500/20',
       )}
     >
       <div className="flex items-center justify-between text-sm">
@@ -64,7 +64,7 @@ const SwapInput = memo(
     </div>
   ),
 );
-SwapInput.displayName = "SwapInput";
+SwapInput.displayName = 'SwapInput';
 
 const SwapDivider = memo(({ isLeftCurve }: { isLeftCurve: boolean }) => (
   <div className="relative py-2">
@@ -74,36 +74,36 @@ const SwapDivider = memo(({ isLeftCurve }: { isLeftCurve: boolean }) => (
     <div className="relative flex justify-center">
       <div
         className={cn(
-          "rounded-full border-2 p-1.5 bg-background",
-          isLeftCurve ? "border-yellow-500/50" : "border-purple-500/50",
+          'rounded-full border-2 p-1.5 bg-background',
+          isLeftCurve ? 'border-yellow-500/50' : 'border-purple-500/50',
         )}
       >
         <ArrowDownUp
           className={cn(
-            "h-3 w-3",
-            isLeftCurve ? "text-yellow-500" : "text-purple-500",
+            'h-3 w-3',
+            isLeftCurve ? 'text-yellow-500' : 'text-purple-500',
           )}
         />
       </div>
     </div>
   </div>
 ));
-SwapDivider.displayName = "SwapDivider";
+SwapDivider.displayName = 'SwapDivider';
 
 export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
-  const [amount, setAmount] = useState("");
-  const [simulatedAmount, setSimulatedAmount] = useState("");
-  const [activeTab, setActiveTab] = useState("buy");
+  const [amount, setAmount] = useState('');
+  const [simulatedAmount, setSimulatedAmount] = useState('');
+  const [activeTab, setActiveTab] = useState('buy');
   const [error, setError] = useState<string | null>(null);
   const { currentAddress: address } = useWallet();
   const { toast } = useToast();
-  const isLeftCurve = agent.type === "leftcurve";
+  const isLeftCurve = agent.type === 'leftcurve';
 
   // Simulate swap when amount changes
   useEffect(() => {
     const simulateSwap = async () => {
       if (!amount || !agent.id) {
-        setSimulatedAmount("");
+        setSimulatedAmount('');
         setError(null);
         return;
       }
@@ -111,7 +111,7 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
       try {
         const inputAmount = parseFloat(amount);
         if (isNaN(inputAmount) || inputAmount === 0 || !isFinite(inputAmount)) {
-          setSimulatedAmount("");
+          setSimulatedAmount('');
           setError(null);
           return;
         }
@@ -119,7 +119,7 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
         // For sell, we need to convert the agent token amount to wei
         // For buy, we convert the LEFT amount to wei
         const amountInWei = BigInt(Math.floor(inputAmount * 1e18)).toString();
-        const result = await (activeTab === "buy"
+        const result = await (activeTab === 'buy'
           ? simulateBuyTokens(agent.id, amountInWei) // Buying with LEFT
           : simulateSellTokens(agent.id, amountInWei)); // Selling agent tokens
 
@@ -128,25 +128,25 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
           setSimulatedAmount(outputAmount.toFixed(6));
           setError(null);
         } else {
-          setSimulatedAmount("");
+          setSimulatedAmount('');
           // Check if it's the unwrap error (insufficient liquidity)
-          if (result.error?.includes("Option::unwrap failed")) {
-            setError("Insufficient liquidity in the bonding curve");
+          if (result.error?.includes('Option::unwrap failed')) {
+            setError('Insufficient liquidity in the bonding curve');
           } else {
-            setError(result.error || "Failed to simulate swap");
+            setError(result.error || 'Failed to simulate swap');
           }
         }
       } catch (error) {
-        console.error("Failed to simulate swap:", error);
-        setSimulatedAmount("");
+        console.error('Failed to simulate swap:', error);
+        setSimulatedAmount('');
         // Check for the specific contract error
         if (
           error instanceof Error &&
-          error.message.includes("Option::unwrap failed")
+          error.message.includes('Option::unwrap failed')
         ) {
-          setError("Insufficient liquidity in the bonding curve");
+          setError('Insufficient liquidity in the bonding curve');
         } else {
-          setError("Failed to simulate swap");
+          setError('Failed to simulate swap');
         }
       }
     };
@@ -158,44 +158,44 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
   const handleSwap = useCallback(() => {
     if (!address) {
       toast({
-        title: "Connect Wallet",
-        description: "Please connect your wallet to trade.",
-        variant: "destructive",
+        title: 'Connect Wallet',
+        description: 'Please connect your wallet to trade.',
+        variant: 'destructive',
       });
       return;
     }
 
     toast({
-      title: "Coming Soon",
-      description: "Trading functionality will be available soon!",
+      title: 'Coming Soon',
+      description: 'Trading functionality will be available soon!',
     });
   }, [address, toast]);
 
   const buttonText = useMemo(() => {
-    if (!address) return "Connect Wallet";
-    if (!amount) return "Enter Amount";
-    return "Swap";
+    if (!address) return 'Connect Wallet';
+    if (!amount) return 'Enter Amount';
+    return 'Swap';
   }, [address, amount]);
 
   const buttonStyle = useMemo(
     () =>
       cn(
-        "w-full font-medium",
+        'w-full font-medium',
         isLeftCurve
-          ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
-          : "bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600",
+          ? 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600'
+          : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600',
       ),
     [isLeftCurve],
   );
 
   return (
-    <div className={cn("p-6 space-y-4", className)}>
+    <div className={cn('p-6 space-y-4', className)}>
       <div className="flex items-center justify-between">
         <h3 className="font-medium flex items-center gap-2">
           <ArrowDownUp
             className={cn(
-              "h-4 w-4",
-              isLeftCurve ? "text-yellow-500" : "text-purple-500",
+              'h-4 w-4',
+              isLeftCurve ? 'text-yellow-500' : 'text-purple-500',
             )}
           />
           Trade {agent.name}
@@ -204,7 +204,7 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
           variant="outline"
           size="sm"
           className="gap-1.5"
-          onClick={() => window.open("https://app.avnu.fi", "_blank")}
+          onClick={() => window.open('https://app.avnu.fi', '_blank')}
         >
           <LinkIcon className="h-3 w-3" />
           Get $LEFT
@@ -218,18 +218,18 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
         onValueChange={(value) => {
           setActiveTab(value);
           setError(null);
-          setAmount("");
-          setSimulatedAmount("");
+          setAmount('');
+          setSimulatedAmount('');
         }}
       >
         <TabsList className="grid grid-cols-2 mb-4">
           <TabsTrigger
             value="buy"
             className={cn(
-              "font-medium",
+              'font-medium',
               isLeftCurve
-                ? "data-[state=active]:text-yellow-500"
-                : "data-[state=active]:text-purple-500",
+                ? 'data-[state=active]:text-yellow-500'
+                : 'data-[state=active]:text-purple-500',
             )}
           >
             Buy
@@ -237,10 +237,10 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
           <TabsTrigger
             value="sell"
             className={cn(
-              "font-medium",
+              'font-medium',
               isLeftCurve
-                ? "data-[state=active]:text-yellow-500"
-                : "data-[state=active]:text-purple-500",
+                ? 'data-[state=active]:text-yellow-500'
+                : 'data-[state=active]:text-purple-500',
             )}
           >
             Sell
@@ -254,7 +254,7 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
             value={amount}
             onChange={(value) => {
               const num = parseFloat(value);
-              if (value === "" || (!isNaN(num) && isFinite(num))) {
+              if (value === '' || (!isNaN(num) && isFinite(num))) {
                 setAmount(value);
               }
             }}
@@ -267,7 +267,7 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
             label={`Receive ${agent.name}`}
             balance={`0.00 ${agent.name}`}
             value={simulatedAmount}
-            estimate={amount || "0.00"}
+            estimate={amount || '0.00'}
             readOnly
             isLeftCurve={isLeftCurve}
           />
@@ -296,7 +296,7 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
             value={amount}
             onChange={(value) => {
               const num = parseFloat(value);
-              if (value === "" || (!isNaN(num) && isFinite(num))) {
+              if (value === '' || (!isNaN(num) && isFinite(num))) {
                 setAmount(value);
               }
             }}
@@ -309,7 +309,7 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
             label="Receive $LEFT"
             balance="0.00 $LEFT"
             value={simulatedAmount}
-            estimate={amount || "0.00"}
+            estimate={amount || '0.00'}
             readOnly
             isLeftCurve={isLeftCurve}
           />
@@ -338,4 +338,4 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
     </div>
   );
 });
-SwapWidget.displayName = "SwapWidget";
+SwapWidget.displayName = 'SwapWidget';

@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { usePrivy } from "@privy-io/react-auth";
-import { Button } from "@/components/ui/button";
-import { Wallet } from "lucide-react";
-import { memo, useState, useCallback } from "react";
-import { Loader2 } from "lucide-react";
+import { usePrivy } from '@privy-io/react-auth';
+import { Button } from '@/components/ui/button';
+import { Wallet } from 'lucide-react';
+import { memo, useState, useCallback } from 'react';
+import { Loader2 } from 'lucide-react';
 
 const ConnectWallet = memo(() => {
   const { login, ready } = usePrivy();
@@ -36,6 +36,6 @@ const ConnectWallet = memo(() => {
     </Button>
   );
 });
-ConnectWallet.displayName = "ConnectWallet";
+ConnectWallet.displayName = 'ConnectWallet';
 
 export { ConnectWallet };

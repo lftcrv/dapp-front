@@ -334,7 +334,7 @@ Put them in `.env` or `.env.local` (for Next.js)
 
    - For bonding curve or memecoin swaps, you'll use `starknet.js` functions like:
      ```ts
-     import { Provider, Contract } from "starknet";
+     import { Provider, Contract } from 'starknet';
      // Example usage
      ```
    - Document contract function signatures for dev reference

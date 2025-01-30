@@ -16,7 +16,7 @@ export const endTiming = (label: string) => {
 
 export const measureNavigation = () => {
   const navigationTiming = performance.getEntriesByType(
-    "navigation",
+    'navigation',
   )[0] as PerformanceNavigationTiming;
 
   console.log(
@@ -31,9 +31,9 @@ export const measureNavigation = () => {
 };
 
 export const startRouteTransition = () => {
-  startTiming("Route Transition");
+  startTiming('Route Transition');
 };
 
 export const endRouteTransition = () => {
-  endTiming("Route Transition");
+  endTiming('Route Transition');
 };

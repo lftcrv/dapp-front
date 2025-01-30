@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Agent } from "@/lib/types";
-import { AgentTable } from "./agent-table";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Search, ArrowUpDown, Skull } from "lucide-react";
+import { useState } from 'react';
+import { Agent } from '@/lib/types';
+import { AgentTable } from './agent-table';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Search, ArrowUpDown, Skull } from 'lucide-react';
 
 interface AgentsContainerProps {
   agents: Agent[];
@@ -18,11 +18,11 @@ export function AgentsContainer({
   isLoading,
   error,
 }: AgentsContainerProps) {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<{
     key: keyof Agent;
-    direction: "asc" | "desc";
-  }>({ key: "createdAt", direction: "desc" });
+    direction: 'asc' | 'desc';
+  }>({ key: 'createdAt', direction: 'desc' });
 
   // Filter agents based on search term
   const filteredAgents = agents.filter(
@@ -41,14 +41,14 @@ export function AgentsContainer({
     if (aValue === bValue) return 0;
 
     const compareResult = aValue < bValue ? -1 : 1;
-    return sortConfig.direction === "asc" ? compareResult : -compareResult;
+    return sortConfig.direction === 'asc' ? compareResult : -compareResult;
   });
 
   const handleSort = (key: keyof Agent) => {
     setSortConfig((current) => ({
       key,
       direction:
-        current.key === key && current.direction === "asc" ? "desc" : "asc",
+        current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
     }));
   };
 
@@ -67,12 +67,12 @@ export function AgentsContainer({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => handleSort("createdAt")}
+              onClick={() => handleSort('createdAt')}
               className="h-6 text-xs font-mono hover:text-primary p-0"
             >
-              {sortConfig.key === "createdAt" && sortConfig.direction === "desc"
-                ? "newest first"
-                : "oldest first"}
+              {sortConfig.key === 'createdAt' && sortConfig.direction === 'desc'
+                ? 'newest first'
+                : 'oldest first'}
               <ArrowUpDown className="ml-1 h-3 w-3" />
             </Button>
           </div>

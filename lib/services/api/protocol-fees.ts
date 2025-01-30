@@ -1,7 +1,7 @@
-import { ProtocolFeesData } from "@/lib/types";
-import { SingletonService } from "@/lib/core/service";
-import { withErrorHandling, Result } from "@/lib/core/error-handler";
-import protocolFeesData from "@/data/protocol-fees.json";
+import { ProtocolFeesData } from '@/lib/types';
+import { SingletonService } from '@/lib/core/service';
+import { withErrorHandling, Result } from '@/lib/core/error-handler';
+import protocolFeesData from '@/data/protocol-fees.json';
 
 export class ProtocolFeesService extends SingletonService<ProtocolFeesData> {
   async getData(): Promise<Result<ProtocolFeesData>> {
@@ -9,7 +9,7 @@ export class ProtocolFeesService extends SingletonService<ProtocolFeesData> {
       // Simulate network delay
       await new Promise((resolve) => setTimeout(resolve, 500));
       return protocolFeesData as ProtocolFeesData;
-    }, "Failed to fetch protocol fees");
+    }, 'Failed to fetch protocol fees');
   }
 
   async claimRewards(address: string): Promise<Result<{ claimed: string }>> {
@@ -19,9 +19,9 @@ export class ProtocolFeesService extends SingletonService<ProtocolFeesData> {
 
       const data = protocolFeesData as ProtocolFeesData;
       return {
-        claimed: data.userShares[address] || "0",
+        claimed: data.userShares[address] || '0',
       };
-    }, "Failed to claim rewards");
+    }, 'Failed to claim rewards');
   }
 }
 

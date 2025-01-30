@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { Agent } from "@/lib/types";
-import { agentService } from "@/lib/services/api/agents";
-import { useAsyncState } from "@/lib/core/state";
+import { useEffect } from 'react';
+import { Agent } from '@/lib/types';
+import { agentService } from '@/lib/services/api/agents';
+import { useAsyncState } from '@/lib/core/state';
 
 export function useAgents() {
   const state = useAsyncState<Agent[]>();

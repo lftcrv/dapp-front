@@ -8,5 +8,5 @@ export interface User {
   createdAt: string;
   updatedAt: string;
   // Track how the user was created
-  type: "derived" | "starknet_native";
+  type: 'derived' | 'starknet_native';
 }

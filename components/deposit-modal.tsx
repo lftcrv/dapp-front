@@ -1,71 +1,71 @@
-"use client";
+'use client';
 
-import { memo, useState, useCallback, useMemo } from "react";
+import { memo, useState, useCallback, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "./ui/dialog";
-import { Button } from "./ui/button";
-import { shortAddress } from "@/lib/utils";
-import { useWallets } from "@privy-io/react-auth";
-import { Input } from "@/components/ui/input";
+} from './ui/dialog';
+import { Button } from './ui/button';
+import { shortAddress } from '@/lib/utils';
+import { useWallets } from '@privy-io/react-auth';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 
 interface DepositModalProps {
   isOpen: boolean;
   onClose: () => void;
-  walletType: "starknet" | "evm";
+  walletType: 'starknet' | 'evm';
   address: string;
 }
 
 const TOKENS = [
-  { id: "eth", name: "ETH", icon: "⟠" },
-  { id: "usdc", name: "USDC", icon: "💵" },
-  { id: "usdt", name: "USDT", icon: "💵" },
-  { id: "dai", name: "DAI", icon: "💵" },
+  { id: 'eth', name: 'ETH', icon: '⟠' },
+  { id: 'usdc', name: 'USDC', icon: '💵' },
+  { id: 'usdt', name: 'USDT', icon: '💵' },
+  { id: 'dai', name: 'DAI', icon: '💵' },
 ] as const;
 
 const CHAIN_NAMES: Record<number, string> = {
-  1: "ETHEREUM",
-  42161: "ARBITRUM",
-  10: "OPTIMISM",
-  137: "POLYGON",
+  1: 'ETHEREUM',
+  42161: 'ARBITRUM',
+  10: 'OPTIMISM',
+  137: 'POLYGON',
 } as const;
 
 const BRIDGES = [
   {
-    id: "rhino",
-    name: "Rhino.fi",
+    id: 'rhino',
+    name: 'Rhino.fi',
     url: (params: { token: string; amount: string; sourceChain: string }) =>
       `https://app.rhino.fi/bridge?token=${params.token.toUpperCase()}&amount=${params.amount}&chainId=1&destChainId=SN_MAIN&chain=${params.sourceChain}&chainOut=STARKNET`,
   },
   {
-    id: "layerswap",
-    name: "LayerSwap",
+    id: 'layerswap',
+    name: 'LayerSwap',
     url: (params: { token: string; amount: string; sourceChain: string }) =>
       `https://www.layerswap.io/?destNetwork=STARKNET&sourceNetwork=${params.sourceChain}&asset=${params.token.toUpperCase()}&amount=${params.amount}`,
   },
   {
-    id: "starkgate",
-    name: "StarkGate",
+    id: 'starkgate',
+    name: 'StarkGate',
     url: () => `https://starkgate.starknet.io/`,
   },
 ] as const;
 
-type Token = (typeof TOKENS)[number]["id"];
-type Bridge = (typeof BRIDGES)[number]["id"];
+type Token = (typeof TOKENS)[number]['id'];
+type Bridge = (typeof BRIDGES)[number]['id'];
 
 interface WalletInfoProps {
-  walletType: "starknet" | "evm";
+  walletType: 'starknet' | 'evm';
   address: string;
   chainId?: number;
 }
@@ -75,21 +75,21 @@ const WalletInfo = memo(({ walletType, address, chainId }: WalletInfoProps) => (
     <label className="text-sm font-medium">Connected Wallet</label>
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-2 text-sm font-mono">
-        {walletType === "starknet" ? (
+        {walletType === 'starknet' ? (
           <span>🌟 Starknet: {shortAddress(address)}</span>
         ) : (
           <span>⚡️ EVM: {shortAddress(address)}</span>
         )}
       </div>
-      {walletType === "evm" && chainId && (
+      {walletType === 'evm' && chainId && (
         <div className="text-xs text-muted-foreground">
-          Network: {CHAIN_NAMES[chainId] || "Unknown"}
+          Network: {CHAIN_NAMES[chainId] || 'Unknown'}
         </div>
       )}
     </div>
   </div>
 ));
-WalletInfo.displayName = "WalletInfo";
+WalletInfo.displayName = 'WalletInfo';
 
 interface TokenSelectProps {
   value: Token;
@@ -130,7 +130,7 @@ const TokenSelect = memo(({ value, onChange }: TokenSelectProps) => {
     </div>
   );
 });
-TokenSelect.displayName = "TokenSelect";
+TokenSelect.displayName = 'TokenSelect';
 
 interface BridgeSelectProps {
   value: Bridge;
@@ -154,13 +154,13 @@ const BridgeSelect = memo(({ value, onChange }: BridgeSelectProps) => (
     </Select>
   </div>
 ));
-BridgeSelect.displayName = "BridgeSelect";
+BridgeSelect.displayName = 'BridgeSelect';
 
 export const DepositModal = memo(
   ({ isOpen, onClose, walletType, address }: DepositModalProps) => {
-    const [amount, setAmount] = useState("");
-    const [selectedToken, setSelectedToken] = useState<Token>("eth");
-    const [selectedBridge, setSelectedBridge] = useState<Bridge>("rhino");
+    const [amount, setAmount] = useState('');
+    const [selectedToken, setSelectedToken] = useState<Token>('eth');
+    const [selectedBridge, setSelectedBridge] = useState<Bridge>('rhino');
     const { wallets } = useWallets();
 
     const currentWallet = useMemo(
@@ -173,7 +173,7 @@ export const DepositModal = memo(
       ? Number(currentWallet.chainId)
       : undefined;
     const networkName =
-      chainId && chainId in CHAIN_NAMES ? CHAIN_NAMES[chainId] : "ETHEREUM";
+      chainId && chainId in CHAIN_NAMES ? CHAIN_NAMES[chainId] : 'ETHEREUM';
 
     const handleBridge = useCallback(() => {
       const bridge = BRIDGES.find((b) => b.id === selectedBridge);
@@ -184,7 +184,7 @@ export const DepositModal = memo(
             amount,
             sourceChain: networkName,
           }),
-          "_blank",
+          '_blank',
         );
         onClose();
       }
@@ -201,8 +201,8 @@ export const DepositModal = memo(
           <DialogHeader>
             <DialogTitle>Deposit Funds</DialogTitle>
             <DialogDescription>
-              Choose your token and amount to deposit from{" "}
-              {walletType === "evm" ? "EVM" : "Starknet"} wallet{" "}
+              Choose your token and amount to deposit from{' '}
+              {walletType === 'evm' ? 'EVM' : 'Starknet'} wallet{' '}
               {shortAddress(address)}.
             </DialogDescription>
           </DialogHeader>
@@ -243,4 +243,4 @@ export const DepositModal = memo(
     );
   },
 );
-DepositModal.displayName = "DepositModal";
+DepositModal.displayName = 'DepositModal';

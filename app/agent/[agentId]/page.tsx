@@ -1,8 +1,8 @@
-import { agentService } from "@/lib/services/api/agents";
-import { AgentContent } from "./agent-content";
-import { Suspense } from "react";
-import { notFound } from "next/navigation";
-import { draftMode } from "next/headers";
+import { agentService } from '@/lib/services/api/agents';
+import { AgentContent } from './agent-content';
+import { Suspense } from 'react';
+import { notFound } from 'next/navigation';
+import { draftMode } from 'next/headers';
 
 // Generate static params for known agents
 export async function generateStaticParams() {
@@ -15,8 +15,8 @@ export async function generateStaticParams() {
 }
 
 // Force dynamic rendering for this route
-export const dynamic = "force-dynamic";
-export const fetchCache = "force-no-store";
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
 export const revalidate = 0;
 
 async function getAgentData(agentId: string) {
@@ -27,14 +27,14 @@ async function getAgentData(agentId: string) {
     const result = await agentService.getById(agentId);
 
     if (!result.success || !result.data) {
-      return { error: result.error?.message || "Agent not found" };
+      return { error: result.error?.message || 'Agent not found' };
     }
 
     return { agent: result.data };
   } catch (err) {
-    console.error("Error fetching agent:", err);
+    console.error('Error fetching agent:', err);
     return {
-      error: err instanceof Error ? err.message : "Failed to fetch agent data",
+      error: err instanceof Error ? err.message : 'Failed to fetch agent data',
     };
   }
 }

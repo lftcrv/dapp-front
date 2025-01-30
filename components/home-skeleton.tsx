@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { Skeleton } from "@/components/ui/skeleton";
-import { memo } from "react";
+import { Skeleton } from '@/components/ui/skeleton';
+import { memo } from 'react';
 
 const HeaderSkeleton = memo(() => {
   return (
@@ -22,7 +22,7 @@ const HeaderSkeleton = memo(() => {
     </div>
   );
 });
-HeaderSkeleton.displayName = "HeaderSkeleton";
+HeaderSkeleton.displayName = 'HeaderSkeleton';
 
 const TopAgentsSkeleton = memo(() => {
   return (
@@ -32,7 +32,7 @@ const TopAgentsSkeleton = memo(() => {
     </div>
   );
 });
-TopAgentsSkeleton.displayName = "TopAgentsSkeleton";
+TopAgentsSkeleton.displayName = 'TopAgentsSkeleton';
 
 const AgentTableSkeleton = memo(() => {
   return (
@@ -52,7 +52,7 @@ const AgentTableSkeleton = memo(() => {
     </div>
   );
 });
-AgentTableSkeleton.displayName = "AgentTableSkeleton";
+AgentTableSkeleton.displayName = 'AgentTableSkeleton';
 
 const HomeSkeleton = memo(() => {
   return (
@@ -63,6 +63,6 @@ const HomeSkeleton = memo(() => {
     </div>
   );
 });
-HomeSkeleton.displayName = "HomeSkeleton";
+HomeSkeleton.displayName = 'HomeSkeleton';
 
 export { HeaderSkeleton, TopAgentsSkeleton, AgentTableSkeleton, HomeSkeleton };

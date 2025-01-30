@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import { Agent } from "@/lib/types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AgentAvatar } from "@/components/ui/agent-avatar";
-import { useAgents } from "@/hooks/use-agents";
-import { memo, useMemo } from "react";
-import { motion } from "framer-motion";
-import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Agent } from '@/lib/types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AgentAvatar } from '@/components/ui/agent-avatar';
+import { useAgents } from '@/hooks/use-agents';
+import { memo, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const AgentCard = memo(({ agent, index }: { agent: Agent; index: number }) => {
   const scoreToShow =
-    agent.type === "leftcurve" ? agent.creativityIndex : agent.performanceIndex;
-  const scoreLabel = agent.type === "leftcurve" ? "DEGEN SCORE" : "WIN RATE";
+    agent.type === 'leftcurve' ? agent.creativityIndex : agent.performanceIndex;
+  const scoreLabel = agent.type === 'leftcurve' ? 'DEGEN SCORE' : 'WIN RATE';
 
   return (
     <motion.div
@@ -31,7 +31,7 @@ const AgentCard = memo(({ agent, index }: { agent: Agent; index: number }) => {
         <div className="flex items-center justify-between mt-1">
           <div className="text-sm opacity-70">${agent.price.toFixed(2)}</div>
           <div
-            className={`text-sm font-bold ${agent.type === "leftcurve" ? "text-pink-500" : "text-cyan-500"}`}
+            className={`text-sm font-bold ${agent.type === 'leftcurve' ? 'text-pink-500' : 'text-cyan-500'}`}
           >
             {scoreLabel}: {(scoreToShow * 100).toFixed(0)}%
           </div>
@@ -40,7 +40,7 @@ const AgentCard = memo(({ agent, index }: { agent: Agent; index: number }) => {
     </motion.div>
   );
 });
-AgentCard.displayName = "AgentCard";
+AgentCard.displayName = 'AgentCard';
 
 const AgentList = memo(
   ({
@@ -50,7 +50,7 @@ const AgentList = memo(
   }: {
     title: string;
     agents: Agent[];
-    type: "leftcurve" | "rightcurve";
+    type: 'leftcurve' | 'rightcurve';
   }) => {
     const sortedAgents = useMemo(
       () =>
@@ -58,9 +58,9 @@ const AgentList = memo(
           .filter((a) => a.type === type)
           .sort((a, b) => {
             const scoreA =
-              type === "leftcurve" ? a.creativityIndex : a.performanceIndex;
+              type === 'leftcurve' ? a.creativityIndex : a.performanceIndex;
             const scoreB =
-              type === "leftcurve" ? b.creativityIndex : b.performanceIndex;
+              type === 'leftcurve' ? b.creativityIndex : b.performanceIndex;
             return scoreB - scoreA;
           })
           .slice(0, 5),
@@ -78,7 +78,7 @@ const AgentList = memo(
           <CardHeader>
             <CardTitle
               className={
-                type === "leftcurve" ? "text-pink-500" : "text-cyan-500"
+                type === 'leftcurve' ? 'text-pink-500' : 'text-cyan-500'
               }
             >
               {title}
@@ -94,7 +94,7 @@ const AgentList = memo(
     );
   },
 );
-AgentList.displayName = "AgentList";
+AgentList.displayName = 'AgentList';
 
 const LoadingState = memo(() => (
   <div className="flex gap-8">
@@ -114,7 +114,7 @@ const LoadingState = memo(() => (
     ))}
   </div>
 ));
-LoadingState.displayName = "LoadingState";
+LoadingState.displayName = 'LoadingState';
 
 const ErrorState = memo(({ message }: { message: string }) => (
   <Alert variant="destructive">
@@ -122,7 +122,7 @@ const ErrorState = memo(({ message }: { message: string }) => (
     <AlertDescription>Failed to load top agents: {message}</AlertDescription>
   </Alert>
 ));
-ErrorState.displayName = "ErrorState";
+ErrorState.displayName = 'ErrorState';
 
 const TopAgentsCarousel = memo(() => {
   const { data: agents, isLoading, error } = useAgents();
@@ -146,6 +146,6 @@ const TopAgentsCarousel = memo(() => {
     </div>
   );
 });
-TopAgentsCarousel.displayName = "TopAgentsCarousel";
+TopAgentsCarousel.displayName = 'TopAgentsCarousel';
 
 export { TopAgentsCarousel };

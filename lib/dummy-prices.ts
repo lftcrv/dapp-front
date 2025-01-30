@@ -1,5 +1,5 @@
-import pricesData from "../data/prices.json";
-import { UTCTimestamp } from "lightweight-charts";
+import pricesData from '../data/prices.json';
+import { UTCTimestamp } from 'lightweight-charts';
 
 interface PriceData {
   time: UTCTimestamp;

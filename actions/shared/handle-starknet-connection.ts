@@ -1,17 +1,17 @@
-import type { User } from "@/types/user";
+import type { User } from '@/types/user';
 
 export async function handleStarknetConnection(
   starknetAddress: string,
 ): Promise<User> {
   try {
-    const response = await fetch("/api/users", {
-      method: "POST",
+    const response = await fetch('/api/users', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         starknetAddress,
-        type: "starknet_native",
+        type: 'starknet_native',
       }),
     });
 

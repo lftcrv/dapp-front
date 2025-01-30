@@ -6,7 +6,7 @@ export function formatAddress(
   startLength = 6,
   endLength = 4,
 ): string {
-  if (!address) return "";
+  if (!address) return '';
   if (address.length <= startLength + endLength) return address;
   return `${address.slice(0, startLength)}...${address.slice(-endLength)}`;
 }
@@ -15,7 +15,7 @@ export function formatAddress(
  * Formats a number with thousand separators
  */
 export function formatNumber(value: number): string {
-  return new Intl.NumberFormat("en-US").format(value);
+  return new Intl.NumberFormat('en-US').format(value);
 }
 
 /**
@@ -45,9 +45,9 @@ export function formatRelativeTime(date: Date | string): string {
   for (const [unit, secondsInUnit] of Object.entries(intervals)) {
     const interval = Math.floor(seconds / secondsInUnit);
     if (interval >= 1) {
-      return `${interval} ${unit}${interval === 1 ? "" : "s"} ago`;
+      return `${interval} ${unit}${interval === 1 ? '' : 's'} ago`;
     }
   }
 
-  return "Just now";
+  return 'Just now';
 }

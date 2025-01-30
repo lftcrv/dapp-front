@@ -1,9 +1,9 @@
-import { useEffect, useRef, useCallback, memo } from "react";
-import { useWallet } from "@/app/context/wallet-context";
-import { deriveStarknetAccount } from "@/actions/shared/derive-starknet-account";
-import { showToast } from "@/lib/toast";
-import type { ConnectedWallet } from "@privy-io/react-auth";
-import { useWallets } from "@privy-io/react-auth";
+import { useEffect, useRef, useCallback, memo } from 'react';
+import { useWallet } from '@/app/context/wallet-context';
+import { deriveStarknetAccount } from '@/actions/shared/derive-starknet-account';
+import { showToast } from '@/lib/toast';
+import type { ConnectedWallet } from '@privy-io/react-auth';
+import { useWallets } from '@privy-io/react-auth';
 
 export const StarknetAccountDerivation = memo(
   function StarknetAccountDerivation() {
@@ -33,13 +33,13 @@ export const StarknetAccountDerivation = memo(
         );
 
         if (account?.starknetAddress) {
-          showToast("DEPLOYED", "success");
+          showToast('DEPLOYED', 'success');
         }
         return account;
       } catch (err) {
         // Only show error toast for actual derivation errors
-        if (err instanceof Error && !err.message.includes("409")) {
-          showToast("DEPLOY_ERROR", "error");
+        if (err instanceof Error && !err.message.includes('409')) {
+          showToast('DEPLOY_ERROR', 'error');
         }
         return null;
       }

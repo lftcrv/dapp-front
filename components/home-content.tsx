@@ -1,29 +1,29 @@
-"use client";
+'use client';
 
-import dynamic from "next/dynamic";
-import { Suspense, memo } from "react";
+import dynamic from 'next/dynamic';
+import { Suspense, memo } from 'react';
 import {
   TopAgentsSkeleton,
   AgentTableSkeleton,
-} from "@/components/home-skeleton";
-import { Agent } from "@/lib/types";
-import type { FC } from "react";
+} from '@/components/home-skeleton';
+import { Agent } from '@/lib/types';
+import type { FC } from 'react';
 
 // Preload components during idle time
 const TopAgents = dynamic(
   () => {
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
       window.requestIdleCallback(() => {
-        import("@/components/top-agents");
+        import('@/components/top-agents');
       });
     }
-    return import("@/components/top-agents").then((mod) => {
+    return import('@/components/top-agents').then((mod) => {
       const Component = mod.TopAgents as FC<{
         agents: Agent[];
         isLoading?: boolean;
         error?: Error | null;
       }>;
-      Component.displayName = "TopAgents";
+      Component.displayName = 'TopAgents';
       return Component;
     });
   },
@@ -35,18 +35,18 @@ const TopAgents = dynamic(
 
 const AgentsContainer = dynamic(
   () => {
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
       window.requestIdleCallback(() => {
-        import("@/components/agents/agents-container");
+        import('@/components/agents/agents-container');
       });
     }
-    return import("@/components/agents/agents-container").then((mod) => {
+    return import('@/components/agents/agents-container').then((mod) => {
       const Component = mod.AgentsContainer as FC<{
         agents: Agent[];
         isLoading: boolean;
         error: Error | null;
       }>;
-      Component.displayName = "AgentsContainer";
+      Component.displayName = 'AgentsContainer';
       return Component;
     });
   },
@@ -81,4 +81,4 @@ export const HomeContent = memo(
     );
   },
 );
-HomeContent.displayName = "HomeContent";
+HomeContent.displayName = 'HomeContent';

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { Skeleton } from "@/components/ui/skeleton";
-import { memo } from "react";
+import { Skeleton } from '@/components/ui/skeleton';
+import { memo } from 'react';
 
 const WalletButtonSkeleton = memo(() => {
   return (
@@ -16,6 +16,6 @@ const WalletButtonSkeleton = memo(() => {
     />
   );
 });
-WalletButtonSkeleton.displayName = "WalletButtonSkeleton";
+WalletButtonSkeleton.displayName = 'WalletButtonSkeleton';
 
 export { WalletButtonSkeleton };

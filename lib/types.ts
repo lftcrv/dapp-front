@@ -1,7 +1,7 @@
 // Common Types
-export type AgentType = "leftcurve" | "rightcurve";
-export type AgentStatus = "bonding" | "live" | "ended";
-export type TradeType = "buy" | "sell";
+export type AgentType = 'leftcurve' | 'rightcurve';
+export type AgentStatus = 'bonding' | 'live' | 'ended';
+export type TradeType = 'buy' | 'sell';
 
 // Price Types
 export interface PriceData {
@@ -78,7 +78,7 @@ export interface Performance {
   id: string;
   agentId: string;
   timestamp: string;
-  period: "daily" | "weekly" | "monthly";
+  period: 'daily' | 'weekly' | 'monthly';
   tradeCount: number;
   successRate: number;
   profitLoss: number;

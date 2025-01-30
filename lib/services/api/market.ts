@@ -1,7 +1,7 @@
-import { BondingMetric, OnChainPrice } from "@/lib/types";
-import { ApiResponse, PriceHistoryParams, TimeRangeParams } from "./types";
+import { BondingMetric, OnChainPrice } from '@/lib/types';
+import { ApiResponse, PriceHistoryParams, TimeRangeParams } from './types';
 
-const API_BASE = "/api/market";
+const API_BASE = '/api/market';
 
 // Bonding curve endpoints
 export async function getBondingMetrics(
@@ -86,11 +86,11 @@ export async function getTrendingAgents(limit: number = 5): Promise<
     Array<{
       agentId: string;
       symbol: string;
-      status: "bonding" | "live" | "ended";
+      status: 'bonding' | 'live' | 'ended';
       priceChange24h: number;
       volumeChange24h: number;
       holdersChange24h: number;
-      source: "bonding" | "market"; // Indicates if metrics are from bonding or market
+      source: 'bonding' | 'market'; // Indicates if metrics are from bonding or market
     }>
   >
 > {
@@ -118,16 +118,16 @@ export async function getMarketOverview(): Promise<
       symbol: string;
       performanceScore: number;
       priceChange24h: number;
-      source: "bonding" | "market";
+      source: 'bonding' | 'market';
     }>;
     recentTrades: Array<{
       agentId: string;
       symbol: string;
-      type: "buy" | "sell";
+      type: 'buy' | 'sell';
       price: number;
       amount: number;
       timestamp: string;
-      source: "bonding" | "market";
+      source: 'bonding' | 'market';
     }>;
   }>
 > {

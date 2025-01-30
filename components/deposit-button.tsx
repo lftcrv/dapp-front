@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
-import { usePrivy } from "@privy-io/react-auth";
-import { useAccount } from "wagmi";
-import { DepositModal } from "./deposit-modal";
-import { memo, useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Button } from '@/components/ui/button';
+import { usePrivy } from '@privy-io/react-auth';
+import { useAccount } from 'wagmi';
+import { DepositModal } from './deposit-modal';
+import { memo, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const DepositButton = memo(() => {
   const [showModal, setShowModal] = useState(false);
@@ -58,6 +58,6 @@ const DepositButton = memo(() => {
     </>
   );
 });
-DepositButton.displayName = "DepositButton";
+DepositButton.displayName = 'DepositButton';
 
 export { DepositButton };

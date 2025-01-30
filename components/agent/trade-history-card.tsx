@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TradeHistory } from "@/components/trade-history";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { TradeHistory } from '@/components/trade-history';
 
 interface TradeHistoryCardProps {
   agentId: string;

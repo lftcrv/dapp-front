@@ -1,26 +1,26 @@
-"use client";
+'use client';
 
-import { useChat } from "@/hooks/use-chat";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useState, useCallback, memo } from "react";
-import { ChatMessage } from "@/lib/types";
+import { useChat } from '@/hooks/use-chat';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useState, useCallback, memo } from 'react';
+import { ChatMessage } from '@/lib/types';
 
 interface ChatMessageProps {
   message: ChatMessage;
 }
 
 const ChatMessageItem = memo(({ message }: ChatMessageProps) => (
-  <div className={`mb-4 ${message.isCurrentUser ? "text-right" : ""}`}>
+  <div className={`mb-4 ${message.isCurrentUser ? 'text-right' : ''}`}>
     <div className="text-sm opacity-70">{message.sender}</div>
     <div className="mt-1 text-sm">{message.content}</div>
   </div>
 ));
-ChatMessageItem.displayName = "ChatMessageItem";
+ChatMessageItem.displayName = 'ChatMessageItem';
 
 interface ChatInputProps {
   onSendMessage: (content: string) => Promise<void>;
@@ -28,7 +28,7 @@ interface ChatInputProps {
 }
 
 const ChatInput = memo(({ onSendMessage, disabled }: ChatInputProps) => {
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSend = useCallback(async () => {
@@ -37,7 +37,7 @@ const ChatInput = memo(({ onSendMessage, disabled }: ChatInputProps) => {
     try {
       setIsSubmitting(true);
       await onSendMessage(input);
-      setInput("");
+      setInput('');
     } finally {
       setIsSubmitting(false);
     }
@@ -45,7 +45,7 @@ const ChatInput = memo(({ onSendMessage, disabled }: ChatInputProps) => {
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" && !e.shiftKey) {
+      if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         handleSend();
       }
@@ -67,13 +67,13 @@ const ChatInput = memo(({ onSendMessage, disabled }: ChatInputProps) => {
           onClick={handleSend}
           disabled={!input.trim() || disabled || isSubmitting}
         >
-          {isSubmitting ? "Sending..." : "Send"}
+          {isSubmitting ? 'Sending...' : 'Send'}
         </Button>
       </div>
     </div>
   );
 });
-ChatInput.displayName = "ChatInput";
+ChatInput.displayName = 'ChatInput';
 
 interface ChatContentProps {
   messages: ChatMessage[];
@@ -98,7 +98,7 @@ const ChatContent = memo(
       return (
         <Alert variant="destructive">
           <AlertDescription>
-            {error.message || "Failed to load chat messages"}
+            {error.message || 'Failed to load chat messages'}
           </AlertDescription>
         </Alert>
       );
@@ -116,7 +116,7 @@ const ChatContent = memo(
     );
   },
 );
-ChatContent.displayName = "ChatContent";
+ChatContent.displayName = 'ChatContent';
 
 interface AgentChatProps {
   agentId: string;

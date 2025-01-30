@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { Agent } from "@/lib/types";
-import { AgentAvatar } from "@/components/ui/agent-avatar";
-import { cn } from "@/lib/utils";
+import { Agent } from '@/lib/types';
+import { AgentAvatar } from '@/components/ui/agent-avatar';
+import { cn } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -10,10 +10,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { motion } from "framer-motion";
-import { UserCircle } from "lucide-react";
-import { memo, useMemo } from "react";
+} from '@/components/ui/table';
+import { motion } from 'framer-motion';
+import { UserCircle } from 'lucide-react';
+import { memo, useMemo } from 'react';
 
 interface AgentCellProps {
   agent: Agent;
@@ -41,13 +41,13 @@ const AgentCell = memo(({ agent }: AgentCellProps) => (
     </div>
   </div>
 ));
-AgentCell.displayName = "AgentCell";
+AgentCell.displayName = 'AgentCell';
 
 interface LeaderboardRowProps {
   agent: Agent;
   index: number;
-  type: "leftcurve" | "rightcurve";
-  scoreKey: "creativityIndex" | "performanceIndex";
+  type: 'leftcurve' | 'rightcurve';
+  scoreKey: 'creativityIndex' | 'performanceIndex';
 }
 
 const LeaderboardRow = memo(
@@ -55,7 +55,7 @@ const LeaderboardRow = memo(
     <TableRow>
       <TableCell>
         <span className="font-mono text-sm">
-          {index === 0 ? "👑" : `#${index + 1}`}
+          {index === 0 ? '👑' : `#${index + 1}`}
         </span>
       </TableCell>
       <TableCell>
@@ -70,8 +70,8 @@ const LeaderboardRow = memo(
       <TableCell className="text-right">
         <div
           className={cn(
-            "font-mono text-sm",
-            type === "leftcurve" ? "text-orange-500" : "text-purple-500",
+            'font-mono text-sm',
+            type === 'leftcurve' ? 'text-orange-500' : 'text-purple-500',
           )}
         >
           {(agent[scoreKey] * 100).toFixed(0)}%
@@ -80,13 +80,13 @@ const LeaderboardRow = memo(
     </TableRow>
   ),
 );
-LeaderboardRow.displayName = "LeaderboardRow";
+LeaderboardRow.displayName = 'LeaderboardRow';
 
 interface LeaderboardTableProps {
   agents: Agent[];
   title: string;
-  type: "leftcurve" | "rightcurve";
-  scoreKey: "creativityIndex" | "performanceIndex";
+  type: 'leftcurve' | 'rightcurve';
+  scoreKey: 'creativityIndex' | 'performanceIndex';
   description: string;
 }
 
@@ -103,10 +103,10 @@ const LeaderboardTable = memo(
     return (
       <motion.div
         className={cn(
-          "rounded-xl border p-4 backdrop-blur-sm flex-1",
-          type === "leftcurve"
-            ? "border-orange-500/20 bg-orange-950/5"
-            : "border-purple-500/20 bg-purple-950/5",
+          'rounded-xl border p-4 backdrop-blur-sm flex-1',
+          type === 'leftcurve'
+            ? 'border-orange-500/20 bg-orange-950/5'
+            : 'border-purple-500/20 bg-purple-950/5',
         )}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -115,8 +115,8 @@ const LeaderboardTable = memo(
         <div className="mb-4">
           <h2
             className={cn(
-              "font-sketch text-2xl text-center",
-              type === "leftcurve" ? "text-orange-500" : "text-purple-500",
+              'font-sketch text-2xl text-center',
+              type === 'leftcurve' ? 'text-orange-500' : 'text-purple-500',
             )}
           >
             {title}
@@ -152,7 +152,7 @@ const LeaderboardTable = memo(
     );
   },
 );
-LeaderboardTable.displayName = "LeaderboardTable";
+LeaderboardTable.displayName = 'LeaderboardTable';
 
 interface LeaderboardTablesProps {
   agents: Agent[];
@@ -178,4 +178,4 @@ export const LeaderboardTables = memo(({ agents }: LeaderboardTablesProps) => (
     </div>
   </div>
 ));
-LeaderboardTables.displayName = "LeaderboardTables";
+LeaderboardTables.displayName = 'LeaderboardTables';

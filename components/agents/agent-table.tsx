@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { Agent } from "@/lib/types";
-import { cn, isInBondingPhase } from "@/lib/utils";
-import { AgentAvatar } from "@/components/ui/agent-avatar";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Agent } from '@/lib/types';
+import { cn, isInBondingPhase } from '@/lib/utils';
+import { AgentAvatar } from '@/components/ui/agent-avatar';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -12,18 +12,18 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { ArrowUpDown, Search, Users } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import Link from "next/link";
-import { PriceChange } from "@/components/price-change";
-import { memo } from "react";
+} from '@/components/ui/table';
+import { ArrowUpDown, Search, Users } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import Link from 'next/link';
+import { PriceChange } from '@/components/price-change';
+import { memo } from 'react';
 
 interface TableHeaderProps {
   label: string;
   sortKey: keyof Agent;
-  currentSort?: { key: keyof Agent; direction: "asc" | "desc" };
+  currentSort?: { key: keyof Agent; direction: 'asc' | 'desc' };
   onSort?: (key: keyof Agent) => void;
 }
 
@@ -36,8 +36,8 @@ const TableHeaderCell = memo(
         variant="ghost"
         onClick={() => onSort?.(sortKey)}
         className={cn(
-          "text-xs font-semibold hover:text-primary p-0",
-          isActive && "text-primary",
+          'text-xs font-semibold hover:text-primary p-0',
+          isActive && 'text-primary',
         )}
       >
         {label} <ArrowUpDown className="ml-1 h-3 w-3" />
@@ -45,7 +45,7 @@ const TableHeaderCell = memo(
     );
   },
 );
-TableHeaderCell.displayName = "TableHeaderCell";
+TableHeaderCell.displayName = 'TableHeaderCell';
 
 interface SearchBarProps {
   value: string;
@@ -63,7 +63,7 @@ const SearchBar = memo(({ value, onChange }: SearchBarProps) => (
     />
   </div>
 ));
-SearchBar.displayName = "SearchBar";
+SearchBar.displayName = 'SearchBar';
 
 interface AgentRowProps {
   agent: Agent;
@@ -72,7 +72,7 @@ interface AgentRowProps {
 
 const AgentRow = memo(({ agent, index }: AgentRowProps) => {
   const isBonding = isInBondingPhase(agent.price, agent.holders);
-  const isLeftCurve = agent.type === "leftcurve";
+  const isLeftCurve = agent.type === 'leftcurve';
 
   return (
     <TableRow className="group hover:bg-white/5">
@@ -101,11 +101,11 @@ const AgentRow = memo(({ agent, index }: AgentRowProps) => {
       <TableCell className="py-2">
         <span
           className={cn(
-            "text-lg",
-            isLeftCurve ? "text-orange-500" : "text-purple-500",
+            'text-lg',
+            isLeftCurve ? 'text-orange-500' : 'text-purple-500',
           )}
         >
-          {isLeftCurve ? "🦧" : "🐙"}
+          {isLeftCurve ? '🦧' : '🐙'}
         </span>
       </TableCell>
       <TableCell className="text-right font-mono text-xs py-2">
@@ -120,9 +120,9 @@ const AgentRow = memo(({ agent, index }: AgentRowProps) => {
       <TableCell className="text-right font-mono text-[10px] py-2">
         <div
           className={cn(
-            "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5",
-            "bg-blue-500/20 text-black font-medium",
-            "justify-between w-16",
+            'inline-flex items-center gap-1 rounded-full px-1.5 py-0.5',
+            'bg-blue-500/20 text-black font-medium',
+            'justify-between w-16',
           )}
         >
           <Users className="w-2.5 h-2.5" />
@@ -133,8 +133,8 @@ const AgentRow = memo(({ agent, index }: AgentRowProps) => {
         <div className="flex flex-col items-end">
           <div
             className={cn(
-              "font-mono text-xs",
-              isLeftCurve ? "text-orange-500" : "text-purple-500",
+              'font-mono text-xs',
+              isLeftCurve ? 'text-orange-500' : 'text-purple-500',
             )}
           >
             {isLeftCurve
@@ -151,26 +151,26 @@ const AgentRow = memo(({ agent, index }: AgentRowProps) => {
       <TableCell className="py-2">
         <span
           className={cn(
-            "inline-flex rounded-full px-2 py-0.5 text-xs font-semibold",
+            'inline-flex rounded-full px-2 py-0.5 text-xs font-semibold',
             {
-              "bg-green-500/10 text-green-500":
-                !isBonding && agent.status !== "ended",
-              "bg-yellow-500/10 text-yellow-500": isBonding,
-              "bg-gray-500/10 text-gray-500": agent.status === "ended",
+              'bg-green-500/10 text-green-500':
+                !isBonding && agent.status !== 'ended',
+              'bg-yellow-500/10 text-yellow-500': isBonding,
+              'bg-gray-500/10 text-gray-500': agent.status === 'ended',
             },
           )}
         >
           {isBonding
-            ? "🔥 bonding"
-            : agent.status === "ended"
-              ? "💀 ended"
-              : "🚀 live"}
+            ? '🔥 bonding'
+            : agent.status === 'ended'
+              ? '💀 ended'
+              : '🚀 live'}
         </span>
       </TableCell>
     </TableRow>
   );
 });
-AgentRow.displayName = "AgentRow";
+AgentRow.displayName = 'AgentRow';
 
 const LoadingState = memo(() => (
   <div className="space-y-4">
@@ -185,13 +185,13 @@ const LoadingState = memo(() => (
     ))}
   </div>
 ));
-LoadingState.displayName = "LoadingState";
+LoadingState.displayName = 'LoadingState';
 
 interface AgentTableProps {
   agents: Agent[];
   isLoading?: boolean;
   error?: Error | null;
-  sortConfig?: { key: keyof Agent; direction: "asc" | "desc" };
+  sortConfig?: { key: keyof Agent; direction: 'asc' | 'desc' };
   onSort?: (key: keyof Agent) => void;
 }
 
@@ -213,7 +213,7 @@ export function AgentTable({
     return (
       <Alert variant="destructive">
         <AlertDescription>
-          {error.message || "Failed to load agents"}
+          {error.message || 'Failed to load agents'}
         </AlertDescription>
       </Alert>
     );
@@ -233,7 +233,7 @@ export function AgentTable({
                   onSort={onSort}
                 />
               ) : (
-                "#"
+                '#'
               )}
             </TableHead>
             <TableHead className="text-xs py-2">
@@ -245,7 +245,7 @@ export function AgentTable({
                   onSort={onSort}
                 />
               ) : (
-                "Agent"
+                'Agent'
               )}
             </TableHead>
             <TableHead className="text-xs py-2">Type</TableHead>
@@ -258,7 +258,7 @@ export function AgentTable({
                   onSort={onSort}
                 />
               ) : (
-                "Price"
+                'Price'
               )}
             </TableHead>
             <TableHead className="text-right text-xs py-2">24h</TableHead>
@@ -271,7 +271,7 @@ export function AgentTable({
                   onSort={onSort}
                 />
               ) : (
-                "Market Cap"
+                'Market Cap'
               )}
             </TableHead>
             <TableHead className="text-right text-xs py-2">
@@ -283,7 +283,7 @@ export function AgentTable({
                   onSort={onSort}
                 />
               ) : (
-                "Holders"
+                'Holders'
               )}
             </TableHead>
             <TableHead className="text-right text-xs py-2">
@@ -295,7 +295,7 @@ export function AgentTable({
                   onSort={onSort}
                 />
               ) : (
-                "Score"
+                'Score'
               )}
             </TableHead>
             <TableHead className="text-right text-xs py-2">
@@ -307,7 +307,7 @@ export function AgentTable({
                   onSort={onSort}
                 />
               ) : (
-                "Status"
+                'Status'
               )}
             </TableHead>
           </TableRow>

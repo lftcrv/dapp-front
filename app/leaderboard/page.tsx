@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { ProtocolFees } from "@/components/protocol-fees";
-import { LeaderboardTables } from "@/components/leaderboard-tables";
-import { motion } from "framer-motion";
-import { useAgents } from "@/hooks/use-agents";
-import { AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Skeleton } from "@/components/ui/skeleton";
-import { memo } from "react";
+import { ProtocolFees } from '@/components/protocol-fees';
+import { LeaderboardTables } from '@/components/leaderboard-tables';
+import { motion } from 'framer-motion';
+import { useAgents } from '@/hooks/use-agents';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { memo } from 'react';
 
 const PageHeader = memo(() => (
   <motion.div
@@ -25,7 +25,7 @@ const PageHeader = memo(() => (
     <p className="text-xs text-gray-400 mt-1">Updated every Friday</p>
   </motion.div>
 ));
-PageHeader.displayName = "PageHeader";
+PageHeader.displayName = 'PageHeader';
 
 const LoadingState = memo(() => (
   <div className="space-y-4">
@@ -33,7 +33,7 @@ const LoadingState = memo(() => (
     <Skeleton className="w-full h-[400px] rounded-xl" />
   </div>
 ));
-LoadingState.displayName = "LoadingState";
+LoadingState.displayName = 'LoadingState';
 
 interface ErrorStateProps {
   onRetry: () => void;
@@ -53,7 +53,7 @@ const ErrorState = memo(({ onRetry }: ErrorStateProps) => (
     </AlertDescription>
   </Alert>
 ));
-ErrorState.displayName = "ErrorState";
+ErrorState.displayName = 'ErrorState';
 
 export default function LeaderboardPage() {
   const { data: agents, isLoading, error, refetch } = useAgents();

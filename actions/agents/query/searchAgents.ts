@@ -1,11 +1,11 @@
-"use server";
+'use server';
 
-import { Agent } from "@/lib/types";
+import { Agent } from '@/lib/types';
 
 export interface SearchAgentsParams {
   query: string;
-  type?: "leftcurve" | "rightcurve";
-  status?: "live" | "bonding" | "ended";
+  type?: 'leftcurve' | 'rightcurve';
+  status?: 'live' | 'bonding' | 'ended';
   limit?: number;
   offset?: number;
 }
@@ -16,7 +16,7 @@ export async function searchAgents(params: SearchAgentsParams) {
     const apiKey = process.env.API_KEY;
 
     if (!apiUrl || !apiKey) {
-      throw new Error("Missing API configuration");
+      throw new Error('Missing API configuration');
     }
 
     // Build query parameters
@@ -32,8 +32,8 @@ export async function searchAgents(params: SearchAgentsParams) {
       `${apiUrl}/api/eliza-agent/search?${queryParams}`,
       {
         headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
         },
       },
     );
@@ -42,11 +42,11 @@ export async function searchAgents(params: SearchAgentsParams) {
 
     if (!response.ok) {
       if (response.status === 401) {
-        throw new Error("Invalid API key");
+        throw new Error('Invalid API key');
       } else if (response.status >= 500) {
-        throw new Error("Server error - please try again later");
+        throw new Error('Server error - please try again later');
       }
-      throw new Error(data.message || "Failed to search agents");
+      throw new Error(data.message || 'Failed to search agents');
     }
 
     return {
@@ -58,11 +58,11 @@ export async function searchAgents(params: SearchAgentsParams) {
       },
     };
   } catch (error) {
-    console.error("Error searching agents:", error);
+    console.error('Error searching agents:', error);
     return {
       success: false,
       error:
-        error instanceof Error ? error.message : "An unexpected error occurred",
+        error instanceof Error ? error.message : 'An unexpected error occurred',
     };
   }
 }

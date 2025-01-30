@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   Dialog,
@@ -6,17 +6,17 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "./ui/dialog";
-import { Button } from "./ui/button";
-import { usePrivy } from "@privy-io/react-auth";
-import { connect } from "starknetkit";
-import { memo, useState, useEffect } from "react";
-import { showToast } from "@/lib/toast";
-import type { StarknetWindowObject } from "get-starknet-core";
-import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "./ui/alert";
-import { Checkbox } from "./ui/checkbox";
+} from './ui/dialog';
+import { Button } from './ui/button';
+import { usePrivy } from '@privy-io/react-auth';
+import { connect } from 'starknetkit';
+import { memo, useState, useEffect } from 'react';
+import { showToast } from '@/lib/toast';
+import type { StarknetWindowObject } from 'get-starknet-core';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from './ui/alert';
+import { Checkbox } from './ui/checkbox';
 
 interface WalletConnectModalProps {
   isOpen: boolean;
@@ -50,7 +50,7 @@ const LoadingButton = memo(
     </Button>
   ),
 );
-LoadingButton.displayName = "LoadingButton";
+LoadingButton.displayName = 'LoadingButton';
 
 const ErrorMessage = memo(({ message }: { message: string }) => (
   <Alert variant="destructive" className="mt-4">
@@ -58,11 +58,11 @@ const ErrorMessage = memo(({ message }: { message: string }) => (
     <AlertDescription>{message}</AlertDescription>
   </Alert>
 ));
-ErrorMessage.displayName = "ErrorMessage";
+ErrorMessage.displayName = 'ErrorMessage';
 
 export const WalletConnectModal = memo(
   ({ isOpen, onClose, onStarknetConnect }: WalletConnectModalProps) => {
-    const [step, setStep] = useState<"choose" | "evm-terms">("choose");
+    const [step, setStep] = useState<'choose' | 'evm-terms'>('choose');
     const { login, ready: privyReady } = usePrivy();
     const [isConnecting, setIsConnecting] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
@@ -71,7 +71,7 @@ export const WalletConnectModal = memo(
     // Reset state when modal opens
     useEffect(() => {
       if (isOpen) {
-        setStep("choose");
+        setStep('choose');
         setIsConnecting(false);
         setError(null);
       }
@@ -81,33 +81,33 @@ export const WalletConnectModal = memo(
       setIsConnecting(true);
       setError(null);
       const startTime = performance.now();
-      showToast("CONNECTING", "loading");
+      showToast('CONNECTING', 'loading');
 
       onClose();
 
       try {
         const { wallet, connectorData } = await connect({
-          modalMode: "alwaysAsk",
-          modalTheme: "dark",
-          dappName: "LeftCurve",
-          webWalletUrl: "https://web.argent.xyz",
+          modalMode: 'alwaysAsk',
+          modalTheme: 'dark',
+          dappName: 'LeftCurve',
+          webWalletUrl: 'https://web.argent.xyz',
         });
 
         if (wallet && connectorData?.account) {
           onStarknetConnect(wallet, connectorData.account);
           console.log(
-            "\x1b[36m%s\x1b[0m",
+            '\x1b[36m%s\x1b[0m',
             `⏱️ Starknet Connection (Starknet): ${(performance.now() - startTime).toFixed(2)}ms`,
           );
-          showToast("CONNECTED", "success");
+          showToast('CONNECTED', 'success');
         } else {
-          throw new Error("Failed to connect wallet");
+          throw new Error('Failed to connect wallet');
         }
       } catch (err) {
         const message =
-          err instanceof Error ? err.message : "Failed to connect wallet";
+          err instanceof Error ? err.message : 'Failed to connect wallet';
         setError(message);
-        showToast("CONNECTION_ERROR", "error");
+        showToast('CONNECTION_ERROR', 'error');
       } finally {
         setIsConnecting(false);
       }
@@ -118,16 +118,16 @@ export const WalletConnectModal = memo(
 
       setIsConnecting(true);
       setError(null);
-      showToast("EVM_CONNECTING", "loading");
+      showToast('EVM_CONNECTING', 'loading');
 
       try {
         await login();
         onClose();
       } catch (err) {
         const message =
-          err instanceof Error ? err.message : "Failed to connect wallet";
+          err instanceof Error ? err.message : 'Failed to connect wallet';
         setError(message);
-        showToast("CONNECTION_ERROR", "error");
+        showToast('CONNECTION_ERROR', 'error');
       } finally {
         setIsConnecting(false);
       }
@@ -143,7 +143,7 @@ export const WalletConnectModal = memo(
             </DialogDescription>
           </DialogHeader>
           <AnimatePresence mode="wait">
-            {step === "choose" ? (
+            {step === 'choose' ? (
               <motion.div
                 key="choose"
                 {...slideAnimation}
@@ -160,7 +160,7 @@ export const WalletConnectModal = memo(
                 <LoadingButton
                   variant="outline"
                   className="w-full justify-start text-left font-normal"
-                  onClick={() => setStep("evm-terms")}
+                  onClick={() => setStep('evm-terms')}
                   isLoading={isConnecting}
                   disabled={!privyReady}
                 >
@@ -196,7 +196,7 @@ export const WalletConnectModal = memo(
                 <div className="flex justify-between gap-4">
                   <Button
                     variant="outline"
-                    onClick={() => setStep("choose")}
+                    onClick={() => setStep('choose')}
                     disabled={isConnecting}
                     className="flex-1"
                   >
@@ -219,4 +219,4 @@ export const WalletConnectModal = memo(
     );
   },
 );
-WalletConnectModal.displayName = "WalletConnectModal";
+WalletConnectModal.displayName = 'WalletConnectModal';

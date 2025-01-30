@@ -1,25 +1,25 @@
-"use client";
+'use client';
 
-import { motion, AnimatePresence } from "framer-motion";
-import { useTrades } from "@/hooks/use-trades";
-import { cn } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Trade } from "@/lib/types";
-import { memo, useCallback, useMemo } from "react";
+import { motion, AnimatePresence } from 'framer-motion';
+import { useTrades } from '@/hooks/use-trades';
+import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Trade } from '@/lib/types';
+import { memo, useCallback, useMemo } from 'react';
 import {
   ArrowUpRight,
   ArrowDownRight,
   RefreshCcw,
   History,
-} from "lucide-react";
+} from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from '@/components/ui/tooltip';
 
 const formatTimeAgo = (timestamp: string): string => {
   const date = new Date(timestamp);
@@ -42,21 +42,21 @@ interface TradeItemProps {
   isLatest?: boolean;
 }
 
-const TradeIcon = memo(({ type }: { type: "buy" | "sell" }) =>
-  type === "buy" ? (
+const TradeIcon = memo(({ type }: { type: 'buy' | 'sell' }) =>
+  type === 'buy' ? (
     <ArrowUpRight className="w-4 h-4 text-green-500" />
   ) : (
     <ArrowDownRight className="w-4 h-4 text-red-500" />
   ),
 );
-TradeIcon.displayName = "TradeIcon";
+TradeIcon.displayName = 'TradeIcon';
 
 const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
-  const isBuy = trade.type === "buy";
-  const colorClass = isBuy ? "text-green-500" : "text-red-500";
+  const isBuy = trade.type === 'buy';
+  const colorClass = isBuy ? 'text-green-500' : 'text-red-500';
   const bgClass = isBuy
-    ? "bg-green-500/5 border-green-500/20"
-    : "bg-red-500/5 border-red-500/20";
+    ? 'bg-green-500/5 border-green-500/20'
+    : 'bg-red-500/5 border-red-500/20';
   const formattedTime = useMemo(() => formatTimeAgo(trade.time), [trade.time]);
 
   return (
@@ -65,10 +65,10 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       className={cn(
-        "flex flex-col space-y-1 rounded-lg border p-2 transition-colors",
+        'flex flex-col space-y-1 rounded-lg border p-2 transition-colors',
         bgClass,
-        isLatest && "ring-2 ring-offset-2 ring-offset-background",
-        isBuy ? "ring-green-500/30" : "ring-red-500/30",
+        isLatest && 'ring-2 ring-offset-2 ring-offset-background',
+        isBuy ? 'ring-green-500/30' : 'ring-red-500/30',
       )}
     >
       <div className="flex items-center justify-between">
@@ -78,7 +78,7 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="flex items-center gap-1.5 cursor-help">
-                  <span className={cn("text-sm font-medium", colorClass)}>
+                  <span className={cn('text-sm font-medium', colorClass)}>
                     ${trade.price.toLocaleString()}
                   </span>
                   <span className="text-xs text-muted-foreground">
@@ -116,7 +116,7 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
     </motion.div>
   );
 });
-TradeItem.displayName = "TradeItem";
+TradeItem.displayName = 'TradeItem';
 
 const LoadingState = memo(() => (
   <div className="space-y-3">
@@ -135,7 +135,7 @@ const LoadingState = memo(() => (
     ))}
   </div>
 ));
-LoadingState.displayName = "LoadingState";
+LoadingState.displayName = 'LoadingState';
 
 interface LoadMoreButtonProps {
   onClick: () => void;
@@ -166,7 +166,7 @@ const LoadMoreButton = memo(
     </div>
   ),
 );
-LoadMoreButton.displayName = "LoadMoreButton";
+LoadMoreButton.displayName = 'LoadMoreButton';
 
 interface ErrorStateProps {
   error: Error;
@@ -176,7 +176,7 @@ interface ErrorStateProps {
 const ErrorState = memo(({ error, onRetry }: ErrorStateProps) => (
   <Alert variant="destructive">
     <AlertDescription className="flex items-center justify-between">
-      <span>{error.message || "Failed to load trade history"}</span>
+      <span>{error.message || 'Failed to load trade history'}</span>
       {onRetry && (
         <Button
           variant="ghost"
@@ -191,7 +191,7 @@ const ErrorState = memo(({ error, onRetry }: ErrorStateProps) => (
     </AlertDescription>
   </Alert>
 ));
-ErrorState.displayName = "ErrorState";
+ErrorState.displayName = 'ErrorState';
 
 const EmptyState = memo(() => (
   <div className="flex flex-col items-center justify-center py-8 text-center space-y-3">
@@ -204,7 +204,7 @@ const EmptyState = memo(() => (
     </p>
   </div>
 ));
-EmptyState.displayName = "EmptyState";
+EmptyState.displayName = 'EmptyState';
 
 interface TradeHistoryProps {
   agentId?: string;
@@ -233,7 +233,7 @@ export const TradeHistory = memo(
     return (
       <div
         className={cn(
-          "space-y-2 overflow-auto scrollbar-thin scrollbar-thumb-muted-foreground/10 hover:scrollbar-thumb-muted-foreground/20 pr-2",
+          'space-y-2 overflow-auto scrollbar-thin scrollbar-thumb-muted-foreground/10 hover:scrollbar-thumb-muted-foreground/20 pr-2',
           className,
         )}
         style={{ maxHeight }}
@@ -265,4 +265,4 @@ export const TradeHistory = memo(
     );
   },
 );
-TradeHistory.displayName = "TradeHistory";
+TradeHistory.displayName = 'TradeHistory';

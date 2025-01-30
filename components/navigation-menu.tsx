@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   useState,
@@ -7,45 +7,45 @@ import {
   Suspense,
   type ReactNode,
   type MouseEvent,
-} from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
-import { DepositButton } from "./deposit-button";
-import { WalletButtonSkeleton } from "./wallet-button-skeleton";
+} from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { usePathname, useRouter } from 'next/navigation';
+import { DepositButton } from './deposit-button';
+import { WalletButtonSkeleton } from './wallet-button-skeleton';
 import {
   startTiming,
   endTiming,
   measureNavigation,
   startRouteTransition,
   endRouteTransition,
-} from "@/lib/utils/performance";
-import dynamic from "next/dynamic";
-import { motion, AnimatePresence } from "framer-motion";
-import { memo } from "react";
+} from '@/lib/utils/performance';
+import dynamic from 'next/dynamic';
+import { motion, AnimatePresence } from 'framer-motion';
+import { memo } from 'react';
 
 const navigation = [
   {
-    name: "Home",
-    href: "/",
+    name: 'Home',
+    href: '/',
     segment: null,
   },
   {
-    name: "Create Agent",
-    href: "/create-agent",
-    segment: "create-agent",
+    name: 'Create Agent',
+    href: '/create-agent',
+    segment: 'create-agent',
   },
   {
-    name: "Leaderboard",
-    href: "/leaderboard",
-    segment: "leaderboard",
+    name: 'Leaderboard',
+    href: '/leaderboard',
+    segment: 'leaderboard',
   },
 ] as const;
 
 // Development-only performance tracking
 const usePerformanceTracking = (name: string) => {
   useEffect(() => {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === 'development') {
       startTiming(`${name} Render`);
       return () => endTiming(`${name} Render`);
     }
@@ -54,7 +54,7 @@ const usePerformanceTracking = (name: string) => {
 
 // Optimized dynamic import with better error boundary
 const WalletButtonContainer = dynamic(
-  () => import("./wallet-button").then((mod) => mod.WalletButton),
+  () => import('./wallet-button').then((mod) => mod.WalletButton),
   {
     loading: () => <WalletButtonSkeleton />,
     ssr: false,
@@ -75,7 +75,7 @@ const Logo = memo(() => (
     <span className="font-sketch text-xl">LeftCurve</span>
   </Link>
 ));
-Logo.displayName = "Logo";
+Logo.displayName = 'Logo';
 
 const NavLink = memo(
   ({
@@ -95,8 +95,8 @@ const NavLink = memo(
         startRouteTransition();
         // Use replace for same-segment navigation to avoid history stack
         const isSameSegment =
-          href.split("/")[1] === window.location.pathname.split("/")[1];
-        router[isSameSegment ? "replace" : "push"](href);
+          href.split('/')[1] === window.location.pathname.split('/')[1];
+        router[isSameSegment ? 'replace' : 'push'](href);
       },
       [router, href],
     );
@@ -107,7 +107,7 @@ const NavLink = memo(
         onClick={handleClick}
         prefetch={true}
         className={`text-sm transition-colors hover:text-primary relative ${
-          isActive ? "text-primary font-medium" : "text-muted-foreground"
+          isActive ? 'text-primary font-medium' : 'text-muted-foreground'
         }`}
       >
         {children}
@@ -117,7 +117,7 @@ const NavLink = memo(
             className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary"
             initial={false}
             transition={{
-              type: "spring",
+              type: 'spring',
               stiffness: 380,
               damping: 30,
               duration: 0.2,
@@ -133,7 +133,7 @@ const NavLink = memo(
     );
   },
 );
-NavLink.displayName = "NavLink";
+NavLink.displayName = 'NavLink';
 
 const MobileMenuButton = memo(
   ({ isOpen, onClick }: { isOpen: boolean; onClick: () => void }) => (
@@ -145,10 +145,10 @@ const MobileMenuButton = memo(
       aria-label="Main menu"
     >
       <span className="sr-only">
-        {isOpen ? "Close main menu" : "Open main menu"}
+        {isOpen ? 'Close main menu' : 'Open main menu'}
       </span>
       <motion.div
-        animate={isOpen ? "open" : "closed"}
+        animate={isOpen ? 'open' : 'closed'}
         variants={{
           open: { rotate: 45 },
           closed: { rotate: 0 },
@@ -180,19 +180,19 @@ const MobileMenuButton = memo(
     </button>
   ),
 );
-MobileMenuButton.displayName = "MobileMenuButton";
+MobileMenuButton.displayName = 'MobileMenuButton';
 
 export const NavigationMenu = memo(() => {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
   // Development-only performance tracking
-  usePerformanceTracking("NavigationMenu");
+  usePerformanceTracking('NavigationMenu');
 
   // Track navigation changes with segment info (development only)
   useEffect(() => {
-    if (process.env.NODE_ENV === "development") {
-      const segment = pathname?.split("/")[1] || "home";
+    if (process.env.NODE_ENV === 'development') {
+      const segment = pathname?.split('/')[1] || 'home';
       startTiming(`Navigation Change (${segment})`);
       measureNavigation();
       return () => endTiming(`Navigation Change (${segment})`);
@@ -207,12 +207,12 @@ export const NavigationMenu = memo(() => {
   // Handle escape key
   useEffect(() => {
     const handleEscape = (e: globalThis.KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         setIsOpen(false);
       }
     };
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
   }, []);
 
   return (
@@ -256,7 +256,7 @@ export const NavigationMenu = memo(() => {
           <motion.div
             className="md:hidden"
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
+            animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
           >
@@ -287,4 +287,4 @@ export const NavigationMenu = memo(() => {
     </nav>
   );
 });
-NavigationMenu.displayName = "NavigationMenu";
+NavigationMenu.displayName = 'NavigationMenu';

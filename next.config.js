@@ -2,13 +2,13 @@
 const nextConfig = {
   // ... existing config
   env: {
-    PORT: "3000",
+    PORT: '3000',
   },
   images: {
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "**",
+        protocol: 'https',
+        hostname: '**',
       },
     ],
   },

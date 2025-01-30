@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-import { Rocket, Flame } from "lucide-react";
-import { memo } from "react";
-import { motion } from "framer-motion";
+import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import { Rocket, Flame } from 'lucide-react';
+import { memo } from 'react';
+import { motion } from 'framer-motion';
 
 const Title = memo(() => (
   <motion.h1
@@ -16,7 +16,7 @@ const Title = memo(() => (
     Trading Agent Arena
   </motion.h1>
 ));
-Title.displayName = "Title";
+Title.displayName = 'Title';
 
 const Description = memo(() => (
   <div className="max-w-xl mx-auto space-y-1.5 text-[11px]">
@@ -49,7 +49,7 @@ const Description = memo(() => (
     </motion.p>
   </div>
 ));
-Description.displayName = "Description";
+Description.displayName = 'Description';
 
 const ActionButtons = memo(() => {
   const router = useRouter();
@@ -57,7 +57,7 @@ const ActionButtons = memo(() => {
   return (
     <div className="flex items-center justify-center gap-4">
       <Button
-        onClick={() => router.push("/create-agent")}
+        onClick={() => router.push('/create-agent')}
         className="bg-gradient-to-r from-yellow-500 via-pink-500 to-purple-500 hover:opacity-90 font-mono text-white"
       >
         <Rocket className="mr-2 h-4 w-4" />
@@ -66,7 +66,7 @@ const ActionButtons = memo(() => {
       <Button
         variant="outline"
         className="group relative font-mono hover:text-yellow-500 transition-colors hover:border-yellow-500/50"
-        onClick={() => router.push("/leaderboard")}
+        onClick={() => router.push('/leaderboard')}
       >
         <Flame className="mr-2 h-4 w-4 transition-colors" />
         Leaderboard
@@ -74,7 +74,7 @@ const ActionButtons = memo(() => {
     </div>
   );
 });
-ActionButtons.displayName = "ActionButtons";
+ActionButtons.displayName = 'ActionButtons';
 
 const HomeHeader = memo(() => {
   return (
@@ -95,6 +95,6 @@ const HomeHeader = memo(() => {
     </div>
   );
 });
-HomeHeader.displayName = "HomeHeader";
+HomeHeader.displayName = 'HomeHeader';
 
 export default HomeHeader;

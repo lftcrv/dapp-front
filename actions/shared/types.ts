@@ -19,12 +19,12 @@ export interface PaginationParams {
  * Common API error types
  */
 export enum ApiErrorType {
-  CONFIGURATION = "Missing API configuration",
-  UNAUTHORIZED = "Invalid API key",
-  NOT_FOUND = "Resource not found",
-  SERVER_ERROR = "Server error - please try again later",
-  VALIDATION = "Validation error",
-  UNKNOWN = "An unexpected error occurred",
+  CONFIGURATION = 'Missing API configuration',
+  UNAUTHORIZED = 'Invalid API key',
+  NOT_FOUND = 'Resource not found',
+  SERVER_ERROR = 'Server error - please try again later',
+  VALIDATION = 'Validation error',
+  UNKNOWN = 'An unexpected error occurred',
 }
 
 /**
@@ -42,5 +42,5 @@ export interface SearchParams extends PaginationParams {
   query: string;
   filters?: Record<string, string | number | boolean>;
   sortBy?: string;
-  sortOrder?: "asc" | "desc";
+  sortOrder?: 'asc' | 'desc';
 }

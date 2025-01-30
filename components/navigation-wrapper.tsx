@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import dynamic from "next/dynamic";
-import { memo } from "react";
-import type { FC } from "react";
+import dynamic from 'next/dynamic';
+import { memo } from 'react';
+import type { FC } from 'react';
 
 const NavigationMenu = dynamic(
   () =>
-    import("./navigation-menu").then((mod) => {
+    import('./navigation-menu').then((mod) => {
       const Component = mod.NavigationMenu as FC;
-      Component.displayName = "NavigationMenu";
+      Component.displayName = 'NavigationMenu';
       return Component;
     }),
   {
@@ -20,6 +20,6 @@ const NavigationMenu = dynamic(
 const NavigationWrapper = memo(() => {
   return <NavigationMenu />;
 });
-NavigationWrapper.displayName = "NavigationWrapper";
+NavigationWrapper.displayName = 'NavigationWrapper';
 
 export { NavigationWrapper };

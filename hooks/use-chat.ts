@@ -1,8 +1,8 @@
-import { useEffect } from "react";
-import { ChatMessage } from "@/lib/types";
-import { chatService } from "@/lib/services/api/chat";
-import { useAsyncState } from "@/lib/core/state";
-import { useToast } from "@/hooks/use-toast";
+import { useEffect } from 'react';
+import { ChatMessage } from '@/lib/types';
+import { chatService } from '@/lib/services/api/chat';
+import { useAsyncState } from '@/lib/core/state';
+import { useToast } from '@/hooks/use-toast';
 
 interface UseChatOptions {
   agentId: string;
@@ -32,9 +32,9 @@ export function useChat({ agentId, initialData }: UseChatOptions) {
       state.setData([result.data, ...(state.data || [])]);
     } else {
       toast({
-        title: "Error",
-        description: result.error?.message || "Failed to send message",
-        variant: "destructive",
+        title: 'Error',
+        description: result.error?.message || 'Failed to send message',
+        variant: 'destructive',
       });
     }
   };

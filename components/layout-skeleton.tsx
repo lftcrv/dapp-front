@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { Skeleton } from "@/components/ui/skeleton";
-import { memo } from "react";
+import { Skeleton } from '@/components/ui/skeleton';
+import { memo } from 'react';
 
 const NavigationSkeleton = memo(() => (
   <div className="fixed top-0 left-0 right-0 z-50 backdrop-blur-sm border-b border-white/5">
@@ -21,7 +21,7 @@ const NavigationSkeleton = memo(() => (
     </div>
   </div>
 ));
-NavigationSkeleton.displayName = "NavigationSkeleton";
+NavigationSkeleton.displayName = 'NavigationSkeleton';
 
 const ContentSkeleton = memo(() => (
   <div className="mt-16 p-4">
@@ -39,7 +39,7 @@ const ContentSkeleton = memo(() => (
     </div>
   </div>
 ));
-ContentSkeleton.displayName = "ContentSkeleton";
+ContentSkeleton.displayName = 'ContentSkeleton';
 
 const LayoutSkeleton = memo(() => {
   return (
@@ -49,6 +49,6 @@ const LayoutSkeleton = memo(() => {
     </div>
   );
 });
-LayoutSkeleton.displayName = "LayoutSkeleton";
+LayoutSkeleton.displayName = 'LayoutSkeleton';
 
 export { LayoutSkeleton };

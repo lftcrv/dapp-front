@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { toast } from "sonner";
+import { toast } from 'sonner';
 
-type ToastType = "success" | "error" | "info" | "warning";
+type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 interface ToastOptions {
   description?: string;
@@ -13,10 +13,10 @@ interface ToastOptions {
 }
 
 const icons = {
-  success: "✅",
-  error: "❌",
-  info: "ℹ️",
-  warning: "⚠️",
+  success: '✅',
+  error: '❌',
+  info: 'ℹ️',
+  warning: '⚠️',
 };
 
 export function showToast(
@@ -26,24 +26,24 @@ export function showToast(
 ) {
   const baseStyle = {
     style: {
-      minWidth: "356px",
-      minHeight: "60px",
-      backgroundColor: "hsl(var(--background))",
-      border: "1px solid hsl(var(--border))",
-      padding: "16px",
-      display: "flex",
-      alignItems: "center",
-      gap: "12px",
-      color: "hsl(var(--foreground))",
+      minWidth: '356px',
+      minHeight: '60px',
+      backgroundColor: 'hsl(var(--background))',
+      border: '1px solid hsl(var(--border))',
+      padding: '16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+      color: 'hsl(var(--foreground))',
     },
   };
 
   const toastFn =
-    type === "error"
+    type === 'error'
       ? toast.error
-      : type === "success"
+      : type === 'success'
         ? toast.success
-        : type === "warning"
+        : type === 'warning'
           ? toast.warning
           : toast.info;
 

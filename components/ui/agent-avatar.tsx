@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { memo, useState, useCallback } from "react";
-import Image from "next/image";
-import { cn } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
+import { memo, useState, useCallback } from 'react';
+import Image from 'next/image';
+import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const DEFAULT_AVATAR = "/avatars/default-agent.svg";
+const DEFAULT_AVATAR = '/avatars/default-agent.svg';
 
 interface ImageState {
   isLoading: boolean;
@@ -30,7 +30,7 @@ interface AgentAvatarProps {
 const LoadingState = memo(({ size, className }: LoadingStateProps) => (
   <div
     className={cn(
-      "relative rounded-full overflow-hidden bg-white/5",
+      'relative rounded-full overflow-hidden bg-white/5',
       className,
     )}
     style={{ width: size, height: size }}
@@ -38,7 +38,7 @@ const LoadingState = memo(({ size, className }: LoadingStateProps) => (
     <Skeleton className="w-full h-full" />
   </div>
 ));
-LoadingState.displayName = "LoadingState";
+LoadingState.displayName = 'LoadingState';
 
 const ImageComponent = memo(
   ({
@@ -52,20 +52,20 @@ const ImageComponent = memo(
     className,
   }: Pick<
     AgentAvatarProps,
-    "src" | "alt" | "size" | "priority" | "quality" | "className"
+    'src' | 'alt' | 'size' | 'priority' | 'quality' | 'className'
   > & {
     onLoad: () => void;
     onError: () => void;
   }) => (
     <Image
       src={src || DEFAULT_AVATAR}
-      alt={alt || "Agent avatar"}
+      alt={alt || 'Agent avatar'}
       width={size}
       height={size}
       quality={quality}
       className={cn(
-        "object-cover transition-all duration-200",
-        !src ? "opacity-50" : "opacity-100",
+        'object-cover transition-all duration-200',
+        !src ? 'opacity-50' : 'opacity-100',
         className,
       )}
       onError={onError}
@@ -74,12 +74,12 @@ const ImageComponent = memo(
     />
   ),
 );
-ImageComponent.displayName = "ImageComponent";
+ImageComponent.displayName = 'ImageComponent';
 
 export const AgentAvatar = memo(
   ({
     src,
-    alt = "Agent avatar",
+    alt = 'Agent avatar',
     className,
     size = 32,
     isLoading,
@@ -115,7 +115,7 @@ export const AgentAvatar = memo(
     return (
       <div
         className={cn(
-          "relative rounded-full overflow-hidden bg-white/5",
+          'relative rounded-full overflow-hidden bg-white/5',
           className,
         )}
         style={{ width: size, height: size }}
@@ -130,7 +130,7 @@ export const AgentAvatar = memo(
           onError={handleError}
           onLoad={handleLoad}
           className={cn(
-            imageState.isLoading ? "scale-110 blur-sm" : "scale-100 blur-0",
+            imageState.isLoading ? 'scale-110 blur-sm' : 'scale-100 blur-0',
           )}
         />
       </div>
@@ -138,4 +138,4 @@ export const AgentAvatar = memo(
   },
 );
 
-AgentAvatar.displayName = "AgentAvatar";
+AgentAvatar.displayName = 'AgentAvatar';

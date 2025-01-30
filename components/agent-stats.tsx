@@ -1,21 +1,21 @@
-"use client";
+'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Performance } from "@/lib/types";
-import { memo, useMemo } from "react";
-import { cn } from "@/lib/utils";
-import { ArrowUpIcon, ArrowDownIcon, MinusIcon } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Performance } from '@/lib/types';
+import { memo, useMemo } from 'react';
+import { cn } from '@/lib/utils';
+import { ArrowUpIcon, ArrowDownIcon, MinusIcon } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { motion } from "framer-motion";
+} from '@/components/ui/tooltip';
+import { motion } from 'framer-motion';
 
-type Trend = "up" | "down" | "neutral";
+type Trend = 'up' | 'down' | 'neutral';
 type FormatterFn = (value: number) => string;
 
 interface StatItemProps {
@@ -37,9 +37,9 @@ const TrendIcon = memo(({ trend }: { trend: Trend }) => {
 
   return (
     <motion.div variants={variants} animate={trend}>
-      {trend === "up" ? (
+      {trend === 'up' ? (
         <ArrowUpIcon className="w-4 h-4 text-green-500" />
-      ) : trend === "down" ? (
+      ) : trend === 'down' ? (
         <ArrowDownIcon className="w-4 h-4 text-red-500" />
       ) : (
         <MinusIcon className="w-4 h-4 text-muted-foreground" />
@@ -47,23 +47,23 @@ const TrendIcon = memo(({ trend }: { trend: Trend }) => {
     </motion.div>
   );
 });
-TrendIcon.displayName = "TrendIcon";
+TrendIcon.displayName = 'TrendIcon';
 
 const StatItem = memo(
   ({
     label,
     value,
-    trend = "neutral",
+    trend = 'neutral',
     tooltipContent,
     formatter = defaultFormatter,
   }: StatItemProps) => {
     const trendColor = useMemo(
       () =>
-        trend === "up"
-          ? "text-green-500"
-          : trend === "down"
-            ? "text-red-500"
-            : "text-muted-foreground",
+        trend === 'up'
+          ? 'text-green-500'
+          : trend === 'down'
+            ? 'text-red-500'
+            : 'text-muted-foreground',
       [trend],
     );
 
@@ -78,13 +78,13 @@ const StatItem = memo(
       >
         <div className="text-xs text-muted-foreground flex items-center gap-1">
           {label}
-          {trend !== "neutral" && <TrendIcon trend={trend} />}
+          {trend !== 'neutral' && <TrendIcon trend={trend} />}
         </div>
         <div
           className={cn(
-            "text-2xl font-bold transition-colors",
+            'text-2xl font-bold transition-colors',
             trendColor,
-            "group-hover:opacity-90",
+            'group-hover:opacity-90',
           )}
         >
           {formattedValue}
@@ -108,7 +108,7 @@ const StatItem = memo(
     return content;
   },
 );
-StatItem.displayName = "StatItem";
+StatItem.displayName = 'StatItem';
 
 const LoadingState = memo(() => (
   <Card>
@@ -127,7 +127,7 @@ const LoadingState = memo(() => (
     </CardContent>
   </Card>
 ));
-LoadingState.displayName = "LoadingState";
+LoadingState.displayName = 'LoadingState';
 
 interface StatsGridProps {
   performance: Performance;
@@ -141,15 +141,15 @@ const formatters = {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
-    return `${value >= 0 ? "+" : "-"}$${formatted}`;
+    return `${value >= 0 ? '+' : '-'}$${formatted}`;
   },
 } as const;
 
 const StatsGrid = memo(({ performance }: StatsGridProps) => {
   const getTrend = (value: number): Trend => {
-    if (value > 0) return "up";
-    if (value < 0) return "down";
-    return "neutral";
+    if (value > 0) return 'up';
+    if (value < 0) return 'down';
+    return 'neutral';
   };
 
   return (
@@ -183,7 +183,7 @@ const StatsGrid = memo(({ performance }: StatsGridProps) => {
     </div>
   );
 });
-StatsGrid.displayName = "StatsGrid";
+StatsGrid.displayName = 'StatsGrid';
 
 interface ErrorStateProps {
   error: Error;
@@ -193,7 +193,7 @@ interface ErrorStateProps {
 const ErrorState = memo(({ error, onRetry }: ErrorStateProps) => (
   <Alert variant="destructive">
     <AlertDescription className="flex items-center justify-between">
-      <span>{error.message || "Failed to load agent stats"}</span>
+      <span>{error.message || 'Failed to load agent stats'}</span>
       {onRetry && (
         <button
           onClick={onRetry}
@@ -205,7 +205,7 @@ const ErrorState = memo(({ error, onRetry }: ErrorStateProps) => (
     </AlertDescription>
   </Alert>
 ));
-ErrorState.displayName = "ErrorState";
+ErrorState.displayName = 'ErrorState';
 
 interface AgentStatsProps {
   performance?: Performance;
@@ -241,4 +241,4 @@ export const AgentStats = memo(
     );
   },
 );
-AgentStats.displayName = "AgentStats";
+AgentStats.displayName = 'AgentStats';

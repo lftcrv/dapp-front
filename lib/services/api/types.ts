@@ -1,4 +1,4 @@
-import { AgentType, AgentStatus, TradeType } from "@/lib/types";
+import { AgentType, AgentStatus, TradeType } from '@/lib/types';
 
 // API Response Types
 export interface ApiResponse<T> {
@@ -27,36 +27,36 @@ export interface MarketMetricsParams extends PaginationParams, TimeRangeParams {
 
 export interface PerformanceParams extends PaginationParams, TimeRangeParams {
   agentId: string;
-  period: "daily" | "weekly" | "monthly";
+  period: 'daily' | 'weekly' | 'monthly';
 }
 
 export interface PriceHistoryParams extends TimeRangeParams {
   symbol: string;
-  interval?: "15m" | "1h" | "4h" | "1d";
+  interval?: '15m' | '1h' | '4h' | '1d';
 }
 
 export interface TradeHistoryParams extends PaginationParams, TimeRangeParams {
   agentId: string;
-  type?: "buy" | "sell";
+  type?: 'buy' | 'sell';
 }
 
 // Leaderboard Types
 export interface LeaderboardParams extends PaginationParams {
   sortBy?:
-    | "performanceScore"
-    | "profitLoss"
-    | "successRate"
-    | "marketCap"
-    | "holders";
-  timeframe?: "daily" | "weekly" | "monthly" | "all";
-  type?: "leftcurve" | "rightcurve";
-  status?: "bonding" | "live" | "ended";
+    | 'performanceScore'
+    | 'profitLoss'
+    | 'successRate'
+    | 'marketCap'
+    | 'holders';
+  timeframe?: 'daily' | 'weekly' | 'monthly' | 'all';
+  type?: 'leftcurve' | 'rightcurve';
+  status?: 'bonding' | 'live' | 'ended';
 }
 
 // Agent Types
 export interface AgentFilters extends PaginationParams {
-  type?: "leftcurve" | "rightcurve";
-  status?: "bonding" | "live" | "ended";
+  type?: 'leftcurve' | 'rightcurve';
+  status?: 'bonding' | 'live' | 'ended';
   minPrice?: number;
   maxPrice?: number;
   minHolders?: number;
@@ -149,7 +149,7 @@ export interface Performance {
   id: string;
   agentId: string;
   timestamp: string;
-  period: "daily" | "weekly" | "monthly";
+  period: 'daily' | 'weekly' | 'monthly';
   tradeCount: number;
   successRate: number;
   profitLoss: number;
@@ -180,7 +180,7 @@ export interface MarketOverview {
     symbol: string;
     performanceScore: number;
     priceChange24h: number;
-    source: "bonding" | "market";
+    source: 'bonding' | 'market';
   }>;
   recentTrades: Array<{
     agentId: string;
@@ -189,7 +189,7 @@ export interface MarketOverview {
     price: number;
     amount: number;
     timestamp: string;
-    source: "bonding" | "market";
+    source: 'bonding' | 'market';
   }>;
 }
 

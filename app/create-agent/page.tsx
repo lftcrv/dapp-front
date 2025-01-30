@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
+import * as React from 'react';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Brain,
   Flame,
@@ -19,23 +19,23 @@ import {
   X,
   Loader2,
   Wallet,
-} from "lucide-react";
-import { createAgent } from "@/actions/agents/create/createAgent";
-import type { CharacterConfig } from "@/lib/types";
-import { showToast } from "@/lib/toast";
-import { useWallet } from "@/app/context/wallet-context";
+} from 'lucide-react';
+import { createAgent } from '@/actions/agents/create/createAgent';
+import type { CharacterConfig } from '@/lib/types';
+import { showToast } from '@/lib/toast';
+import { useWallet } from '@/app/context/wallet-context';
 
-type TabType = "basic" | "personality" | "examples";
-const TABS: TabType[] = ["basic", "personality", "examples"];
+type TabType = 'basic' | 'personality' | 'examples';
+const TABS: TabType[] = ['basic', 'personality', 'examples'];
 
 type ArrayFormField =
-  | "bio"
-  | "lore"
-  | "knowledge"
-  | "topics"
-  | "adjectives"
-  | "postExamples";
-type FormField = ArrayFormField | "name";
+  | 'bio'
+  | 'lore'
+  | 'knowledge'
+  | 'topics'
+  | 'adjectives'
+  | 'postExamples';
+type FormField = ArrayFormField | 'name';
 
 type FormDataType = {
   name: string;
@@ -59,23 +59,23 @@ type FormDataType = {
 };
 
 const initialFormData: FormDataType = {
-  name: "",
-  bio: [""],
-  lore: [""],
-  knowledge: [""],
-  topics: [""],
-  adjectives: [""],
+  name: '',
+  bio: [''],
+  lore: [''],
+  knowledge: [''],
+  topics: [''],
+  adjectives: [''],
   messageExamples: [
     [
-      { user: "user1", content: { text: "" } },
-      { user: "", content: { text: "" } },
+      { user: 'user1', content: { text: '' } },
+      { user: '', content: { text: '' } },
     ],
   ],
-  postExamples: [""],
+  postExamples: [''],
   style: {
-    all: [""],
-    chat: [""],
-    post: [""],
+    all: [''],
+    chat: [''],
+    post: [''],
   },
 };
 
@@ -100,7 +100,7 @@ export default function CreateAgentPage() {
 
   // Debug logging
   React.useEffect(() => {
-    console.log("Create Agent Page State:", {
+    console.log('Create Agent Page State:', {
       activeWalletType,
       starknetConnected: starknetWallet.isConnected,
       privyAuthenticated,
@@ -118,10 +118,10 @@ export default function CreateAgentPage() {
   ]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [agentType, setAgentType] = useState<"leftcurve" | "rightcurve">(
-    "leftcurve",
+  const [agentType, setAgentType] = useState<'leftcurve' | 'rightcurve'>(
+    'leftcurve',
   );
-  const [currentTab, setCurrentTab] = useState<TabType>("basic");
+  const [currentTab, setCurrentTab] = useState<TabType>('basic');
   const [formData, setFormData] = useState(initialFormData);
 
   const handleArrayInput = (
@@ -147,7 +147,7 @@ export default function CreateAgentPage() {
   const handleAddField = (field: ArrayFormField) => {
     setFormData((prev: FormDataType) => ({
       ...prev,
-      [field]: [...prev[field], ""],
+      [field]: [...prev[field], ''],
     }));
   };
 
@@ -177,9 +177,9 @@ export default function CreateAgentPage() {
               onChange={(e) => handleArrayInput(field, index, e.target.value)}
               placeholder={placeholder}
               className={`border-2 transition-all duration-200 ${
-                agentType === "leftcurve"
-                  ? "focus:border-yellow-500 focus:ring-yellow-500/20"
-                  : "focus:border-purple-500 focus:ring-purple-500/20"
+                agentType === 'leftcurve'
+                  ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
+                  : 'focus:border-purple-500 focus:ring-purple-500/20'
               }`}
             />
             {index > 0 && (
@@ -229,7 +229,7 @@ export default function CreateAgentPage() {
 
   const handleMessageExample = (
     index: number,
-    type: "user" | "agent",
+    type: 'user' | 'agent',
     value: string,
   ) => {
     setFormData((prev) => ({
@@ -237,7 +237,7 @@ export default function CreateAgentPage() {
       messageExamples: prev.messageExamples.map((example, i) => {
         if (i !== index) return example;
         const [user, agent] = example;
-        if (type === "user") {
+        if (type === 'user') {
           return [{ ...user, content: { text: value } }, agent];
         } else {
           return [user, { ...agent, content: { text: value } }];
@@ -252,8 +252,8 @@ export default function CreateAgentPage() {
       messageExamples: [
         ...prev.messageExamples,
         [
-          { user: "user1", content: { text: "" } },
-          { user: formData.name, content: { text: "" } },
+          { user: 'user1', content: { text: '' } },
+          { user: formData.name, content: { text: '' } },
         ],
       ],
     }));
@@ -271,7 +271,7 @@ export default function CreateAgentPage() {
       ...prev,
       style: {
         ...prev.style,
-        [type]: [...prev.style[type], ""],
+        [type]: [...prev.style[type], ''],
       },
     }));
   };
@@ -294,20 +294,20 @@ export default function CreateAgentPage() {
 
     // Get wallet address
     if (!currentAddress) {
-      showToast("CONNECTION_ERROR", "error");
+      showToast('CONNECTION_ERROR', 'error');
       return;
     }
 
     // Validate required fields
     if (!formData.name.trim()) {
-      showToast("AGENT_ERROR", "error");
-      setCurrentTab("basic");
+      showToast('AGENT_ERROR', 'error');
+      setCurrentTab('basic');
       return;
     }
 
     if (!formData.bio.some((b) => b.trim())) {
-      showToast("AGENT_ERROR", "error");
-      setCurrentTab("personality");
+      showToast('AGENT_ERROR', 'error');
+      setCurrentTab('personality');
       return;
     }
 
@@ -315,23 +315,23 @@ export default function CreateAgentPage() {
       !formData.messageExamples[0][0].content.text.trim() ||
       !formData.messageExamples[0][1].content.text.trim()
     ) {
-      showToast("AGENT_ERROR", "error");
-      setCurrentTab("examples");
+      showToast('AGENT_ERROR', 'error');
+      setCurrentTab('examples');
       return;
     }
 
     setIsSubmitting(true);
-    showToast("AGENT_CREATING", "loading");
+    showToast('AGENT_CREATING', 'loading');
 
     try {
       const characterConfig: CharacterConfig = {
         name: formData.name,
         clients: [],
-        modelProvider: "openai",
+        modelProvider: 'openai',
         settings: {
           secrets: {},
           voice: {
-            model: "en_US-male-medium",
+            model: 'en_US-male-medium',
           },
         },
         plugins: [],
@@ -352,7 +352,7 @@ export default function CreateAgentPage() {
       };
 
       // Convert agentType to curveSide
-      const curveSide = agentType === "leftcurve" ? "LEFT" : "RIGHT";
+      const curveSide = agentType === 'leftcurve' ? 'LEFT' : 'RIGHT';
 
       const result = await createAgent(
         formData.name,
@@ -362,47 +362,47 @@ export default function CreateAgentPage() {
       );
 
       if (result.success) {
-        showToast("AGENT_SUCCESS", "success");
-        router.push("/");
+        showToast('AGENT_SUCCESS', 'success');
+        router.push('/');
       } else {
-        console.error("Agent creation failed:", result.error);
-        showToast("AGENT_ERROR", "error");
+        console.error('Agent creation failed:', result.error);
+        showToast('AGENT_ERROR', 'error');
       }
     } catch (error) {
-      console.error("Agent creation error:", error);
-      showToast("AGENT_ERROR", "error");
+      console.error('Agent creation error:', error);
+      showToast('AGENT_ERROR', 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const getPlaceholder = (field: FormField | "style") => {
-    const isLeft = agentType === "leftcurve";
+  const getPlaceholder = (field: FormField | 'style') => {
+    const isLeft = agentType === 'leftcurve';
     const placeholders = {
-      name: isLeft ? "🦧 APEtoshi Nakamoto" : "🐙 AlphaMatrix",
+      name: isLeft ? '🦧 APEtoshi Nakamoto' : '🐙 AlphaMatrix',
       bio: isLeft
-        ? "Born in the depths of /biz/, forged in the fires of degen trades..."
-        : "A sophisticated AI trained on decades of market data and technical analysis...",
+        ? 'Born in the depths of /biz/, forged in the fires of degen trades...'
+        : 'A sophisticated AI trained on decades of market data and technical analysis...',
       lore: isLeft
         ? "Legend says they once 100x'd their portfolio by following a dream about bananas..."
-        : "Mastered the art of price action through quantum computing simulations...",
+        : 'Mastered the art of price action through quantum computing simulations...',
       knowledge: isLeft
-        ? "Meme trends, Twitter sentiment, Discord alpha signals..."
-        : "Order flow analysis, market microstructure, institutional trading patterns...",
+        ? 'Meme trends, Twitter sentiment, Discord alpha signals...'
+        : 'Order flow analysis, market microstructure, institutional trading patterns...',
       topics: isLeft
-        ? "memes, defi, nfts, degen plays"
-        : "derivatives, volatility, market making, arbitrage",
+        ? 'memes, defi, nfts, degen plays'
+        : 'derivatives, volatility, market making, arbitrage',
       adjectives: isLeft
-        ? "chaotic, based, memetic, galaxy-brain"
-        : "precise, analytical, strategic, sophisticated",
+        ? 'chaotic, based, memetic, galaxy-brain'
+        : 'precise, analytical, strategic, sophisticated',
     };
-    return placeholders[field as keyof typeof placeholders] || "";
+    return placeholders[field as keyof typeof placeholders] || '';
   };
 
   const tabs = [
-    { id: "basic", icon: Brain, label: "Basic" },
-    { id: "personality", icon: MessageSquare, label: "Personality" },
-    { id: "examples", icon: Pencil, label: "Examples" },
+    { id: 'basic', icon: Brain, label: 'Basic' },
+    { id: 'personality', icon: MessageSquare, label: 'Personality' },
+    { id: 'examples', icon: Pencil, label: 'Examples' },
   ];
 
   const renderStyleField = (
@@ -419,9 +419,9 @@ export default function CreateAgentPage() {
           size="sm"
           onClick={() => handleAddStyleField(type)}
           className={`${
-            agentType === "leftcurve"
-              ? "hover:bg-yellow-500/20"
-              : "hover:bg-purple-500/20"
+            agentType === 'leftcurve'
+              ? 'hover:bg-yellow-500/20'
+              : 'hover:bg-purple-500/20'
           }`}
         >
           <Plus className="h-4 w-4" />
@@ -495,7 +495,7 @@ export default function CreateAgentPage() {
             <Button
               variant="ghost"
               className="mb-4"
-              onClick={() => router.push("/")}
+              onClick={() => router.push('/')}
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Home
@@ -505,9 +505,9 @@ export default function CreateAgentPage() {
             <div className="text-center space-y-4">
               <h1
                 className={`font-sketch text-4xl bg-gradient-to-r ${
-                  agentType === "leftcurve"
-                    ? "from-yellow-500 via-orange-500 to-red-500"
-                    : "from-purple-500 via-indigo-500 to-blue-500"
+                  agentType === 'leftcurve'
+                    ? 'from-yellow-500 via-orange-500 to-red-500'
+                    : 'from-purple-500 via-indigo-500 to-blue-500'
                 } text-transparent bg-clip-text`}
               >
                 Deploy Your Agent
@@ -518,23 +518,23 @@ export default function CreateAgentPage() {
                 </p>
                 <div className="flex items-center gap-4">
                   <Button
-                    variant={agentType === "leftcurve" ? "default" : "outline"}
-                    onClick={() => setAgentType("leftcurve")}
+                    variant={agentType === 'leftcurve' ? 'default' : 'outline'}
+                    onClick={() => setAgentType('leftcurve')}
                     className={
-                      agentType === "leftcurve"
-                        ? "bg-yellow-500 hover:bg-yellow-600 transform hover:scale-105 transition-all"
-                        : ""
+                      agentType === 'leftcurve'
+                        ? 'bg-yellow-500 hover:bg-yellow-600 transform hover:scale-105 transition-all'
+                        : ''
                     }
                   >
                     <span className="mr-2">🦧</span> LeftCurve
                   </Button>
                   <Button
-                    variant={agentType === "rightcurve" ? "default" : "outline"}
-                    onClick={() => setAgentType("rightcurve")}
+                    variant={agentType === 'rightcurve' ? 'default' : 'outline'}
+                    onClick={() => setAgentType('rightcurve')}
                     className={
-                      agentType === "rightcurve"
-                        ? "bg-purple-500 hover:bg-purple-600 transform hover:scale-105 transition-all"
-                        : ""
+                      agentType === 'rightcurve'
+                        ? 'bg-purple-500 hover:bg-purple-600 transform hover:scale-105 transition-all'
+                        : ''
                     }
                   >
                     <span className="mr-2">🐙</span> RightCurve
@@ -543,18 +543,18 @@ export default function CreateAgentPage() {
                 <motion.div
                   className="space-y-1"
                   initial={false}
-                  animate={{ x: agentType === "leftcurve" ? 0 : 20 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  animate={{ x: agentType === 'leftcurve' ? 0 : 20 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                 >
                   <p className="text-muted-foreground text-sm">
-                    {agentType === "leftcurve"
-                      ? "Creative chaos, meme magic, and pure degen energy"
-                      : "Technical mastery, market wisdom, and calculated alpha"}
+                    {agentType === 'leftcurve'
+                      ? 'Creative chaos, meme magic, and pure degen energy'
+                      : 'Technical mastery, market wisdom, and calculated alpha'}
                   </p>
                   <p className="text-[13px] text-muted-foreground italic">
-                    {agentType === "leftcurve"
-                      ? "For those who believe fundamentals are just vibes"
-                      : "For those who see patterns in the matrix"}
+                    {agentType === 'leftcurve'
+                      ? 'For those who believe fundamentals are just vibes'
+                      : 'For those who see patterns in the matrix'}
                   </p>
                 </motion.div>
                 <p className="text-[12px] text-yellow-500/70 animate-pulse">
@@ -567,7 +567,7 @@ export default function CreateAgentPage() {
             <div className="w-full bg-muted rounded-full h-2 mb-6">
               <div
                 className={`h-full rounded-full transition-all duration-300 ${
-                  agentType === "leftcurve" ? "bg-yellow-500" : "bg-purple-500"
+                  agentType === 'leftcurve' ? 'bg-yellow-500' : 'bg-purple-500'
                 }`}
                 style={{
                   width: `${((TABS.indexOf(currentTab) + 1) / TABS.length) * 100}%`,
@@ -592,11 +592,11 @@ export default function CreateAgentPage() {
                           className={`transition-all duration-200 ${
                             currentTab === id
                               ? `${
-                                  agentType === "leftcurve"
-                                    ? "data-[state=active]:bg-yellow-500/20 data-[state=active]:text-yellow-700"
-                                    : "data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-700"
+                                  agentType === 'leftcurve'
+                                    ? 'data-[state=active]:bg-yellow-500/20 data-[state=active]:text-yellow-700'
+                                    : 'data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-700'
                                 }`
-                              : "hover:bg-muted"
+                              : 'hover:bg-muted'
                           }`}
                         >
                           <Icon className="mr-2 h-4 w-4" />
@@ -616,25 +616,25 @@ export default function CreateAgentPage() {
                           onChange={(e) =>
                             setFormData({ ...formData, name: e.target.value })
                           }
-                          placeholder={getPlaceholder("name")}
+                          placeholder={getPlaceholder('name')}
                           required
                           className={`border-2 transition-all duration-200 ${
-                            agentType === "leftcurve"
-                              ? "focus:border-yellow-500 focus:ring-yellow-500/20"
-                              : "focus:border-purple-500 focus:ring-purple-500/20"
+                            agentType === 'leftcurve'
+                              ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
+                              : 'focus:border-purple-500 focus:ring-purple-500/20'
                           }`}
                         />
                       </div>
 
                       {renderArrayField(
-                        "topics",
-                        "Topics",
-                        getPlaceholder("topics"),
+                        'topics',
+                        'Topics',
+                        getPlaceholder('topics'),
                       )}
                       {renderArrayField(
-                        "adjectives",
-                        "Adjectives",
-                        getPlaceholder("adjectives"),
+                        'adjectives',
+                        'Adjectives',
+                        getPlaceholder('adjectives'),
                       )}
                     </TabsContent>
 
@@ -646,11 +646,11 @@ export default function CreateAgentPage() {
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => handleAddField("bio")}
+                            onClick={() => handleAddField('bio')}
                             className={`${
-                              agentType === "leftcurve"
-                                ? "hover:bg-yellow-500/20"
-                                : "hover:bg-purple-500/20"
+                              agentType === 'leftcurve'
+                                ? 'hover:bg-yellow-500/20'
+                                : 'hover:bg-purple-500/20'
                             }`}
                           >
                             <Plus className="h-4 w-4" />
@@ -663,16 +663,16 @@ export default function CreateAgentPage() {
                               className="min-h-[80px] w-full rounded-md border-2 border-input bg-background px-3 py-2 text-sm focus:ring-2 ring-offset-2"
                               value={item}
                               onChange={(e) =>
-                                handleArrayInput("bio", index, e.target.value)
+                                handleArrayInput('bio', index, e.target.value)
                               }
-                              placeholder={getPlaceholder("bio")}
+                              placeholder={getPlaceholder('bio')}
                             />
                             {index > 0 && (
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => handleRemoveField("bio", index)}
+                                onClick={() => handleRemoveField('bio', index)}
                                 className="hover:bg-red-500/20 self-start"
                               >
                                 <X className="h-4 w-4" />
@@ -682,11 +682,11 @@ export default function CreateAgentPage() {
                         ))}
                       </div>
 
-                      {renderArrayField("lore", "Lore", getPlaceholder("lore"))}
+                      {renderArrayField('lore', 'Lore', getPlaceholder('lore'))}
                       {renderArrayField(
-                        "knowledge",
-                        "Knowledge",
-                        getPlaceholder("knowledge"),
+                        'knowledge',
+                        'Knowledge',
+                        getPlaceholder('knowledge'),
                       )}
                     </TabsContent>
 
@@ -700,9 +700,9 @@ export default function CreateAgentPage() {
                             size="sm"
                             onClick={handleAddMessageExample}
                             className={`${
-                              agentType === "leftcurve"
-                                ? "hover:bg-yellow-500/20"
-                                : "hover:bg-purple-500/20"
+                              agentType === 'leftcurve'
+                                ? 'hover:bg-yellow-500/20'
+                                : 'hover:bg-purple-500/20'
                             }`}
                           >
                             <Plus className="h-4 w-4" />
@@ -713,9 +713,9 @@ export default function CreateAgentPage() {
                           <Card
                             key={index}
                             className={`p-4 relative border-2 transition-all duration-200 group ${
-                              agentType === "leftcurve"
-                                ? "hover:border-yellow-500/50"
-                                : "hover:border-purple-500/50"
+                              agentType === 'leftcurve'
+                                ? 'hover:border-yellow-500/50'
+                                : 'hover:border-purple-500/50'
                             }`}
                           >
                             {index > 0 && (
@@ -734,42 +734,42 @@ export default function CreateAgentPage() {
                             <div className="space-y-3">
                               <textarea
                                 className={`min-h-[60px] w-full rounded-md border-2 bg-background px-3 py-2 text-sm transition-all duration-200 ${
-                                  agentType === "leftcurve"
-                                    ? "focus:border-yellow-500 focus:ring-yellow-500/20"
-                                    : "focus:border-purple-500 focus:ring-purple-500/20"
+                                  agentType === 'leftcurve'
+                                    ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
+                                    : 'focus:border-purple-500 focus:ring-purple-500/20'
                                 }`}
                                 value={example[0].content.text}
                                 onChange={(e) =>
                                   handleMessageExample(
                                     index,
-                                    "user",
+                                    'user',
                                     e.target.value,
                                   )
                                 }
                                 placeholder={
-                                  agentType === "leftcurve"
-                                    ? "wen moon ser?"
+                                  agentType === 'leftcurve'
+                                    ? 'wen moon ser?'
                                     : "What's your analysis of current market conditions?"
                                 }
                               />
                               <textarea
                                 className={`min-h-[60px] w-full rounded-md border-2 bg-background px-3 py-2 text-sm transition-all duration-200 ${
-                                  agentType === "leftcurve"
-                                    ? "focus:border-yellow-500 focus:ring-yellow-500/20"
-                                    : "focus:border-purple-500 focus:ring-purple-500/20"
+                                  agentType === 'leftcurve'
+                                    ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
+                                    : 'focus:border-purple-500 focus:ring-purple-500/20'
                                 }`}
                                 value={example[1].content.text}
                                 onChange={(e) =>
                                   handleMessageExample(
                                     index,
-                                    "agent",
+                                    'agent',
                                     e.target.value,
                                   )
                                 }
                                 placeholder={
-                                  agentType === "leftcurve"
-                                    ? "ngmi if you have to ask anon 🚀"
-                                    : "Based on order flow analysis and market structure..."
+                                  agentType === 'leftcurve'
+                                    ? 'ngmi if you have to ask anon 🚀'
+                                    : 'Based on order flow analysis and market structure...'
                                 }
                               />
                             </div>
@@ -778,32 +778,32 @@ export default function CreateAgentPage() {
                       </div>
 
                       {renderStyleField(
-                        "all",
-                        "General Style",
-                        agentType === "leftcurve"
-                          ? "Uses excessive emojis and meme slang"
-                          : "Maintains professional and analytical tone",
+                        'all',
+                        'General Style',
+                        agentType === 'leftcurve'
+                          ? 'Uses excessive emojis and meme slang'
+                          : 'Maintains professional and analytical tone',
                       )}
                       {renderStyleField(
-                        "chat",
-                        "Chat Style",
-                        agentType === "leftcurve"
-                          ? "Responds with degen enthusiasm"
-                          : "Provides detailed market analysis",
+                        'chat',
+                        'Chat Style',
+                        agentType === 'leftcurve'
+                          ? 'Responds with degen enthusiasm'
+                          : 'Provides detailed market analysis',
                       )}
                       {renderStyleField(
-                        "post",
-                        "Post Style",
-                        agentType === "leftcurve"
-                          ? "Creates viral meme content"
-                          : "Writes educational threads",
+                        'post',
+                        'Post Style',
+                        agentType === 'leftcurve'
+                          ? 'Creates viral meme content'
+                          : 'Writes educational threads',
                       )}
                     </TabsContent>
                   </Tabs>
                 </div>
 
                 <div className="flex gap-4 pt-6">
-                  {currentTab !== "basic" && (
+                  {currentTab !== 'basic' && (
                     <Button
                       type="button"
                       variant="outline"
@@ -815,14 +815,14 @@ export default function CreateAgentPage() {
                     </Button>
                   )}
 
-                  {currentTab !== "examples" ? (
+                  {currentTab !== 'examples' ? (
                     <Button
                       type="button"
                       onClick={handleNext}
                       className={`flex-1 ${
-                        agentType === "leftcurve"
-                          ? "bg-yellow-500 hover:bg-yellow-600"
-                          : "bg-purple-500 hover:bg-purple-600"
+                        agentType === 'leftcurve'
+                          ? 'bg-yellow-500 hover:bg-yellow-600'
+                          : 'bg-purple-500 hover:bg-purple-600'
                       }`}
                     >
                       Next
@@ -833,9 +833,9 @@ export default function CreateAgentPage() {
                       type="button"
                       size="lg"
                       className={`w-full font-bold ${
-                        agentType === "leftcurve"
-                          ? "bg-gradient-to-r from-yellow-500 to-red-500 hover:opacity-90"
-                          : "bg-gradient-to-r from-purple-500 to-blue-500 hover:opacity-90"
+                        agentType === 'leftcurve'
+                          ? 'bg-gradient-to-r from-yellow-500 to-red-500 hover:opacity-90'
+                          : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:opacity-90'
                       }`}
                       disabled={isSubmitting}
                       onClick={handleDeploy}
@@ -848,7 +848,7 @@ export default function CreateAgentPage() {
                       ) : (
                         <>
                           <Flame className="mr-2 h-5 w-5" />
-                          DEPLOY {agentType === "leftcurve" ? "🦧" : "🐙"} AGENT
+                          DEPLOY {agentType === 'leftcurve' ? '🦧' : '🐙'} AGENT
                         </>
                       )}
                     </Button>

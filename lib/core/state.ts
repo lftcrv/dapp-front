@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import { Result } from "./error-handler";
+import { useState, useCallback } from 'react';
+import { Result } from './error-handler';
 
 export interface AsyncState<T> {
   data: T | null;

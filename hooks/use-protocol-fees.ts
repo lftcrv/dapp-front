@@ -1,8 +1,8 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { useWallet } from "@/app/context/wallet-context";
-import { protocolFeesService } from "@/lib/services/api/protocol-fees";
-import { useToast } from "@/hooks/use-toast";
-import { ProtocolFeesData } from "@/lib/types";
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useWallet } from '@/app/context/wallet-context';
+import { protocolFeesService } from '@/lib/services/api/protocol-fees';
+import { useToast } from '@/hooks/use-toast';
+import { ProtocolFeesData } from '@/lib/types';
 
 export interface TimeLeft {
   days: number;
@@ -33,11 +33,11 @@ export function useProtocolFees() {
   const { toast } = useToast();
   const [state, setState] = useState<ProtocolFeesState>({
     feesData: null,
-    timeLeft: "--:--:--",
+    timeLeft: '--:--:--',
     isLoading: true,
     error: null,
-    userShare: "0",
-    userSharePercentage: "0",
+    userShare: '0',
+    userSharePercentage: '0',
     isClaiming: false,
   });
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(DEFAULT_TIME_LEFT);
@@ -69,7 +69,7 @@ export function useProtocolFees() {
     } catch (error) {
       setState((prev) => ({
         ...prev,
-        error: error instanceof Error ? error : new Error("Unknown error"),
+        error: error instanceof Error ? error : new Error('Unknown error'),
         isLoading: false,
       }));
     }
@@ -82,17 +82,17 @@ export function useProtocolFees() {
       setState((prev) => ({ ...prev, isClaiming: true }));
       const result = await claimFeesRewards(address);
 
-      if (result.success && result.data && "claimed" in result.data) {
+      if (result.success && result.data && 'claimed' in result.data) {
         toast({
-          title: "Success",
+          title: 'Success',
           description: `Claimed ${result.data.claimed} $LEFT`,
         });
         await fetchFeesData();
       } else {
         toast({
-          title: "Error",
-          description: result.error?.message || "Failed to claim rewards",
-          variant: "destructive",
+          title: 'Error',
+          description: result.error?.message || 'Failed to claim rewards',
+          variant: 'destructive',
         });
       }
     } finally {
@@ -137,7 +137,7 @@ export function useProtocolFees() {
 
   const formatTimeLeft = useCallback((time: TimeLeft) => {
     const { hours, minutes, seconds } = time;
-    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   }, []);
 
   interface Gainer {
@@ -146,12 +146,12 @@ export function useProtocolFees() {
   }
 
   const getUserShare = useCallback(() => {
-    if (!address || !state.feesData?.userShares) return "0";
-    return state.feesData.userShares[address] || "0";
+    if (!address || !state.feesData?.userShares) return '0';
+    return state.feesData.userShares[address] || '0';
   }, [address, state.feesData?.userShares]);
 
   const getUserSharePercentage = useCallback(() => {
-    if (!address || !state.feesData?.distribution) return "0";
+    if (!address || !state.feesData?.distribution) return '0';
 
     const { leftCurve, rightCurve } = state.feesData.distribution;
     const leftCurveGainer = leftCurve.topGainers.find(
@@ -163,7 +163,7 @@ export function useProtocolFees() {
 
     if (leftCurveGainer) return leftCurveGainer.percentage;
     if (rightCurveGainer) return rightCurveGainer.percentage;
-    return "0";
+    return '0';
   }, [address, state.feesData?.distribution]);
 
   // Initial data fetch with debounce

@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   simulateBuyTokens,
   simulateSellTokens,
   getBondingCurvePercentage,
-} from "@/actions/agents/token/getTokenInfo";
+} from '@/actions/agents/token/getTokenInfo';
 
 interface UseBondingCurveProps {
   agentId: string;
@@ -34,7 +34,7 @@ export function useBondingCurve({
   agentId,
 }: UseBondingCurveProps): BondingCurveData {
   const [data, setData] =
-    useState<Omit<BondingCurveData, "refresh">>(INITIAL_STATE);
+    useState<Omit<BondingCurveData, 'refresh'>>(INITIAL_STATE);
   const isFetching = useRef(false);
 
   const fetchData = useCallback(async () => {
@@ -50,12 +50,12 @@ export function useBondingCurve({
 
       /// WIth 6 decimals instead of 18 (it's token not ether)
       const [buyResult, sellResult] = await Promise.all([
-        simulateBuyTokens(agentId, "1000000"),
-        simulateSellTokens(agentId, "1000000"),
+        simulateBuyTokens(agentId, '1000000'),
+        simulateSellTokens(agentId, '1000000'),
       ]);
 
       if (!buyResult.success || !sellResult.success) {
-        throw new Error("Simulation failed");
+        throw new Error('Simulation failed');
       }
 
       setData({
@@ -66,11 +66,11 @@ export function useBondingCurve({
         error: null,
       });
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error('Error fetching data:', error);
       setData((prev) => ({
         ...prev,
         isLoading: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       }));
     } finally {
       isFetching.current = false;

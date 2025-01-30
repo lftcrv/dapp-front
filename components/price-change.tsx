@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { memo, useEffect, useState, useMemo } from "react";
-import { cn } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowUpIcon, ArrowDownIcon } from "lucide-react";
+import { memo, useEffect, useState, useMemo } from 'react';
+import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ArrowUpIcon, ArrowDownIcon } from 'lucide-react';
 
 interface PriceChangeProps {
   initialValue?: number;
@@ -12,7 +12,7 @@ interface PriceChangeProps {
   precision?: number;
   className?: string;
   hideZero?: boolean;
-  variant?: "default" | "compact" | "icon-only";
+  variant?: 'default' | 'compact' | 'icon-only';
 }
 
 interface PriceChangeState {
@@ -22,9 +22,9 @@ interface PriceChangeState {
 }
 
 const LoadingState = memo(({ className }: { className?: string }) => (
-  <Skeleton className={cn("h-4 w-16", className)} />
+  <Skeleton className={cn('h-4 w-16', className)} />
 ));
-LoadingState.displayName = "LoadingState";
+LoadingState.displayName = 'LoadingState';
 
 const PriceIcon = memo(({ isPositive }: { isPositive: boolean }) =>
   isPositive ? (
@@ -33,7 +33,7 @@ const PriceIcon = memo(({ isPositive }: { isPositive: boolean }) =>
     <ArrowDownIcon className="w-3 h-3 text-red-500" />
   ),
 );
-PriceIcon.displayName = "PriceIcon";
+PriceIcon.displayName = 'PriceIcon';
 
 const formatValue = (value: number, precision: number = 2) => {
   const absValue = Math.abs(value);
@@ -51,7 +51,7 @@ export const PriceChange = memo(
     precision = 2,
     className,
     hideZero = true,
-    variant = "default",
+    variant = 'default',
   }: PriceChangeProps) => {
     const [change, setChange] = useState<PriceChangeState>(() => {
       const value = initialValue ?? 0;
@@ -94,20 +94,20 @@ export const PriceChange = memo(
       return null;
     }
 
-    if (variant === "icon-only") {
+    if (variant === 'icon-only') {
       return <PriceIcon isPositive={change.isPositive} />;
     }
 
     const content =
-      variant === "compact"
+      variant === 'compact'
         ? formattedValue
-        : `${change.isPositive ? "+" : "-"}${formattedValue}%`;
+        : `${change.isPositive ? '+' : '-'}${formattedValue}%`;
 
     return (
       <span
         className={cn(
-          "font-mono inline-flex items-center gap-1",
-          change.isPositive ? "text-green-500" : "text-red-500",
+          'font-mono inline-flex items-center gap-1',
+          change.isPositive ? 'text-green-500' : 'text-red-500',
           className,
         )}
       >
@@ -117,4 +117,4 @@ export const PriceChange = memo(
     );
   },
 );
-PriceChange.displayName = "PriceChange";
+PriceChange.displayName = 'PriceChange';

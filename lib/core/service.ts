@@ -1,4 +1,4 @@
-import { Result } from "./error-handler";
+import { Result } from './error-handler';
 
 export interface IBaseService<T> {
   getAll(): Promise<Result<T[]>>;
@@ -19,7 +19,7 @@ export abstract class BaseService<T> implements IBaseService<T> {
 
   constructor(config: IServiceConfig = {}) {
     this.config = {
-      baseUrl: "",
+      baseUrl: '',
       headers: {},
       ...config,
     };
@@ -34,7 +34,7 @@ export abstract class SingletonService<T> implements ISingletonService<T> {
 
   constructor(config: IServiceConfig = {}) {
     this.config = {
-      baseUrl: "",
+      baseUrl: '',
       headers: {},
       ...config,
     };
