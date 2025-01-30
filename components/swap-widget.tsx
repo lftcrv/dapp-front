@@ -81,6 +81,7 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
   const [amount, setAmount] = useState('')
   const [simulatedAmount, setSimulatedAmount] = useState('')
   const [activeTab, setActiveTab] = useState('buy')
+  const [error, setError] = useState<string | null>(null)
   const { currentAddress: address } = useWallet()
   const { toast } = useToast()
   const isLeftCurve = agent.type === 'leftcurve'
@@ -90,6 +91,7 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
     const simulateSwap = async () => {
       if (!amount || !agent.id) {
         setSimulatedAmount('')
+        setError(null)
         return
       }
 
@@ -97,23 +99,39 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
         const inputAmount = parseFloat(amount)
         if (isNaN(inputAmount) || inputAmount === 0 || !isFinite(inputAmount)) {
           setSimulatedAmount('')
+          setError(null)
           return
         }
 
+        // For sell, we need to convert the agent token amount to wei
+        // For buy, we convert the LEFT amount to wei
         const amountInWei = BigInt(Math.floor(inputAmount * 1e18)).toString()
         const result = await (activeTab === 'buy' 
-          ? simulateBuyTokens(agent.id, amountInWei)
-          : simulateSellTokens(agent.id, amountInWei))
+          ? simulateBuyTokens(agent.id, amountInWei)  // Buying with LEFT
+          : simulateSellTokens(agent.id, amountInWei)) // Selling agent tokens
         
         if (result.success && result.data) {
           const outputAmount = Number(result.data) / 1e18
           setSimulatedAmount(outputAmount.toFixed(6))
+          setError(null)
         } else {
           setSimulatedAmount('')
+          // Check if it's the unwrap error (insufficient liquidity)
+          if (result.error?.includes('Option::unwrap failed')) {
+            setError('Insufficient liquidity in the bonding curve')
+          } else {
+            setError(result.error || 'Failed to simulate swap')
+          }
         }
       } catch (error) {
         console.error('Failed to simulate swap:', error)
         setSimulatedAmount('')
+        // Check for the specific contract error
+        if (error instanceof Error && error.message.includes('Option::unwrap failed')) {
+          setError('Insufficient liquidity in the bonding curve')
+        } else {
+          setError('Failed to simulate swap')
+        }
       }
     }
 
@@ -172,7 +190,12 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
         </Button>
       </div>
       
-      <Tabs defaultValue="buy" className="w-full" onValueChange={setActiveTab}>
+      <Tabs defaultValue="buy" className="w-full" onValueChange={(value) => {
+        setActiveTab(value)
+        setError(null)
+        setAmount('')
+        setSimulatedAmount('')
+      }}>
         <TabsList className="grid grid-cols-2 mb-4">
           <TabsTrigger value="buy" className={cn(
             "font-medium",
@@ -209,11 +232,17 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
             isLeftCurve={isLeftCurve}
           />
 
+          {error && (
+            <div className="text-sm text-red-500 px-1">
+              {error}
+            </div>
+          )}
+
           <Button 
             className={buttonStyle}
             size="lg"
             onClick={handleSwap}
-            disabled={!address || !amount}
+            disabled={!address || !amount || !!error}
           >
             {buttonText}
           </Button>
@@ -249,11 +278,17 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
             isLeftCurve={isLeftCurve}
           />
 
+          {error && (
+            <div className="text-sm text-red-500 px-1">
+              {error}
+            </div>
+          )}
+
           <Button 
             className={buttonStyle}
             size="lg"
             onClick={handleSwap}
-            disabled={!address || !amount}
+            disabled={!address || !amount || !!error}
           >
             {buttonText}
           </Button>

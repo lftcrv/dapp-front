@@ -40,15 +40,11 @@ export function useBondingCurve({ agentId }: UseBondingCurveProps): BondingCurve
       if (!percentageResult.success) throw new Error(percentageResult.error)
 
       const percentage = percentageResult.data ?? 0
-      console.log('Backend response - Percentage:', percentageResult)
 
       const [buyResult, sellResult] = await Promise.all([
         simulateBuyTokens(agentId, "1000000000000000000"),
         simulateSellTokens(agentId, "1000000000000000000")
       ])
-
-      console.log('Backend response - Buy:', buyResult)
-      console.log('Backend response - Sell:', sellResult)
 
       if (!buyResult.success || !sellResult.success) {
         throw new Error('Simulation failed')

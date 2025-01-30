@@ -206,13 +206,6 @@ export const PriceChart = memo(({
   }, [])
 
   const chartData = useMemo(() => {
-    console.log('Chart data calculation:', {
-      hasData: !!data?.length,
-      inBondingCurve,
-      buyPrice: bondingCurveData.buyPrice,
-      isLoading: bondingCurveData.isLoading
-    })
-
     // If we have historical data, use it
     if (data?.length) return aggregateData(data, interval)
     
@@ -241,7 +234,6 @@ export const PriceChart = memo(({
         }
       ]
 
-      console.log('Generated initial points:', dataPoints)
       return dataPoints
     }
     
@@ -249,17 +241,8 @@ export const PriceChart = memo(({
   }, [data, interval, aggregateData, inBondingCurve, bondingCurveData])
 
   useEffect(() => {
-    if (!chartContainerRef.current) {
-      console.log('No chart container')
-      return
-    }
-    
-    if (!chartData.length) {
-      console.log('No chart data available')
-      return
-    }
-
-    console.log('Creating chart with data:', chartData)
+    if (!chartContainerRef.current) return
+    if (!chartData.length) return
     
     const chart = createChart(chartContainerRef.current, {
       layout: {
