@@ -1,6 +1,6 @@
-import fs from 'fs';
-import path from 'path';
-import { stark } from 'starknet';
+import fs from "fs";
+import path from "path";
+import { stark } from "starknet";
 
 interface User {
   id: string;
@@ -13,7 +13,7 @@ interface User {
   updatedAt: string;
 }
 
-const USERS_FILE_PATH = path.join(process.cwd(), 'data', 'users.json');
+const USERS_FILE_PATH = path.join(process.cwd(), "data", "users.json");
 
 // Helper to read users file
 function readUsersFile(): { users: User[] } {
@@ -21,7 +21,7 @@ function readUsersFile(): { users: User[] } {
     fs.writeFileSync(USERS_FILE_PATH, JSON.stringify({ users: [] }, null, 2));
     return { users: [] };
   }
-  const data = fs.readFileSync(USERS_FILE_PATH, 'utf-8');
+  const data = fs.readFileSync(USERS_FILE_PATH, "utf-8");
   return JSON.parse(data);
 }
 
@@ -34,24 +34,24 @@ function writeUsersFile(data: { users: User[] }) {
 export function findUser(address: string): User | undefined {
   const { users } = readUsersFile();
   const normalizedSearchAddress = address.toLowerCase();
-  console.log('Finding user for address:', normalizedSearchAddress);
-  
-  const user = users.find(user => {
+  console.log("Finding user for address:", normalizedSearchAddress);
+
+  const user = users.find((user) => {
     const normalizedStarknetAddress = user.starknetAddress?.toLowerCase();
     const normalizedEvmAddress = user.evmAddress?.toLowerCase();
-    
-    console.log('Comparing with user:', {
+
+    console.log("Comparing with user:", {
       starknetAddress: normalizedStarknetAddress,
-      evmAddress: normalizedEvmAddress
+      evmAddress: normalizedEvmAddress,
     });
-    
+
     return (
       normalizedStarknetAddress === normalizedSearchAddress ||
       normalizedEvmAddress === normalizedSearchAddress
     );
   });
 
-  console.log('Found user:', user);
+  console.log("Found user:", user);
   return user;
 }
 
@@ -67,9 +67,12 @@ export function upsertUser(params: {
 
   // Try to find existing user
   let user = users.find(
-    u => 
-      (params.starknetAddress && u.starknetAddress?.toLowerCase() === params.starknetAddress.toLowerCase()) ||
-      (params.evmAddress && u.evmAddress?.toLowerCase() === params.evmAddress.toLowerCase())
+    (u) =>
+      (params.starknetAddress &&
+        u.starknetAddress?.toLowerCase() ===
+          params.starknetAddress.toLowerCase()) ||
+      (params.evmAddress &&
+        u.evmAddress?.toLowerCase() === params.evmAddress.toLowerCase()),
   );
 
   if (user) {
@@ -81,7 +84,7 @@ export function upsertUser(params: {
     };
 
     // Update user in array
-    const index = users.findIndex(u => u.id === user!.id);
+    const index = users.findIndex((u) => u.id === user!.id);
     users[index] = user;
   } else {
     // Create new user
@@ -112,7 +115,7 @@ export function upsertUser(params: {
 // Update user profile
 export function updateUserProfile(
   address: string,
-  updates: { name?: string; twitter?: string }
+  updates: { name?: string; twitter?: string },
 ): User | undefined {
   const user = findUser(address);
   if (!user) return undefined;
@@ -130,9 +133,9 @@ export function deleteUser(address: string): boolean {
   const initialLength = users.length;
 
   const newUsers = users.filter(
-    user => 
+    (user) =>
       user.starknetAddress.toLowerCase() !== address.toLowerCase() &&
-      user.evmAddress?.toLowerCase() !== address.toLowerCase()
+      user.evmAddress?.toLowerCase() !== address.toLowerCase(),
   );
 
   if (newUsers.length === initialLength) {
@@ -141,4 +144,4 @@ export function deleteUser(address: string): boolean {
 
   writeUsersFile({ users: newUsers });
   return true;
-} 
+}

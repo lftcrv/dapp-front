@@ -1,27 +1,27 @@
-'use client'
+"use client";
 
-import { usePrivy } from '@privy-io/react-auth'
-import { Button } from '@/components/ui/button'
-import { Wallet } from 'lucide-react'
-import { memo, useState, useCallback } from 'react'
-import { Loader2 } from 'lucide-react'
+import { usePrivy } from "@privy-io/react-auth";
+import { Button } from "@/components/ui/button";
+import { Wallet } from "lucide-react";
+import { memo, useState, useCallback } from "react";
+import { Loader2 } from "lucide-react";
 
 const ConnectWallet = memo(() => {
-  const { login, ready } = usePrivy()
-  const [isLoading, setIsLoading] = useState(false)
+  const { login, ready } = usePrivy();
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = useCallback(async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      await login()
+      await login();
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [login])
+  }, [login]);
 
   return (
-    <Button 
-      onClick={handleLogin} 
+    <Button
+      onClick={handleLogin}
       disabled={!ready || isLoading}
       variant="outline"
       size="sm"
@@ -34,8 +34,8 @@ const ConnectWallet = memo(() => {
       )}
       Connect Wallet
     </Button>
-  )
-})
-ConnectWallet.displayName = 'ConnectWallet'
+  );
+});
+ConnectWallet.displayName = "ConnectWallet";
 
-export { ConnectWallet } 
+export { ConnectWallet };

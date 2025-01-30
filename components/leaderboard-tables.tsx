@@ -1,15 +1,22 @@
-'use client'
+"use client";
 
-import { Agent } from "@/lib/types"
-import { AgentAvatar } from '@/components/ui/agent-avatar'
-import { cn } from "@/lib/utils"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { motion } from "framer-motion"
-import { UserCircle } from "lucide-react"
-import { memo, useMemo } from 'react'
+import { Agent } from "@/lib/types";
+import { AgentAvatar } from "@/components/ui/agent-avatar";
+import { cn } from "@/lib/utils";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { motion } from "framer-motion";
+import { UserCircle } from "lucide-react";
+import { memo, useMemo } from "react";
 
 interface AgentCellProps {
-  agent: Agent
+  agent: Agent;
 }
 
 const AgentCell = memo(({ agent }: AgentCellProps) => (
@@ -33,123 +40,135 @@ const AgentCell = memo(({ agent }: AgentCellProps) => (
       </div>
     </div>
   </div>
-))
-AgentCell.displayName = 'AgentCell'
+));
+AgentCell.displayName = "AgentCell";
 
 interface LeaderboardRowProps {
-  agent: Agent
-  index: number
-  type: 'leftcurve' | 'rightcurve'
-  scoreKey: 'creativityIndex' | 'performanceIndex'
+  agent: Agent;
+  index: number;
+  type: "leftcurve" | "rightcurve";
+  scoreKey: "creativityIndex" | "performanceIndex";
 }
 
-const LeaderboardRow = memo(({ agent, index, type, scoreKey }: LeaderboardRowProps) => (
-  <TableRow>
-    <TableCell>
-      <span className="font-mono text-sm">
-        {index === 0 ? '👑' : `#${index + 1}`}
-      </span>
-    </TableCell>
-    <TableCell>
-      <AgentCell agent={agent} />
-    </TableCell>
-    <TableCell className="text-right font-mono">
-      ${agent.price.toFixed(2)}
-    </TableCell>
-    <TableCell className="text-right font-mono">
-      ${agent.marketCap.toLocaleString()}
-    </TableCell>
-    <TableCell className="text-right">
-      <div className={cn(
-        "font-mono text-sm",
-        type === 'leftcurve' ? "text-orange-500" : "text-purple-500"
-      )}>
-        {(agent[scoreKey] * 100).toFixed(0)}%
-      </div>
-    </TableCell>
-  </TableRow>
-))
-LeaderboardRow.displayName = 'LeaderboardRow'
+const LeaderboardRow = memo(
+  ({ agent, index, type, scoreKey }: LeaderboardRowProps) => (
+    <TableRow>
+      <TableCell>
+        <span className="font-mono text-sm">
+          {index === 0 ? "👑" : `#${index + 1}`}
+        </span>
+      </TableCell>
+      <TableCell>
+        <AgentCell agent={agent} />
+      </TableCell>
+      <TableCell className="text-right font-mono">
+        ${agent.price.toFixed(2)}
+      </TableCell>
+      <TableCell className="text-right font-mono">
+        ${agent.marketCap.toLocaleString()}
+      </TableCell>
+      <TableCell className="text-right">
+        <div
+          className={cn(
+            "font-mono text-sm",
+            type === "leftcurve" ? "text-orange-500" : "text-purple-500",
+          )}
+        >
+          {(agent[scoreKey] * 100).toFixed(0)}%
+        </div>
+      </TableCell>
+    </TableRow>
+  ),
+);
+LeaderboardRow.displayName = "LeaderboardRow";
 
 interface LeaderboardTableProps {
-  agents: Agent[]
-  title: string
-  type: 'leftcurve' | 'rightcurve'
-  scoreKey: 'creativityIndex' | 'performanceIndex'
-  description: string
+  agents: Agent[];
+  title: string;
+  type: "leftcurve" | "rightcurve";
+  scoreKey: "creativityIndex" | "performanceIndex";
+  description: string;
 }
 
-const LeaderboardTable = memo(({ agents, title, type, scoreKey, description }: LeaderboardTableProps) => {
-  const sortedAgents = useMemo(() => 
-    [...agents]
-      .filter(a => a.type === type)
-      .sort((a, b) => b[scoreKey] - a[scoreKey])
-  , [agents, type, scoreKey])
+const LeaderboardTable = memo(
+  ({ agents, title, type, scoreKey, description }: LeaderboardTableProps) => {
+    const sortedAgents = useMemo(
+      () =>
+        [...agents]
+          .filter((a) => a.type === type)
+          .sort((a, b) => b[scoreKey] - a[scoreKey]),
+      [agents, type, scoreKey],
+    );
 
-  return (
-    <motion.div 
-      className={cn(
-        "rounded-xl border p-4 backdrop-blur-sm flex-1",
-        type === 'leftcurve' 
-          ? "border-orange-500/20 bg-orange-950/5" 
-          : "border-purple-500/20 bg-purple-950/5"
-      )}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <div className="mb-4">
-        <h2 className={cn(
-          "font-sketch text-2xl text-center",
-          type === 'leftcurve' ? "text-orange-500" : "text-purple-500"
-        )}>
-          {title}
-        </h2>
-        <p className="text-sm text-muted-foreground text-center">{description}</p>
-      </div>
+    return (
+      <motion.div
+        className={cn(
+          "rounded-xl border p-4 backdrop-blur-sm flex-1",
+          type === "leftcurve"
+            ? "border-orange-500/20 bg-orange-950/5"
+            : "border-purple-500/20 bg-purple-950/5",
+        )}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="mb-4">
+          <h2
+            className={cn(
+              "font-sketch text-2xl text-center",
+              type === "leftcurve" ? "text-orange-500" : "text-purple-500",
+            )}
+          >
+            {title}
+          </h2>
+          <p className="text-sm text-muted-foreground text-center">
+            {description}
+          </p>
+        </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[50px]">Rank</TableHead>
-            <TableHead>Agent</TableHead>
-            <TableHead className="text-right">Price</TableHead>
-            <TableHead className="text-right">Market Cap</TableHead>
-            <TableHead className="text-right">Score</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {sortedAgents.map((agent, index) => (
-            <LeaderboardRow 
-              key={agent.id} 
-              agent={agent} 
-              index={index}
-              type={type}
-              scoreKey={scoreKey}
-            />
-          ))}
-        </TableBody>
-      </Table>
-    </motion.div>
-  )
-})
-LeaderboardTable.displayName = 'LeaderboardTable'
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[50px]">Rank</TableHead>
+              <TableHead>Agent</TableHead>
+              <TableHead className="text-right">Price</TableHead>
+              <TableHead className="text-right">Market Cap</TableHead>
+              <TableHead className="text-right">Score</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sortedAgents.map((agent, index) => (
+              <LeaderboardRow
+                key={agent.id}
+                agent={agent}
+                index={index}
+                type={type}
+                scoreKey={scoreKey}
+              />
+            ))}
+          </TableBody>
+        </Table>
+      </motion.div>
+    );
+  },
+);
+LeaderboardTable.displayName = "LeaderboardTable";
 
 interface LeaderboardTablesProps {
-  agents: Agent[]
+  agents: Agent[];
 }
 
 export const LeaderboardTables = memo(({ agents }: LeaderboardTablesProps) => (
   <div className="space-y-4">
     <div className="flex gap-4">
-      <LeaderboardTable 
+      <LeaderboardTable
         agents={agents}
         title="LEFTCURVE KINGS"
         type="leftcurve"
         scoreKey="creativityIndex"
         description="Top degen agents by creativity score"
       />
-      <LeaderboardTable 
+      <LeaderboardTable
         agents={agents}
         title="RIGHTCURVE LORDS"
         type="rightcurve"
@@ -158,5 +177,5 @@ export const LeaderboardTables = memo(({ agents }: LeaderboardTablesProps) => (
       />
     </div>
   </div>
-))
-LeaderboardTables.displayName = 'LeaderboardTables' 
+));
+LeaderboardTables.displayName = "LeaderboardTables";

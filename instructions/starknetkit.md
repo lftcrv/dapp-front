@@ -29,12 +29,12 @@ The order of connectors can be changed by passing connectors argument to the con
 import { connect } from "starknetkit"
 import { WebWalletConnector } from "starknetkit/webwallet"
 import { InjectedConnector } from "starknetkit/injected"
- 
+
 const { wallet, connectorData } = await connect({
-  connectors: [
-    new WebWalletConnector(),
-    new InjectedConnector({ options: { id: "argentX" } }),
-  ],
+connectors: [
+new WebWalletConnector(),
+new InjectedConnector({ options: { id: "argentX" } }),
+],
 })
 
 Connect function parameters types are: ConnectOptions or ConnectOptionsWithConnectors.
@@ -42,28 +42,28 @@ Connect function parameters types are: ConnectOptions or ConnectOptionsWithConne
 ConnectOptions is used to connect with the default connectors
 ConnectOptionsWithConnectors is used to connect with specific connectors (or define a custom order).
 export interface ConnectOptions extends GetWalletOptions {
-  dappName?: string
-  modalMode?: "alwaysAsk" | "canAsk" | "neverAsk"
-  modalTheme?: "light" | "dark" | "system"
-  storeVersion?: StoreVersion | null
-  resultType?: "connector" | "wallet"
-  webWalletUrl?: string
-  argentMobileOptions: ArgentMobileConnectorOptions
+dappName?: string
+modalMode?: "alwaysAsk" | "canAsk" | "neverAsk"
+modalTheme?: "light" | "dark" | "system"
+storeVersion?: StoreVersion | null
+resultType?: "connector" | "wallet"
+webWalletUrl?: string
+argentMobileOptions: ArgentMobileConnectorOptions
 }
- 
+
 export interface ConnectOptionsWithConnectors
-  extends Omit<ConnectOptions, "webWalletUrl" | "argentMobileOptions"> {
-  connectors?: StarknetkitConnector[]
+extends Omit<ConnectOptions, "webWalletUrl" | "argentMobileOptions"> {
+connectors?: StarknetkitConnector[]
 }
 Below is an example function that establishes a connection, then sets the connection and address states:
 
 const connectWallet = async () => {
-  const { wallet, connectorData } = await connect()
- 
-  if (wallet && connectorData) {
-    setConnection(wallet)
-    setAddress(connectorData.account)
-  }
+const { wallet, connectorData } = await connect()
+
+if (wallet && connectorData) {
+setConnection(wallet)
+setAddress(connectorData.account)
+}
 }
 
 To reconnect to a previously connected wallet on load:
@@ -73,56 +73,57 @@ const { wallet, connectorData } = await connect({ modalMode: "neverAsk" })
 Example:
 
 useEffect(() => {
-  const connectToStarknet = async () => {
-    const { wallet, connectorData } = await connect({ modalMode: "neverAsk" })
- 
+const connectToStarknet = async () => {
+const { wallet, connectorData } = await connect({ modalMode: "neverAsk" })
+
     if (wallet && wallet.isConnected) {
       setConnection(wallet)
       setAddress(wallet.selectedAddress)
     }
-  }
- 
-  connectToStarknet()
+
+}
+
+connectToStarknet()
 }, [])
 
 Connect with connection options example
 const { wallet, connectorData } = await connect({
-  modalMode: "alwaysAsk",
-  modalTheme: "light",
-  webWalletUrl: "https://web.argent.xyz",
-  argentMobileOptions: {
-    dappName: "Dapp name",
-    projectId: "YOUR_PROJECT_ID", // wallet connect project id
-    chainId: "SN_MAIN",
-    url: window.location.hostname,
-    icons: ["https://your-icon-url.com"],
-    rpcUrl: "YOUR_RPC_URL",
-  },
+modalMode: "alwaysAsk",
+modalTheme: "light",
+webWalletUrl: "https://web.argent.xyz",
+argentMobileOptions: {
+dappName: "Dapp name",
+projectId: "YOUR_PROJECT_ID", // wallet connect project id
+chainId: "SN_MAIN",
+url: window.location.hostname,
+icons: ["https://your-icon-url.com"],
+rpcUrl: "YOUR_RPC_URL",
+},
 })
 
 Connection parameters
 interface ConnectOptions {
-  argentMobileOptions?: ArgentMobileConnectorOptions
-  dappName?: string
-  connectors?: StarknetkitConnector[] // can be used to define a custom order for the connectors
-  modalMode?: "alwaysAsk" | "canAsk" | "neverAsk"
-  modalTheme?: "light" | "dark" | "system"
-  storeVersion?: StoreVersion | null
-  webWalletUrl?: string
-  resultType?: "connector" | "wallet"
-  sort?: Sort
-  include?: FilterList
-  exclude?: FilterList
+argentMobileOptions?: ArgentMobileConnectorOptions
+dappName?: string
+connectors?: StarknetkitConnector[] // can be used to define a custom order for the connectors
+modalMode?: "alwaysAsk" | "canAsk" | "neverAsk"
+modalTheme?: "light" | "dark" | "system"
+storeVersion?: StoreVersion | null
+webWalletUrl?: string
+resultType?: "connector" | "wallet"
+sort?: Sort
+include?: FilterList
+exclude?: FilterList
 }
- 
+
 interface ArgentMobileConnectorOptions {
-  dappName?: string
-  projectId?: string // wallet connect project id
-  chainId?: constants.NetworkName
-  description?: string
-  url?: string
-  icons?: string[]
-  rpcUrl?: string
+dappName?: string
+projectId?: string // wallet connect project id
+chainId?: constants.NetworkName
+description?: string
+url?: string
+icons?: string[]
+rpcUrl?: string
 }
 Disconnecting wallet
 To disconnect an existing connection, simply call the disconnect method from our imports, then set previously defined states to undefined:
@@ -132,10 +133,10 @@ await disconnect()
 Example:
 
 const disconnectWallet = async () => {
-  await disconnect()
- 
-  setConnection(undefined)
-  setAddress("")
+await disconnect()
+
+setConnection(undefined)
+setAddress("")
 }
 
 Disconnection Params
@@ -160,35 +161,35 @@ wallet_supportedWalletApi
 Examples:
 
 await wallet.request({ type: "wallet_requestAccounts" }) // replaces .enable()
- 
+
 await wallet.request({ type: "wallet_requestChainId" })
- 
+
 await wallet.request({
-  type: "wallet_addInvokeTransaction",
-  params: {
-    calls: [call],
-  },
+type: "wallet_addInvokeTransaction",
+params: {
+calls: [call],
+},
 })
- 
+
 await wallet.request({
-  type: "wallet_signTypedData",
-  params: typedData,
+type: "wallet_signTypedData",
+params: typedData,
 })
 
 wallet can also listen to events using the .on method:
 
 const accountChangeHandler: AccountChangeEventHandler = (
-  accounts?: string[],
+accounts?: string[],
 ) => {}
- 
+
 const networkChangeHandler: NetworkChangeEventHandler = async (
-  chainId?: ChainId,
-  accounts?: string[],
+chainId?: ChainId,
+accounts?: string[],
 ) => {}
- 
+
 wallet?.on("accountsChanged", accountChangeHandler)
 wallet?.on("networkChanged", networkChangeHandler)
- 
+
 // Remove event listener
 wallet?.off("accountsChanged", accountChangeHandler)
 wallet?.off("networkChanged", networkChangeHandler)
@@ -197,8 +198,8 @@ Connector data
 connectorData is an object containing the account and chainId of the connected wallet:
 
 type ConnectorData = {
-  account?: string
-  chainId?: bigint
+account?: string
+chainId?: bigint
 }
 Connector
 connector is an object containing data and methods related to the connected wallet. It is useful for StarknetKit and starknet-react combo, see here.
@@ -234,12 +235,12 @@ The order of connectors can be changed by passing connectors argument to the con
 import { connect } from "starknetkit"
 import { WebWalletConnector } from "starknetkit/webwallet"
 import { InjectedConnector } from "starknetkit/injected"
- 
+
 const { wallet, connectorData } = await connect({
-  connectors: [
-    new WebWalletConnector(),
-    new InjectedConnector({ options: { id: "argentX" } }),
-  ],
+connectors: [
+new WebWalletConnector(),
+new InjectedConnector({ options: { id: "argentX" } }),
+],
 })
 
 Connect function parameters types are: ConnectOptions or ConnectOptionsWithConnectors.
@@ -247,28 +248,28 @@ Connect function parameters types are: ConnectOptions or ConnectOptionsWithConne
 ConnectOptions is used to connect with the default connectors
 ConnectOptionsWithConnectors is used to connect with specific connectors (or define a custom order).
 export interface ConnectOptions extends GetWalletOptions {
-  dappName?: string
-  modalMode?: "alwaysAsk" | "canAsk" | "neverAsk"
-  modalTheme?: "light" | "dark" | "system"
-  storeVersion?: StoreVersion | null
-  resultType?: "connector" | "wallet"
-  webWalletUrl?: string
-  argentMobileOptions: ArgentMobileConnectorOptions
+dappName?: string
+modalMode?: "alwaysAsk" | "canAsk" | "neverAsk"
+modalTheme?: "light" | "dark" | "system"
+storeVersion?: StoreVersion | null
+resultType?: "connector" | "wallet"
+webWalletUrl?: string
+argentMobileOptions: ArgentMobileConnectorOptions
 }
- 
+
 export interface ConnectOptionsWithConnectors
-  extends Omit<ConnectOptions, "webWalletUrl" | "argentMobileOptions"> {
-  connectors?: StarknetkitConnector[]
+extends Omit<ConnectOptions, "webWalletUrl" | "argentMobileOptions"> {
+connectors?: StarknetkitConnector[]
 }
 Below is an example function that establishes a connection, then sets the connection and address states:
 
 const connectWallet = async () => {
-  const { wallet, connectorData } = await connect()
- 
-  if (wallet && connectorData) {
-    setConnection(wallet)
-    setAddress(connectorData.account)
-  }
+const { wallet, connectorData } = await connect()
+
+if (wallet && connectorData) {
+setConnection(wallet)
+setAddress(connectorData.account)
+}
 }
 
 To reconnect to a previously connected wallet on load:
@@ -278,56 +279,57 @@ const { wallet, connectorData } = await connect({ modalMode: "neverAsk" })
 Example:
 
 useEffect(() => {
-  const connectToStarknet = async () => {
-    const { wallet, connectorData } = await connect({ modalMode: "neverAsk" })
- 
+const connectToStarknet = async () => {
+const { wallet, connectorData } = await connect({ modalMode: "neverAsk" })
+
     if (wallet && wallet.isConnected) {
       setConnection(wallet)
       setAddress(wallet.selectedAddress)
     }
-  }
- 
-  connectToStarknet()
+
+}
+
+connectToStarknet()
 }, [])
 
 Connect with connection options example
 const { wallet, connectorData } = await connect({
-  modalMode: "alwaysAsk",
-  modalTheme: "light",
-  webWalletUrl: "https://web.argent.xyz",
-  argentMobileOptions: {
-    dappName: "Dapp name",
-    projectId: "YOUR_PROJECT_ID", // wallet connect project id
-    chainId: "SN_MAIN",
-    url: window.location.hostname,
-    icons: ["https://your-icon-url.com"],
-    rpcUrl: "YOUR_RPC_URL",
-  },
+modalMode: "alwaysAsk",
+modalTheme: "light",
+webWalletUrl: "https://web.argent.xyz",
+argentMobileOptions: {
+dappName: "Dapp name",
+projectId: "YOUR_PROJECT_ID", // wallet connect project id
+chainId: "SN_MAIN",
+url: window.location.hostname,
+icons: ["https://your-icon-url.com"],
+rpcUrl: "YOUR_RPC_URL",
+},
 })
 
 Connection parameters
 interface ConnectOptions {
-  argentMobileOptions?: ArgentMobileConnectorOptions
-  dappName?: string
-  connectors?: StarknetkitConnector[] // can be used to define a custom order for the connectors
-  modalMode?: "alwaysAsk" | "canAsk" | "neverAsk"
-  modalTheme?: "light" | "dark" | "system"
-  storeVersion?: StoreVersion | null
-  webWalletUrl?: string
-  resultType?: "connector" | "wallet"
-  sort?: Sort
-  include?: FilterList
-  exclude?: FilterList
+argentMobileOptions?: ArgentMobileConnectorOptions
+dappName?: string
+connectors?: StarknetkitConnector[] // can be used to define a custom order for the connectors
+modalMode?: "alwaysAsk" | "canAsk" | "neverAsk"
+modalTheme?: "light" | "dark" | "system"
+storeVersion?: StoreVersion | null
+webWalletUrl?: string
+resultType?: "connector" | "wallet"
+sort?: Sort
+include?: FilterList
+exclude?: FilterList
 }
- 
+
 interface ArgentMobileConnectorOptions {
-  dappName?: string
-  projectId?: string // wallet connect project id
-  chainId?: constants.NetworkName
-  description?: string
-  url?: string
-  icons?: string[]
-  rpcUrl?: string
+dappName?: string
+projectId?: string // wallet connect project id
+chainId?: constants.NetworkName
+description?: string
+url?: string
+icons?: string[]
+rpcUrl?: string
 }
 Disconnecting wallet
 To disconnect an existing connection, simply call the disconnect method from our imports, then set previously defined states to undefined:
@@ -337,10 +339,10 @@ await disconnect()
 Example:
 
 const disconnectWallet = async () => {
-  await disconnect()
- 
-  setConnection(undefined)
-  setAddress("")
+await disconnect()
+
+setConnection(undefined)
+setAddress("")
 }
 
 Disconnection Params
@@ -365,35 +367,35 @@ wallet_supportedWalletApi
 Examples:
 
 await wallet.request({ type: "wallet_requestAccounts" }) // replaces .enable()
- 
+
 await wallet.request({ type: "wallet_requestChainId" })
- 
+
 await wallet.request({
-  type: "wallet_addInvokeTransaction",
-  params: {
-    calls: [call],
-  },
+type: "wallet_addInvokeTransaction",
+params: {
+calls: [call],
+},
 })
- 
+
 await wallet.request({
-  type: "wallet_signTypedData",
-  params: typedData,
+type: "wallet_signTypedData",
+params: typedData,
 })
 
 wallet can also listen to events using the .on method:
 
 const accountChangeHandler: AccountChangeEventHandler = (
-  accounts?: string[],
+accounts?: string[],
 ) => {}
- 
+
 const networkChangeHandler: NetworkChangeEventHandler = async (
-  chainId?: ChainId,
-  accounts?: string[],
+chainId?: ChainId,
+accounts?: string[],
 ) => {}
- 
+
 wallet?.on("accountsChanged", accountChangeHandler)
 wallet?.on("networkChanged", networkChangeHandler)
- 
+
 // Remove event listener
 wallet?.off("accountsChanged", accountChangeHandler)
 wallet?.off("networkChanged", networkChangeHandler)
@@ -402,8 +404,8 @@ Connector data
 connectorData is an object containing the account and chainId of the connected wallet:
 
 type ConnectorData = {
-  account?: string
-  chainId?: bigint
+account?: string
+chainId?: bigint
 }
 Connector
 connector is an object containing data and methods related to the connected wallet. It is useful for StarknetKit and starknet-react combo, see here.
@@ -439,12 +441,12 @@ The order of connectors can be changed by passing connectors argument to the con
 import { connect } from "starknetkit"
 import { WebWalletConnector } from "starknetkit/webwallet"
 import { InjectedConnector } from "starknetkit/injected"
- 
+
 const { wallet, connectorData } = await connect({
-  connectors: [
-    new WebWalletConnector(),
-    new InjectedConnector({ options: { id: "argentX" } }),
-  ],
+connectors: [
+new WebWalletConnector(),
+new InjectedConnector({ options: { id: "argentX" } }),
+],
 })
 
 Connect function parameters types are: ConnectOptions or ConnectOptionsWithConnectors.
@@ -452,28 +454,28 @@ Connect function parameters types are: ConnectOptions or ConnectOptionsWithConne
 ConnectOptions is used to connect with the default connectors
 ConnectOptionsWithConnectors is used to connect with specific connectors (or define a custom order).
 export interface ConnectOptions extends GetWalletOptions {
-  dappName?: string
-  modalMode?: "alwaysAsk" | "canAsk" | "neverAsk"
-  modalTheme?: "light" | "dark" | "system"
-  storeVersion?: StoreVersion | null
-  resultType?: "connector" | "wallet"
-  webWalletUrl?: string
-  argentMobileOptions: ArgentMobileConnectorOptions
+dappName?: string
+modalMode?: "alwaysAsk" | "canAsk" | "neverAsk"
+modalTheme?: "light" | "dark" | "system"
+storeVersion?: StoreVersion | null
+resultType?: "connector" | "wallet"
+webWalletUrl?: string
+argentMobileOptions: ArgentMobileConnectorOptions
 }
- 
+
 export interface ConnectOptionsWithConnectors
-  extends Omit<ConnectOptions, "webWalletUrl" | "argentMobileOptions"> {
-  connectors?: StarknetkitConnector[]
+extends Omit<ConnectOptions, "webWalletUrl" | "argentMobileOptions"> {
+connectors?: StarknetkitConnector[]
 }
 Below is an example function that establishes a connection, then sets the connection and address states:
 
 const connectWallet = async () => {
-  const { wallet, connectorData } = await connect()
- 
-  if (wallet && connectorData) {
-    setConnection(wallet)
-    setAddress(connectorData.account)
-  }
+const { wallet, connectorData } = await connect()
+
+if (wallet && connectorData) {
+setConnection(wallet)
+setAddress(connectorData.account)
+}
 }
 
 To reconnect to a previously connected wallet on load:
@@ -483,56 +485,57 @@ const { wallet, connectorData } = await connect({ modalMode: "neverAsk" })
 Example:
 
 useEffect(() => {
-  const connectToStarknet = async () => {
-    const { wallet, connectorData } = await connect({ modalMode: "neverAsk" })
- 
+const connectToStarknet = async () => {
+const { wallet, connectorData } = await connect({ modalMode: "neverAsk" })
+
     if (wallet && wallet.isConnected) {
       setConnection(wallet)
       setAddress(wallet.selectedAddress)
     }
-  }
- 
-  connectToStarknet()
+
+}
+
+connectToStarknet()
 }, [])
 
 Connect with connection options example
 const { wallet, connectorData } = await connect({
-  modalMode: "alwaysAsk",
-  modalTheme: "light",
-  webWalletUrl: "https://web.argent.xyz",
-  argentMobileOptions: {
-    dappName: "Dapp name",
-    projectId: "YOUR_PROJECT_ID", // wallet connect project id
-    chainId: "SN_MAIN",
-    url: window.location.hostname,
-    icons: ["https://your-icon-url.com"],
-    rpcUrl: "YOUR_RPC_URL",
-  },
+modalMode: "alwaysAsk",
+modalTheme: "light",
+webWalletUrl: "https://web.argent.xyz",
+argentMobileOptions: {
+dappName: "Dapp name",
+projectId: "YOUR_PROJECT_ID", // wallet connect project id
+chainId: "SN_MAIN",
+url: window.location.hostname,
+icons: ["https://your-icon-url.com"],
+rpcUrl: "YOUR_RPC_URL",
+},
 })
 
 Connection parameters
 interface ConnectOptions {
-  argentMobileOptions?: ArgentMobileConnectorOptions
-  dappName?: string
-  connectors?: StarknetkitConnector[] // can be used to define a custom order for the connectors
-  modalMode?: "alwaysAsk" | "canAsk" | "neverAsk"
-  modalTheme?: "light" | "dark" | "system"
-  storeVersion?: StoreVersion | null
-  webWalletUrl?: string
-  resultType?: "connector" | "wallet"
-  sort?: Sort
-  include?: FilterList
-  exclude?: FilterList
+argentMobileOptions?: ArgentMobileConnectorOptions
+dappName?: string
+connectors?: StarknetkitConnector[] // can be used to define a custom order for the connectors
+modalMode?: "alwaysAsk" | "canAsk" | "neverAsk"
+modalTheme?: "light" | "dark" | "system"
+storeVersion?: StoreVersion | null
+webWalletUrl?: string
+resultType?: "connector" | "wallet"
+sort?: Sort
+include?: FilterList
+exclude?: FilterList
 }
- 
+
 interface ArgentMobileConnectorOptions {
-  dappName?: string
-  projectId?: string // wallet connect project id
-  chainId?: constants.NetworkName
-  description?: string
-  url?: string
-  icons?: string[]
-  rpcUrl?: string
+dappName?: string
+projectId?: string // wallet connect project id
+chainId?: constants.NetworkName
+description?: string
+url?: string
+icons?: string[]
+rpcUrl?: string
 }
 Disconnecting wallet
 To disconnect an existing connection, simply call the disconnect method from our imports, then set previously defined states to undefined:
@@ -542,10 +545,10 @@ await disconnect()
 Example:
 
 const disconnectWallet = async () => {
-  await disconnect()
- 
-  setConnection(undefined)
-  setAddress("")
+await disconnect()
+
+setConnection(undefined)
+setAddress("")
 }
 
 Disconnection Params
@@ -570,35 +573,35 @@ wallet_supportedWalletApi
 Examples:
 
 await wallet.request({ type: "wallet_requestAccounts" }) // replaces .enable()
- 
+
 await wallet.request({ type: "wallet_requestChainId" })
- 
+
 await wallet.request({
-  type: "wallet_addInvokeTransaction",
-  params: {
-    calls: [call],
-  },
+type: "wallet_addInvokeTransaction",
+params: {
+calls: [call],
+},
 })
- 
+
 await wallet.request({
-  type: "wallet_signTypedData",
-  params: typedData,
+type: "wallet_signTypedData",
+params: typedData,
 })
 
 wallet can also listen to events using the .on method:
 
 const accountChangeHandler: AccountChangeEventHandler = (
-  accounts?: string[],
+accounts?: string[],
 ) => {}
- 
+
 const networkChangeHandler: NetworkChangeEventHandler = async (
-  chainId?: ChainId,
-  accounts?: string[],
+chainId?: ChainId,
+accounts?: string[],
 ) => {}
- 
+
 wallet?.on("accountsChanged", accountChangeHandler)
 wallet?.on("networkChanged", networkChangeHandler)
- 
+
 // Remove event listener
 wallet?.off("accountsChanged", accountChangeHandler)
 wallet?.off("networkChanged", networkChangeHandler)
@@ -607,8 +610,8 @@ Connector data
 connectorData is an object containing the account and chainId of the connected wallet:
 
 type ConnectorData = {
-  account?: string
-  chainId?: bigint
+account?: string
+chainId?: bigint
 }
 Connector
 connector is an object containing data and methods related to the connected wallet. It is useful for StarknetKit and starknet-react combo, see here.
@@ -634,14 +637,14 @@ import { InjectedConnector } from "starknetkit/injected"
 After importing, you need to call the connect method, passing in your Argent X/Braavos connector:
 
 const { wallet } = await connect({
-  connectors: [
-    new InjectedConnector({
-      options: { id: "argentX" },
-    }),
-    new InjectedConnector({
-      options: { id: "braavos" },
-    }),
-  ],
+connectors: [
+new InjectedConnector({
+options: { id: "argentX" },
+}),
+new InjectedConnector({
+options: { id: "braavos" },
+}),
+],
 })
 If you face import errors with typescript, head to your tsconfig.json, and update your moduleResolution and module to use Bundler and ES2015 respectively.
 
@@ -650,25 +653,25 @@ The Injected Connector takes a single param options used to specify the id of th
 
 // with id only
 new InjectedConnector({
-  options: { id: "argentX" },
+options: { id: "argentX" },
 })
 new InjectedConnector({
-  options: { id: "braavos" },
+options: { id: "braavos" },
 })
- 
+
 // with id, name and icon
 new InjectedConnector({
-  options: {
-    id: "argentX",
-    name: "Argent X",
-    icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0a....",
-  },
+options: {
+id: "argentX",
+name: "Argent X",
+icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0a....",
+},
 })
- 
+
 new InjectedConnector({
-  options: {
-    id: "braavos",
-    name: "Braavos",
-    icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0a....",
-  },
+options: {
+id: "braavos",
+name: "Braavos",
+icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0a....",
+},
 })

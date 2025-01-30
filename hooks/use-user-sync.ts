@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useEffect, useCallback } from 'react';
-import { useWallet } from '@/app/context/wallet-context';
-import { usePrivy } from '@privy-io/react-auth';
-import { showToast } from '@/components/ui/custom-toast';
+import { useEffect, useCallback } from "react";
+import { useWallet } from "@/app/context/wallet-context";
+import { usePrivy } from "@privy-io/react-auth";
+import { showToast } from "@/components/ui/custom-toast";
 
 export function useUserSync() {
   const { currentAddress: address, activeWalletType } = useWallet();
@@ -14,10 +14,10 @@ export function useUserSync() {
 
     try {
       // Call your sync API here
-      showToast('success', 'User synced successfully');
+      showToast("success", "User synced successfully");
     } catch (error) {
-      console.error('Failed to sync user:', error);
-      showToast('error', 'Failed to sync user');
+      console.error("Failed to sync user:", error);
+      showToast("error", "Failed to sync user");
     }
   }, [address, activeWalletType]);
 
@@ -28,4 +28,4 @@ export function useUserSync() {
   }, [privyReady, address, syncUser]);
 
   return { syncUser };
-} 
+}

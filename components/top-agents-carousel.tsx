@@ -1,21 +1,22 @@
-'use client'
+"use client";
 
-import { Agent } from '@/lib/types'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { AgentAvatar } from '@/components/ui/agent-avatar'
-import { useAgents } from '@/hooks/use-agents'
-import { memo, useMemo } from 'react'
-import { motion } from 'framer-motion'
-import { Skeleton } from '@/components/ui/skeleton'
-import { AlertCircle } from 'lucide-react'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Agent } from "@/lib/types";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AgentAvatar } from "@/components/ui/agent-avatar";
+import { useAgents } from "@/hooks/use-agents";
+import { memo, useMemo } from "react";
+import { motion } from "framer-motion";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const AgentCard = memo(({ agent, index }: { agent: Agent; index: number }) => {
-  const scoreToShow = agent.type === 'leftcurve' ? agent.creativityIndex : agent.performanceIndex
-  const scoreLabel = agent.type === 'leftcurve' ? 'DEGEN SCORE' : 'WIN RATE'
-  
+  const scoreToShow =
+    agent.type === "leftcurve" ? agent.creativityIndex : agent.performanceIndex;
+  const scoreLabel = agent.type === "leftcurve" ? "DEGEN SCORE" : "WIN RATE";
+
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3, delay: index * 0.1 }}
@@ -29,51 +30,71 @@ const AgentCard = memo(({ agent, index }: { agent: Agent; index: number }) => {
         </div>
         <div className="flex items-center justify-between mt-1">
           <div className="text-sm opacity-70">${agent.price.toFixed(2)}</div>
-          <div className={`text-sm font-bold ${agent.type === 'leftcurve' ? 'text-pink-500' : 'text-cyan-500'}`}>
+          <div
+            className={`text-sm font-bold ${agent.type === "leftcurve" ? "text-pink-500" : "text-cyan-500"}`}
+          >
             {scoreLabel}: {(scoreToShow * 100).toFixed(0)}%
           </div>
         </div>
       </div>
     </motion.div>
-  )
-})
-AgentCard.displayName = 'AgentCard'
+  );
+});
+AgentCard.displayName = "AgentCard";
 
-const AgentList = memo(({ title, agents, type }: { title: string; agents: Agent[]; type: 'leftcurve' | 'rightcurve' }) => {
-  const sortedAgents = useMemo(() => 
-    [...agents]
-      .filter(a => a.type === type)
-      .sort((a, b) => {
-        const scoreA = type === 'leftcurve' ? a.creativityIndex : a.performanceIndex
-        const scoreB = type === 'leftcurve' ? b.creativityIndex : b.performanceIndex
-        return scoreB - scoreA
-      })
-      .slice(0, 5)
-  , [agents, type])
+const AgentList = memo(
+  ({
+    title,
+    agents,
+    type,
+  }: {
+    title: string;
+    agents: Agent[];
+    type: "leftcurve" | "rightcurve";
+  }) => {
+    const sortedAgents = useMemo(
+      () =>
+        [...agents]
+          .filter((a) => a.type === type)
+          .sort((a, b) => {
+            const scoreA =
+              type === "leftcurve" ? a.creativityIndex : a.performanceIndex;
+            const scoreB =
+              type === "leftcurve" ? b.creativityIndex : b.performanceIndex;
+            return scoreB - scoreA;
+          })
+          .slice(0, 5),
+      [agents, type],
+    );
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.3 }}
-      className="flex-1"
-    >
-      <Card>
-        <CardHeader>
-          <CardTitle className={type === 'leftcurve' ? 'text-pink-500' : 'text-cyan-500'}>
-            {title}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {sortedAgents.map((agent, index) => (
-            <AgentCard key={agent.id} agent={agent} index={index} />
-          ))}
-        </CardContent>
-      </Card>
-    </motion.div>
-  )
-})
-AgentList.displayName = 'AgentList'
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+        className="flex-1"
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle
+              className={
+                type === "leftcurve" ? "text-pink-500" : "text-cyan-500"
+              }
+            >
+              {title}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {sortedAgents.map((agent, index) => (
+              <AgentCard key={agent.id} agent={agent} index={index} />
+            ))}
+          </CardContent>
+        </Card>
+      </motion.div>
+    );
+  },
+);
+AgentList.displayName = "AgentList";
 
 const LoadingState = memo(() => (
   <div className="flex gap-8">
@@ -92,49 +113,39 @@ const LoadingState = memo(() => (
       </div>
     ))}
   </div>
-))
-LoadingState.displayName = 'LoadingState'
+));
+LoadingState.displayName = "LoadingState";
 
 const ErrorState = memo(({ message }: { message: string }) => (
   <Alert variant="destructive">
     <AlertCircle className="h-4 w-4" />
-    <AlertDescription>
-      Failed to load top agents: {message}
-    </AlertDescription>
+    <AlertDescription>Failed to load top agents: {message}</AlertDescription>
   </Alert>
-))
-ErrorState.displayName = 'ErrorState'
+));
+ErrorState.displayName = "ErrorState";
 
 const TopAgentsCarousel = memo(() => {
-  const { data: agents, isLoading, error } = useAgents()
+  const { data: agents, isLoading, error } = useAgents();
 
   if (isLoading) {
-    return <LoadingState />
+    return <LoadingState />;
   }
 
   if (error) {
-    return <ErrorState message={error.message} />
+    return <ErrorState message={error.message} />;
   }
 
   if (!agents) {
-    return null
+    return null;
   }
 
   return (
     <div className="flex gap-8">
-      <AgentList 
-        title="🚀 TOP DEGEN SCORE" 
-        agents={agents} 
-        type="leftcurve" 
-      />
-      <AgentList 
-        title="🧠 TOP WIN RATE" 
-        agents={agents} 
-        type="rightcurve" 
-      />
+      <AgentList title="🚀 TOP DEGEN SCORE" agents={agents} type="leftcurve" />
+      <AgentList title="🧠 TOP WIN RATE" agents={agents} type="rightcurve" />
     </div>
-  )
-})
-TopAgentsCarousel.displayName = 'TopAgentsCarousel'
+  );
+});
+TopAgentsCarousel.displayName = "TopAgentsCarousel";
 
-export { TopAgentsCarousel } 
+export { TopAgentsCarousel };

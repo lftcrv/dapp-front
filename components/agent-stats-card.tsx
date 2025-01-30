@@ -1,86 +1,92 @@
-'use client'
+"use client";
 
-import { Card } from '@/components/ui/card'
-import { Brain } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { Agent } from '@/lib/types'
-import { memo, useMemo } from 'react'
-import { motion } from 'framer-motion'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Card } from "@/components/ui/card";
+import { Brain } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Agent } from "@/lib/types";
+import { memo, useMemo } from "react";
+import { motion } from "framer-motion";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface StatItemProps {
-  label: string
-  value: string | number
-  color: string
-  icon?: string
-  delay?: number
+  label: string;
+  value: string | number;
+  color: string;
+  icon?: string;
+  delay?: number;
 }
 
-const StatItem = memo(({ label, value, color, icon, delay = 0 }: StatItemProps) => (
-  <motion.div 
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.3, delay }}
-    className={cn(
-      "flex justify-between items-center p-2 rounded-lg",
-      color
-    )}
-  >
-    <span className="text-muted-foreground">{label}</span>
-    <div className="flex items-center gap-2">
-      <span className="font-mono font-bold">{value}</span>
-      {icon && <span className="text-xl">{icon}</span>}
-    </div>
-  </motion.div>
-))
-StatItem.displayName = 'StatItem'
+const StatItem = memo(
+  ({ label, value, color, icon, delay = 0 }: StatItemProps) => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay }}
+      className={cn("flex justify-between items-center p-2 rounded-lg", color)}
+    >
+      <span className="text-muted-foreground">{label}</span>
+      <div className="flex items-center gap-2">
+        <span className="font-mono font-bold">{value}</span>
+        {icon && <span className="text-xl">{icon}</span>}
+      </div>
+    </motion.div>
+  ),
+);
+StatItem.displayName = "StatItem";
 
 interface AgentStatsCardProps {
-  agent: Agent
+  agent: Agent;
 }
 
 const AgentStatsCard = memo(({ agent }: AgentStatsCardProps) => {
-  const isLeftCurve = agent.type === 'leftcurve'
-  
+  const isLeftCurve = agent.type === "leftcurve";
+
   const stats = useMemo(() => {
-    const marketCap = agent.price * agent.holders * 1000
-    const formattedMarketCap = marketCap.toLocaleString()
-    const baseColor = isLeftCurve ? "bg-yellow-500/5" : "bg-purple-500/5"
-    
+    const marketCap = agent.price * agent.holders * 1000;
+    const formattedMarketCap = marketCap.toLocaleString();
+    const baseColor = isLeftCurve ? "bg-yellow-500/5" : "bg-purple-500/5";
+
     return [
       {
         label: "Price",
         value: `$${agent.price.toFixed(4)}`,
         color: baseColor,
-        delay: 0.1
+        delay: 0.1,
       },
       {
         label: "Holders",
         value: agent.holders.toLocaleString(),
         color: baseColor,
-        delay: 0.2
+        delay: 0.2,
       },
       {
         label: "Market Cap",
         value: `$${formattedMarketCap}`,
         color: baseColor,
-        delay: 0.3
+        delay: 0.3,
       },
-      isLeftCurve ? {
-        label: "Degen Score",
-        value: agent.creativityIndex?.toFixed(2) || "0",
-        color: "bg-gradient-to-r from-yellow-500/20 to-orange-500/20",
-        icon: "🦧",
-        delay: 0.4
-      } : {
-        label: "Win Rate",
-        value: `${((agent.performanceIndex || 0) * 100).toFixed(1)}%`,
-        color: "bg-gradient-to-r from-purple-500/20 to-blue-500/20",
-        icon: "🐙",
-        delay: 0.4
-      }
-    ]
-  }, [agent, isLeftCurve])
+      isLeftCurve
+        ? {
+            label: "Degen Score",
+            value: agent.creativityIndex?.toFixed(2) || "0",
+            color: "bg-gradient-to-r from-yellow-500/20 to-orange-500/20",
+            icon: "🦧",
+            delay: 0.4,
+          }
+        : {
+            label: "Win Rate",
+            value: `${((agent.performanceIndex || 0) * 100).toFixed(1)}%`,
+            color: "bg-gradient-to-r from-purple-500/20 to-blue-500/20",
+            icon: "🐙",
+            delay: 0.4,
+          },
+    ];
+  }, [agent, isLeftCurve]);
 
   return (
     <TooltipProvider>
@@ -89,20 +95,26 @@ const AgentStatsCard = memo(({ agent }: AgentStatsCardProps) => {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3 }}
       >
-        <Card className={cn(
-          "p-6 border-2 transition-colors duration-200",
-          isLeftCurve ? "hover:border-yellow-500/50" : "hover:border-purple-500/50"
-        )}>
-          <motion.h3 
+        <Card
+          className={cn(
+            "p-6 border-2 transition-colors duration-200",
+            isLeftCurve
+              ? "hover:border-yellow-500/50"
+              : "hover:border-purple-500/50",
+          )}
+        >
+          <motion.h3
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3 }}
             className="font-medium mb-4 flex items-center gap-2"
           >
-            <Brain className={cn(
-              "h-4 w-4",
-              isLeftCurve ? "text-yellow-500" : "text-purple-500"
-            )} />
+            <Brain
+              className={cn(
+                "h-4 w-4",
+                isLeftCurve ? "text-yellow-500" : "text-purple-500",
+              )}
+            />
             Performance Stats
           </motion.h3>
           <div className="space-y-3 text-sm">
@@ -114,7 +126,9 @@ const AgentStatsCard = memo(({ agent }: AgentStatsCardProps) => {
                   </div>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>{stat.label}: {stat.value}</p>
+                  <p>
+                    {stat.label}: {stat.value}
+                  </p>
                 </TooltipContent>
               </Tooltip>
             ))}
@@ -122,8 +136,8 @@ const AgentStatsCard = memo(({ agent }: AgentStatsCardProps) => {
         </Card>
       </motion.div>
     </TooltipProvider>
-  )
-})
-AgentStatsCard.displayName = 'AgentStatsCard'
+  );
+});
+AgentStatsCard.displayName = "AgentStatsCard";
 
-export { AgentStatsCard } 
+export { AgentStatsCard };

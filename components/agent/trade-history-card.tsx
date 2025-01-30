@@ -1,8 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { TradeHistory } from '@/components/trade-history'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TradeHistory } from "@/components/trade-history";
 
 interface TradeHistoryCardProps {
-  agentId: string
+  agentId: string;
 }
 
 export function TradeHistoryCard({ agentId }: TradeHistoryCardProps) {
@@ -15,5 +15,5 @@ export function TradeHistoryCard({ agentId }: TradeHistoryCardProps) {
         <TradeHistory agentId={agentId} />
       </CardContent>
     </Card>
-  )
-} 
+  );
+}

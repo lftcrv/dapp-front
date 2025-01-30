@@ -1,10 +1,10 @@
-import * as React from "react"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
 const Alert = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & {
-    variant?: "default" | "destructive"
+    variant?: "default" | "destructive";
   }
 >(({ className, variant = "default", ...props }, ref) => (
   <div
@@ -12,13 +12,14 @@ const Alert = React.forwardRef<
     role="alert"
     className={cn(
       "relative w-full rounded-lg border p-4",
-      variant === "destructive" && "border-red-500/50 text-red-500 [&>svg]:text-red-500",
-      className
+      variant === "destructive" &&
+        "border-red-500/50 text-red-500 [&>svg]:text-red-500",
+      className,
     )}
     {...props}
   />
-))
-Alert.displayName = "Alert"
+));
+Alert.displayName = "Alert";
 
 const AlertDescription = React.forwardRef<
   HTMLParagraphElement,
@@ -29,7 +30,7 @@ const AlertDescription = React.forwardRef<
     className={cn("text-sm [&_p]:leading-relaxed", className)}
     {...props}
   />
-))
-AlertDescription.displayName = "AlertDescription"
+));
+AlertDescription.displayName = "AlertDescription";
 
-export { Alert, AlertDescription } 
+export { Alert, AlertDescription };

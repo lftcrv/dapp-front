@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
-import { Skeleton } from "@/components/ui/skeleton"
-import { memo } from "react"
+import { Skeleton } from "@/components/ui/skeleton";
+import { memo } from "react";
 
 const NavigationSkeleton = memo(() => (
   <div className="fixed top-0 left-0 right-0 z-50 backdrop-blur-sm border-b border-white/5">
@@ -20,8 +20,8 @@ const NavigationSkeleton = memo(() => (
       </div>
     </div>
   </div>
-))
-NavigationSkeleton.displayName = 'NavigationSkeleton'
+));
+NavigationSkeleton.displayName = "NavigationSkeleton";
 
 const ContentSkeleton = memo(() => (
   <div className="mt-16 p-4">
@@ -30,16 +30,16 @@ const ContentSkeleton = memo(() => (
       <Skeleton className="h-4 w-[200px] animate-pulse delay-500" />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {[...Array(3)].map((_, i) => (
-          <Skeleton 
-            key={i} 
-            className={`h-[200px] rounded-xl animate-pulse delay-${(i + 6) * 100}`} 
+          <Skeleton
+            key={i}
+            className={`h-[200px] rounded-xl animate-pulse delay-${(i + 6) * 100}`}
           />
         ))}
       </div>
     </div>
   </div>
-))
-ContentSkeleton.displayName = 'ContentSkeleton'
+));
+ContentSkeleton.displayName = "ContentSkeleton";
 
 const LayoutSkeleton = memo(() => {
   return (
@@ -47,8 +47,8 @@ const LayoutSkeleton = memo(() => {
       <NavigationSkeleton />
       <ContentSkeleton />
     </div>
-  )
-})
-LayoutSkeleton.displayName = 'LayoutSkeleton'
+  );
+});
+LayoutSkeleton.displayName = "LayoutSkeleton";
 
-export { LayoutSkeleton } 
+export { LayoutSkeleton };

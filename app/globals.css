@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@400;700&family=Freckle+Face&display=swap&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@400;700&family=Freckle+Face&display=swap&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -23,7 +23,7 @@
 
 @layer components {
   .font-sketch {
-    font-family: 'Cabin Sketch', cursive;
+    font-family: "Cabin Sketch", cursive;
     font-weight: 700;
     letter-spacing: -0.03em;
     -webkit-font-smoothing: antialiased;
@@ -37,7 +37,7 @@
   .sketch-border::after,
   .sketch-border::before {
     @apply absolute inset-[-2px] border-2 border-black opacity-10;
-    content: '';
+    content: "";
     border-radius: inherit;
   }
 
