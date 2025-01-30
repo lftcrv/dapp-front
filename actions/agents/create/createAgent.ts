@@ -29,7 +29,7 @@ export async function createAgent(
       'Content-Type': 'application/json',
       'x-api-key': apiKey
     }
-    console.log('Request Headers:', headers)
+    // console.log('Request Headers:', headers)
 
     const requestBody = { 
       name, 
@@ -38,7 +38,7 @@ export async function createAgent(
       curveSide,
       creatorWallet: creatorAddress
     }
-    console.log('Request Body:', requestBody)
+    // console.log('Request Body:', requestBody)
 
     const response = await fetch(`${apiUrl}/api/eliza-agent`, {
       method: 'POST',
@@ -46,9 +46,9 @@ export async function createAgent(
       body: JSON.stringify(requestBody)
     })
 
-    console.log('Response Status:', response.status)
+    // console.log('Response Status:', response.status)
     const data = await response.json()
-    console.log('Response Data:', data)
+    // console.log('Response Data:', data)
 
     if (!response.ok) {
       // Handle specific error cases
