@@ -47,9 +47,9 @@ const nextConfig = {
       '@privy-io/react-auth',
       '@walletconnect/modal-ui',
       'framer-motion',
-      'wagmi'
+      'wagmi',
     ],
   },
-}
+};
 
-export default nextConfig
+export default nextConfig;

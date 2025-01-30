@@ -1,7 +1,7 @@
-'use client'
+'use client';
 
-import { Skeleton } from "@/components/ui/skeleton"
-import { memo } from "react"
+import { Skeleton } from '@/components/ui/skeleton';
+import { memo } from 'react';
 
 const HeaderSkeleton = memo(() => {
   return (
@@ -20,9 +20,9 @@ const HeaderSkeleton = memo(() => {
         <Skeleton className="h-10 w-[140px] animate-pulse delay-300" />
       </div>
     </div>
-  )
-})
-HeaderSkeleton.displayName = 'HeaderSkeleton'
+  );
+});
+HeaderSkeleton.displayName = 'HeaderSkeleton';
 
 const TopAgentsSkeleton = memo(() => {
   return (
@@ -30,9 +30,9 @@ const TopAgentsSkeleton = memo(() => {
       <Skeleton className="h-48 rounded-xl animate-pulse delay-400" />
       <Skeleton className="h-48 rounded-xl animate-pulse delay-400" />
     </div>
-  )
-})
-TopAgentsSkeleton.displayName = 'TopAgentsSkeleton'
+  );
+});
+TopAgentsSkeleton.displayName = 'TopAgentsSkeleton';
 
 const AgentTableSkeleton = memo(() => {
   return (
@@ -43,16 +43,16 @@ const AgentTableSkeleton = memo(() => {
       </div>
       <div className="space-y-2">
         {[...Array(5)].map((_, i) => (
-          <Skeleton 
-            key={i} 
-            className={`h-16 w-full rounded-lg animate-pulse delay-${(i + 6) * 100}`} 
+          <Skeleton
+            key={i}
+            className={`h-16 w-full rounded-lg animate-pulse delay-${(i + 6) * 100}`}
           />
         ))}
       </div>
     </div>
-  )
-})
-AgentTableSkeleton.displayName = 'AgentTableSkeleton'
+  );
+});
+AgentTableSkeleton.displayName = 'AgentTableSkeleton';
 
 const HomeSkeleton = memo(() => {
   return (
@@ -61,8 +61,8 @@ const HomeSkeleton = memo(() => {
       <TopAgentsSkeleton />
       <AgentTableSkeleton />
     </div>
-  )
-})
-HomeSkeleton.displayName = 'HomeSkeleton'
+  );
+});
+HomeSkeleton.displayName = 'HomeSkeleton';
 
-export { HeaderSkeleton, TopAgentsSkeleton, AgentTableSkeleton, HomeSkeleton } 
+export { HeaderSkeleton, TopAgentsSkeleton, AgentTableSkeleton, HomeSkeleton };

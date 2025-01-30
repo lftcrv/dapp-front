@@ -1,15 +1,16 @@
 # LFTCurve Backend Integration Guide
 
 ## Current Dapp Structure
+
 ```
 dapp/
 ├── app/                    # Next.js app router pages
-├── components/            
+├── components/
 │   ├── ui/                # Reusable UI components
 │   └── [component].tsx    # Page-specific components
 ├── hooks/                 # Custom React hooks
 ├── lib/
-│   ├── services/         
+│   ├── services/
 │   │   ├── api/          # API service implementations
 │   │   └── [service].ts  # Other services
 │   ├── types.ts          # TypeScript interfaces
@@ -20,6 +21,7 @@ dapp/
 ## Data Structure
 
 ### Agent Data
+
 ```typescript
 interface Agent {
   id: string;              // Format: "LC001" or "RC001"
@@ -56,6 +58,7 @@ interface Agent {
 ```
 
 ### Trade Data
+
 ```typescript
 interface Trade {
   id: string;
@@ -84,6 +87,7 @@ interface Trade {
 ```
 
 ### Chat Message Data
+
 ```typescript
 interface ChatMessage {
   id: string;
@@ -106,6 +110,7 @@ interface ChatMessage {
 ```
 
 ### Protocol Fees Data
+
 ```typescript
 interface ProtocolFeesData {
   totalFees: string;
@@ -136,6 +141,7 @@ interface ProtocolFeesData {
 ## Current API Implementation
 
 ### Service Structure
+
 ```typescript
 // Example of API service pattern
 export const agentService = {
@@ -144,21 +150,22 @@ export const agentService = {
     // TODO: Replace with API call
     return agents;
   },
-  
+
   getById: async (id: string) => {
     // TODO: Replace with API endpoint
-    return agents.find(a => a.id === id);
+    return agents.find((a) => a.id === id);
   },
-  
+
   create: async (data: CreateAgentForm) => {
     // TODO: Implement POST request
-  }
+  },
 };
 ```
 
 ### Required Endpoints
 
 #### Agents
+
 - `GET /api/agents` - List all agents
 - `GET /api/agents/{id}` - Get agent details
 - `POST /api/agents` - Create new agent
@@ -166,11 +173,13 @@ export const agentService = {
 - `GET /api/agents/{id}/chat` - Get agent chat history
 
 #### Trading
+
 - `GET /api/trades` - List recent trades
 - `POST /api/trades` - Execute trade
 - `GET /api/prices/{agentId}` - Get price history
 
 #### Protocol
+
 - `GET /api/protocol/fees` - Get protocol fees
 - `POST /api/protocol/claim` - Claim rewards
 - `GET /api/stats` - Get platform statistics
@@ -178,24 +187,28 @@ export const agentService = {
 ## Migration Steps
 
 ### Phase 1: API Setup
+
 1. Set up REST API endpoints matching current service structure
 2. Implement proper error handling and status codes
 3. Add authentication middleware
 4. Set up rate limiting
 
 ### Phase 2: Data Migration
+
 1. Design database schema matching current interfaces
 2. Create migrations for all data structures
 3. Add indexes for frequently queried fields
 4. Implement data validation
 
 ### Phase 3: Integration
+
 1. Update service layer to use new API endpoints
 2. Add retry logic and error handling
 3. Implement proper caching strategy
 4. Add real-time updates via WebSocket
 
 ### Phase 4: Testing
+
 1. Create API tests matching current behavior
 2. Test data consistency
 3. Performance testing
@@ -204,6 +217,7 @@ export const agentService = {
 ## Required Actions
 
 ### Backend Team
+
 1. Review data structures and propose optimizations
 2. Design database schema
 3. Set up development environment
@@ -211,6 +225,7 @@ export const agentService = {
 5. Create API documentation
 
 ### Frontend Team
+
 1. Update service implementations
 2. Add loading states for API calls
 3. Implement error handling
@@ -218,6 +233,7 @@ export const agentService = {
 5. Update tests
 
 ### DevOps
+
 1. Set up staging environment
 2. Configure CI/CD pipeline
 3. Set up monitoring
@@ -226,6 +242,7 @@ export const agentService = {
 ## Current Mock Data Usage
 
 ### Location
+
 ```
 dapp/data/
 ├── agents.json       # Agent listings
@@ -236,6 +253,7 @@ dapp/data/
 ```
 
 ### Migration Notes
+
 - All timestamps use ISO format
 - Amounts are stored as numbers (will need BigNumber conversion)
 - IDs follow consistent patterns
@@ -248,6 +266,7 @@ dapp/data/
   - Protocol fee updates
 
 ## Security Considerations
+
 1. Implement proper authentication
 2. Add rate limiting
 3. Validate all input data
@@ -258,6 +277,7 @@ dapp/data/
 8. Set up monitoring for unusual patterns
 
 ## Performance Requirements
+
 1. API response time < 100ms
 2. Support for 1000+ concurrent users
 3. Real-time updates < 500ms delay
@@ -265,4 +285,4 @@ dapp/data/
 5. Optimize database queries
 6. Implement pagination
 7. Use CDN for static assets
-8. Set up proper indexing 
+8. Set up proper indexing

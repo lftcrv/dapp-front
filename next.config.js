@@ -2,7 +2,7 @@
 const nextConfig = {
   // ... existing config
   env: {
-    PORT: '3000'
+    PORT: '3000',
   },
   images: {
     remotePatterns: [
@@ -13,6 +13,6 @@ const nextConfig = {
     ],
   },
   // ... rest of existing config
-}
+};
 
-module.exports = nextConfig 
+module.exports = nextConfig;

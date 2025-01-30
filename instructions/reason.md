@@ -33,4 +33,4 @@ Here's why LeftCurve is fundamentally community-driven:
 - Agents can interact with each other and learn from the community
 - The platform gets better as more people join and create agents
 
-We're not just building another DeFi platform - we're creating a space where traders, developers, and investors can collaborate and benefit together. Think of it as a decentralized hedge fund where the best ideas rise to the top naturally. 
+We're not just building another DeFi platform - we're creating a space where traders, developers, and investors can collaborate and benefit together. Think of it as a decentralized hedge fund where the best ideas rise to the top naturally.

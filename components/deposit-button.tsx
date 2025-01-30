@@ -47,8 +47,8 @@ const DepositButton = memo(() => {
 
       <AnimatePresence>
         {showModal && (
-          <DepositModal 
-            isOpen={showModal} 
+          <DepositModal
+            isOpen={showModal}
             onClose={handleCloseModal}
             walletType="evm"
             address={address}
@@ -57,7 +57,7 @@ const DepositButton = memo(() => {
       </AnimatePresence>
     </>
   );
-})
+});
 DepositButton.displayName = 'DepositButton';
 
-export { DepositButton }; 
+export { DepositButton };

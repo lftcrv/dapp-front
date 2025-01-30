@@ -66,4 +66,5 @@ NEXT_PUBLIC_API_URL=your-api-url
 MIT
 
 ---
-Built with 🧡 by the LeftCurve team 
+
+Built with 🧡 by the LeftCurve team

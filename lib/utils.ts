@@ -1,8 +1,8 @@
-import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 export function shortAddress(address: string): string {
@@ -11,16 +11,16 @@ export function shortAddress(address: string): string {
 }
 
 export function truncateAddress(address: string) {
-  if (!address) return ''
-  return `${address.slice(0, 6)}...${address.slice(-4)}`
+  if (!address) return '';
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 export function formatAmount(amount: number) {
-  return new Intl.NumberFormat('en-US').format(amount)
+  return new Intl.NumberFormat('en-US').format(amount);
 }
 
 export function formatPrice(price: number) {
-  return `${formatAmount(price)} LEFT`
+  return `${formatAmount(price)} LEFT`;
 }
 
 /**
@@ -29,8 +29,11 @@ export function formatPrice(price: number) {
  * @param holders Number of token holders
  * @returns Progress percentage (0-100)
  */
-export function calculateBondingProgress(price: number, holders: number): number {
-  return Math.min((holders * price * 1000) / 10000 * 100, 100)
+export function calculateBondingProgress(
+  price: number,
+  holders: number,
+): number {
+  return Math.min(((holders * price * 1000) / 10000) * 100, 100);
 }
 
 /**
@@ -40,5 +43,5 @@ export function calculateBondingProgress(price: number, holders: number): number
  * @returns true if still in bonding phase
  */
 export function isInBondingPhase(price: number, holders: number): boolean {
-  return calculateBondingProgress(price, holders) < 100
+  return calculateBondingProgress(price, holders) < 100;
 }

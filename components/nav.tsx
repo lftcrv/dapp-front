@@ -1,8 +1,8 @@
-import { ConnectWallet } from './connect-wallet'
-import { DepositButton } from './deposit-button'
-import { memo } from 'react'
-import { motion } from 'framer-motion'
-import Link from 'next/link'
+import { ConnectWallet } from './connect-wallet';
+import { DepositButton } from './deposit-button';
+import { memo } from 'react';
+import { motion } from 'framer-motion';
+import Link from 'next/link';
 
 const Logo = memo(() => (
   <motion.div
@@ -11,12 +11,15 @@ const Logo = memo(() => (
     transition={{ duration: 0.3 }}
     className="flex items-center gap-2"
   >
-    <Link href="/" className="text-xl font-bold hover:text-yellow-500 transition-colors">
+    <Link
+      href="/"
+      className="text-xl font-bold hover:text-yellow-500 transition-colors"
+    >
       LeftCurve
     </Link>
   </motion.div>
-))
-Logo.displayName = 'Logo'
+));
+Logo.displayName = 'Logo';
 
 const Actions = memo(() => (
   <motion.div
@@ -28,8 +31,8 @@ const Actions = memo(() => (
     <DepositButton />
     <ConnectWallet />
   </motion.div>
-))
-Actions.displayName = 'Actions'
+));
+Actions.displayName = 'Actions';
 
 const Nav = memo(() => {
   return (
@@ -48,8 +51,8 @@ const Nav = memo(() => {
       <Logo />
       <Actions />
     </motion.nav>
-  )
-})
-Nav.displayName = 'Nav'
+  );
+});
+Nav.displayName = 'Nav';
 
-export { Nav } 
+export { Nav };
