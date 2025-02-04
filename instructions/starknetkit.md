@@ -675,3 +675,147 @@ name: "Braavos",
 icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0a....",
 },
 })
+
+
+StarknetKit
+Docs
+StarknetKit with Starknet-react
+Basics
+StarknetKit with Starknet-react
+Starknet-react is an open-source collection of React providers and hooks designed by the Apibara team for Starknet.
+
+Our modular design greatly inspired by starknet-react, ensures you can easily integrate StarknetKit in any existing or new starknet-react project.
+
+One big plus of using starknet-react is that it provides you with the opportunity to customize the look and feel of your pop-up modal for wallet connections.
+
+Installations
+To get started, you will need to install the StarknetKit and starknet-react packages.
+
+npm install starknetkit @starknet-react/core @starknet-react/chains
+
+The connectors we provide are currently just compatible with starknet-react/core@next (v3).
+
+For starknet-react v2, you can use the connectors provided in starknetkit@1.1.9.
+
+Starknet Provider
+Next up, we’ll go ahead to create a starknet-provider.jsx component which will contain all our configurations. In here we’ll need to specify the chains our dApp exists on, the provider we’ll be using for calls, and our connectors.
+
+Imports
+To get started, we'll need to import the StarknetConfig and publicProvider components.
+
+import { InjectedConnector } from "starknetkit/injected"
+import { ArgentMobileConnector } from "starknetkit/argentMobile" 
+import { WebWalletConnector } from "starknetkit/webwallet"
+import { mainnet, sepolia } from "@starknet-react/chains" 
+import { StarknetConfig, publicProvider } from "@starknet-react/core"; 
+If you face import errors with typescript, head to your tsconfig.json, and update your moduleResolution and module to use Bundler and ES2015 respectively.
+
+Defining chains, providers and connectors
+Within our App, we'll create an array of chains, and connectors. This will be further passed as a prop to the StarknetConfig component.
+
+const chains = [mainnet, sepolia]
+const connectors = [
+  new InjectedConnector({ options: { id: "braavos", name: "Braavos" }}),
+  new InjectedConnector({ options: { id: "argentX", name: "Argent X" }}),
+  new WebWalletConnector({ url: "https://web.argent.xyz" }),
+  new ArgentMobileConnector(),
+]
+
+We'll then proceed by Swaddling our app with the StarknetConfig component. This provides a React Context for the application beneath to utilize shared data and hooks.
+
+return (
+  <StarknetConfig
+    chains={chains}
+    provider={publicProvider()}
+    connectors={connectors}
+  >
+    {children}
+  </StarknetConfig>
+)
+
+Finally, we'll head to our App.jsx and wrap our entire application with the provider we just created, in order to have access to all specified configurations.
+
+export default function App() {
+  return (
+    <StarknetProvider>
+      <Home />
+    </StarknetProvider>
+  );
+}
+
+Establishing connection
+Having configured our starknet-provider.jsx component, we can now easily utilize hooks from starknet-react to establish wallet connections, carry out dapp interactions and so many more.
+
+Here's a simple application that utilizes starknet-react to establish wallet connections:
+
+import React from "react";
+ 
+import { InjectedConnector } from "starknetkit/injected";
+import { ArgentMobileConnector, isInArgentMobileAppBrowser } from "starknetkit/argentMobile";
+import { WebWalletConnector } from "starknetkit/webwallet";
+import { mainnet, sepolia } from "@starknet-react/chains";
+import { StarknetConfig, publicProvider } from "@starknet-react/core";
+ 
+export default function StarknetProvider({ children }) {
+  const chains = [mainnet, sepolia]
+ 
+  const connectors = isInArgentMobileAppBrowser() ? [
+    ArgentMobileConnector.init({
+      options: {
+        dappName: "Example dapp",
+        projectId: "example-project-id",
+      },
+      inAppBrowserOptions: {},
+    })
+  ] : [
+    new InjectedConnector({ options: { id: "braavos", name: "Braavos" }}),
+    new InjectedConnector({ options: { id: "argentX", name: "Argent X" }}),
+    new WebWalletConnector({ url: "https://web.argent.xyz" }),
+    ArgentMobileConnector.init({
+      options: {
+        dappName: "Example dapp",
+        projectId: "example-project-id",
+      }
+    })
+  ]
+ 
+  return(
+    <StarknetConfig
+      chains={chains}
+      provider={publicProvider()}
+      connectors={connectors}
+    >
+      {children}
+    </StarknetConfig>
+  )
+}
+
+StarknetKit
+Docs
+StarknetKit with Starknet-react
+Usage with modal
+Using StarknetKit modal with starknet-react
+You might want to use starknet-react, but you don't have a need to build a custom modal component from scratch. To make your life easier, we made the default StarknetKit modal available for import with starknet-react.
+
+To get started, you need to first import the useStarknetkitConnectModal and useConnect components:
+
+import { useStarknetkitConnectModal } from "starknetkit";
+import { useConnect } from "@starknet-react/core";
+
+After importing, you can now use the default modal in your app:
+
+const { connect, connectors } = useConnect();
+const { starknetkitConnectModal } = useStarknetkitConnectModal({
+  connectors: connectors
+})
+ 
+async function connectWallet() {
+  const { connector } = await starknetkitConnectModal()
+  if (!connector) {
+    return
+  }
+ 
+  await connect({ connector })
+}
+
+PS: Ensure to setup your StarknetProvider first.

@@ -46,7 +46,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
         }}
       >
-        <WagmiProvider config={wagmiConfig}>{children}</WagmiProvider>
+        <WagmiProvider config={wagmiConfig}>
+          {children}
+        </WagmiProvider>
       </PrivyProvider>
     </QueryClientProvider>
   );

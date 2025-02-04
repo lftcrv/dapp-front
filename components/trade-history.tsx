@@ -1,13 +1,12 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTrades } from '@/hooks/use-trades';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Trade } from '@/lib/types';
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import {
   ArrowUpRight,
   ArrowDownRight,
@@ -207,62 +206,30 @@ const EmptyState = memo(() => (
 EmptyState.displayName = 'EmptyState';
 
 interface TradeHistoryProps {
-  agentId?: string;
-  className?: string;
-  maxHeight?: number;
+  trades: Trade[];
+  isLoading: boolean;
 }
 
-export const TradeHistory = memo(
-  ({ agentId, className, maxHeight = 500 }: TradeHistoryProps) => {
-    const { trades, isLoading, error, hasMore, loadMore } = useTrades({
-      agentId,
-    });
+export function TradeHistory({ trades, isLoading }: TradeHistoryProps) {
+  if (isLoading) {
+    return <LoadingState />;
+  }
 
-    const handleLoadMore = useCallback(() => {
-      loadMore();
-    }, [loadMore]);
+  if (!trades.length) {
+    return <EmptyState />;
+  }
 
-    if (isLoading && !trades.length) {
-      return <LoadingState />;
-    }
-
-    if (error) {
-      return <ErrorState error={error} />;
-    }
-
-    return (
-      <div
-        className={cn(
-          'space-y-2 overflow-auto scrollbar-thin scrollbar-thumb-muted-foreground/10 hover:scrollbar-thumb-muted-foreground/20 pr-2',
-          className,
-        )}
-        style={{ maxHeight }}
-      >
-        <AnimatePresence mode="popLayout">
-          {trades.length > 0 ? (
-            trades.map((trade: Trade, index: number) => (
-              <TradeItem key={trade.id} trade={trade} isLatest={index === 0} />
-            ))
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-            >
-              <EmptyState />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {hasMore && trades.length > 0 && (
-          <LoadMoreButton
-            onClick={handleLoadMore}
-            isLoading={isLoading}
-            remainingCount={trades.length}
+  return (
+    <div className="space-y-4">
+      <AnimatePresence mode="popLayout">
+        {trades.map((trade, index) => (
+          <TradeItem 
+            key={trade.id} 
+            trade={trade}
+            isLatest={index === 0} 
           />
-        )}
-      </div>
-    );
-  },
-);
-TradeHistory.displayName = 'TradeHistory';
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+}

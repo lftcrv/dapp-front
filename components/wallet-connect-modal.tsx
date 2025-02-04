@@ -9,19 +9,19 @@ import {
 } from './ui/dialog';
 import { Button } from './ui/button';
 import { usePrivy } from '@privy-io/react-auth';
-import { connect } from 'starknetkit';
 import { memo, useState, useEffect } from 'react';
 import { showToast } from '@/lib/toast';
-import type { StarknetWindowObject } from 'get-starknet-core';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from './ui/alert';
 import { Checkbox } from './ui/checkbox';
+import { useConnect } from '@starknet-react/core';
+import { StarknetkitConnector, useStarknetkitConnectModal } from 'starknetkit';
 
 interface WalletConnectModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onStarknetConnect: (wallet: StarknetWindowObject, address: string) => void;
+  onStarknetConnect: () => Promise<void>;
 }
 
 const slideAnimation = {
@@ -29,28 +29,6 @@ const slideAnimation = {
   animate: { opacity: 1, x: 0 },
   exit: { opacity: 0, x: 20 },
 };
-
-const LoadingButton = memo(
-  ({
-    children,
-    isLoading,
-    ...props
-  }: { children: React.ReactNode; isLoading: boolean } & React.ComponentProps<
-    typeof Button
-  >) => (
-    <Button {...props} disabled={isLoading || props.disabled}>
-      {isLoading ? (
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Connecting...</span>
-        </div>
-      ) : (
-        children
-      )}
-    </Button>
-  ),
-);
-LoadingButton.displayName = 'LoadingButton';
 
 const ErrorMessage = memo(({ message }: { message: string }) => (
   <Alert variant="destructive" className="mt-4">
@@ -63,60 +41,48 @@ ErrorMessage.displayName = 'ErrorMessage';
 export const WalletConnectModal = memo(
   ({ isOpen, onClose, onStarknetConnect }: WalletConnectModalProps) => {
     const [step, setStep] = useState<'choose' | 'evm-terms'>('choose');
-    const { login, ready: privyReady } = usePrivy();
-    const [isConnecting, setIsConnecting] = useState(false);
-    const [rememberMe, setRememberMe] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [rememberMe, setRememberMe] = useState(false);
+    
+    // Privy
+    const { login, ready: privyReady } = usePrivy();
+    
+    // Starknet
+    const { connect, connectors } = useConnect();
+    const { starknetkitConnectModal } = useStarknetkitConnectModal({
+      connectors: connectors as unknown as StarknetkitConnector[]
+    });
 
     // Reset state when modal opens
     useEffect(() => {
       if (isOpen) {
         setStep('choose');
-        setIsConnecting(false);
         setError(null);
       }
     }, [isOpen]);
 
     const handleStarknetConnect = async () => {
-      setIsConnecting(true);
-      setError(null);
-      const startTime = performance.now();
-      showToast('CONNECTING', 'loading');
-
+      // Close our modal first to prevent blocking StarknetKit's modal
       onClose();
-
+      
       try {
-        const { wallet, connectorData } = await connect({
-          modalMode: 'alwaysAsk',
-          modalTheme: 'dark',
-          dappName: 'LeftCurve',
-          webWalletUrl: 'https://web.argent.xyz',
-        });
-
-        if (wallet && connectorData?.account) {
-          onStarknetConnect(wallet, connectorData.account);
-          console.log(
-            '\x1b[36m%s\x1b[0m',
-            `⏱️ Starknet Connection (Starknet): ${(performance.now() - startTime).toFixed(2)}ms`,
-          );
-          showToast('CONNECTED', 'success');
-        } else {
-          throw new Error('Failed to connect wallet');
+        const { connector } = await starknetkitConnectModal();
+        if (!connector) {
+          return;
         }
+        
+        await connect({ connector });
+        await onStarknetConnect();
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : 'Failed to connect wallet';
+        const message = err instanceof Error ? err.message : 'Failed to connect wallet';
         setError(message);
         showToast('CONNECTION_ERROR', 'error');
-      } finally {
-        setIsConnecting(false);
       }
     };
 
     const handlePrivyConnect = async () => {
       if (!privyReady) return;
 
-      setIsConnecting(true);
       setError(null);
       showToast('EVM_CONNECTING', 'loading');
 
@@ -124,12 +90,9 @@ export const WalletConnectModal = memo(
         await login();
         onClose();
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : 'Failed to connect wallet';
+        const message = err instanceof Error ? err.message : 'Failed to connect wallet';
         setError(message);
         showToast('CONNECTION_ERROR', 'error');
-      } finally {
-        setIsConnecting(false);
       }
     };
 
@@ -149,23 +112,21 @@ export const WalletConnectModal = memo(
                 {...slideAnimation}
                 className="space-y-4 mt-4"
               >
-                <LoadingButton
+                <Button
                   variant="outline"
                   className="w-full justify-start text-left font-normal"
                   onClick={handleStarknetConnect}
-                  isLoading={isConnecting}
                 >
                   Connect with Starknet
-                </LoadingButton>
-                <LoadingButton
+                </Button>
+                <Button
                   variant="outline"
                   className="w-full justify-start text-left font-normal"
                   onClick={() => setStep('evm-terms')}
-                  isLoading={isConnecting}
                   disabled={!privyReady}
                 >
                   Connect with EVM
-                </LoadingButton>
+                </Button>
                 {error && <ErrorMessage message={error} />}
               </motion.div>
             ) : (
@@ -197,14 +158,13 @@ export const WalletConnectModal = memo(
                   <Button
                     variant="outline"
                     onClick={() => setStep('choose')}
-                    disabled={isConnecting}
                     className="flex-1"
                   >
                     Back
                   </Button>
                   <Button
                     onClick={handlePrivyConnect}
-                    disabled={!privyReady || isConnecting}
+                    disabled={!privyReady}
                     className="flex-1"
                   >
                     Continue

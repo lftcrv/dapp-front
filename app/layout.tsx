@@ -3,9 +3,8 @@ import { Inter } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import { LayoutSkeleton } from '@/components/layout-skeleton';
 import { NavigationWrapper } from '@/components/navigation-wrapper';
-import { Toaster } from 'sonner';
 import Providers from './providers';
-import { WalletProvider } from '@/app/context/wallet-context';
+import { ProvidersWrapper } from './providers-wrapper';
 import './globals.css';
 import { Metadata } from 'next';
 
@@ -64,7 +63,7 @@ export default function RootLayout({
         className={cn('relative h-full font-sans antialiased', inter.className)}
       >
         <Providers>
-          <WalletProvider>
+          <ProvidersWrapper>
             <div className="relative flex min-h-screen flex-col">
               <div className="glow" />
               <React.Suspense fallback={<LayoutSkeleton />}>
@@ -72,8 +71,7 @@ export default function RootLayout({
                 <NavigationWrapper />
               </React.Suspense>
             </div>
-            <Toaster position="bottom-right" theme="dark" />
-          </WalletProvider>
+          </ProvidersWrapper>
         </Providers>
       </body>
     </html>

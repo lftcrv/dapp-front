@@ -7,15 +7,15 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   type ReactNode,
 } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
-import { connect, disconnect } from 'starknetkit';
 import { type StarknetWindowObject } from 'get-starknet-core';
 import { StarknetAccountDerivation } from '@/components/starknet-account-derivation';
 import { handleStarknetConnection } from '@/actions/shared/handle-starknet-connection';
 import { signatureStorage } from '@/actions/shared/derive-starknet-account';
+import { useConnect, useAccount, useDisconnect } from "@starknet-react/core";
+import { useStarknetkitConnectModal, type StarknetkitConnector } from "starknetkit";
 
 interface StarknetWalletState {
   wallet: StarknetWindowObject | null;
@@ -49,7 +49,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // 1. All useState hooks
   const [isLoadingWallet, setIsLoadingWallet] = useState(false);
   const [isManuallyConnecting, setIsManuallyConnecting] = useState(false);
-  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [starknetWallet, setStarknetWallet] = useState<StarknetWalletState>({
     wallet: null,
     isConnected: false,
@@ -64,9 +63,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     logout,
   } = usePrivy();
 
-  // Refs for event handlers
-  const walletRef = useRef(starknetWallet);
-  walletRef.current = starknetWallet;
+  const { connect, connectors } = useConnect();
+  const { disconnect } = useDisconnect();
+  const { address: starknetAddress, isConnected: isStarknetConnected } = useAccount();
+  const { starknetkitConnectModal } = useStarknetkitConnectModal({
+    connectors: connectors as unknown as StarknetkitConnector[]
+  });
 
   // 3. All useCallback hooks
   const clearStarknetState = useCallback(() => {
@@ -78,143 +80,55 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem('starknet_wallet_cache');
   }, []);
 
-  const handleAccountsChanged = useCallback(async () => {
-    const accounts = await walletRef.current.wallet
-      ?.request({
-        type: 'wallet_requestAccounts',
-      })
-      .catch(() => undefined);
-
-    if (accounts?.[0] && accounts[0] !== walletRef.current.address) {
-      setStarknetWallet((prev) => ({
-        ...prev,
-        address: accounts[0],
-      }));
-    }
-  }, []);
-
-  const handleNetworkChanged = useCallback(async () => {
-    const chainId = await walletRef.current.wallet
-      ?.request({
-        type: 'wallet_requestChainId',
-      })
-      .catch(() => undefined);
-
-    if (chainId && chainId !== walletRef.current.chainId) {
-      setStarknetWallet((prev) => ({
-        ...prev,
-        chainId: chainId,
-        address: prev.address,
-      }));
-    }
-  }, []);
-
   const connectStarknet = useCallback(async () => {
-    if (isLoadingWallet || privyAuthenticated || isConnectModalOpen) return;
+    if (isLoadingWallet || privyAuthenticated) return;
 
     setIsLoadingWallet(true);
     setIsManuallyConnecting(true);
-    setIsConnectModalOpen(true);
 
     try {
-      const connection = await connect({
-        modalMode: 'alwaysAsk',
-        modalTheme: 'dark',
-        dappName: 'LeftCurve',
-      });
-
-      const { wallet, connectorData } = connection;
-      if (!wallet || !connectorData?.account) {
-        clearStarknetState();
+      const { connector } = await starknetkitConnectModal();
+      if (!connector) {
         return;
       }
 
-      // Get chain ID
-      const chainId = await wallet
-        .request({
-          type: 'wallet_requestChainId',
-        })
-        .catch(() => undefined);
+      await connect({ connector });
 
-      // Setup wallet event listeners
-      wallet.on('accountsChanged', handleAccountsChanged);
-      wallet.on('networkChanged', handleNetworkChanged);
-
-      const walletState = {
-        wallet,
-        address: connectorData.account,
-        chainId,
-        isConnected: true,
-      };
-
-      // Save wallet state before handling user data
-      setStarknetWallet(walletState);
-      sessionStorage.setItem(
-        'starknet_wallet_cache',
-        JSON.stringify({
-          timestamp: Date.now(),
-          data: walletState,
-        }),
-      );
-
-      // Save/update user in database
-      try {
-        await handleStarknetConnection(connectorData.account);
-      } catch (err) {
-        // Ignore 409 conflicts as they're expected when user already exists
-        if (err instanceof Error && !err.message.includes('409')) {
-          console.error('Failed to save user data');
+      // Save/update user in database only if we have an address
+      if (starknetAddress) {
+        try {
+          await handleStarknetConnection(starknetAddress);
+        } catch (err) {
+          // Ignore 409 conflicts as they're expected when user already exists
+          if (err instanceof Error && !err.message.includes('409')) {
+            console.error('Failed to save user data');
+          }
         }
       }
     } catch (_error) {
       console.error('Failed to connect wallet:', _error);
-      setIsLoadingWallet(false);
       clearStarknetState();
     } finally {
       setIsLoadingWallet(false);
       setIsManuallyConnecting(false);
-      setIsConnectModalOpen(false);
     }
   }, [
     isLoadingWallet,
     privyAuthenticated,
-    isConnectModalOpen,
     clearStarknetState,
-    handleAccountsChanged,
-    handleNetworkChanged,
+    connect,
+    starknetkitConnectModal,
+    starknetAddress,
   ]);
 
   const disconnectStarknet = useCallback(async () => {
     try {
-      // First remove event listeners if they exist
-      if (walletRef.current.wallet?.off) {
-        try {
-          walletRef.current.wallet.off(
-            'accountsChanged',
-            handleAccountsChanged,
-          );
-          walletRef.current.wallet.off('networkChanged', handleNetworkChanged);
-        } catch (err) {
-          console.warn('Failed to remove wallet listeners:', err);
-        }
-      }
-
-      // Then disconnect the wallet
-      await disconnect({ clearLastWallet: true });
-
-      // Clear signature if there is one
-      if (walletRef.current.address) {
-        signatureStorage.clearSignature(walletRef.current.address);
-      }
-
-      // Finally clear the state
+      await disconnect();
       clearStarknetState();
     } catch (err) {
-      console.error('Failed to disconnect Starknet wallet:', err);
-      // Still try to clear state even if disconnect fails
-      clearStarknetState();
+      console.warn('Failed to disconnect wallet:', err);
     }
-  }, [clearStarknetState, handleAccountsChanged, handleNetworkChanged]);
+  }, [disconnect, clearStarknetState]);
 
   const loginWithPrivy = useCallback(async () => {
     if (!privyReady || privyAuthenticated) return;
@@ -240,12 +154,47 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   // 4. All useEffect hooks
   useEffect(() => {
+    if (isStarknetConnected && starknetAddress) {
+      // Find the connected connector
+      const activeConnector = connectors.find(c => c.id === 'argentX' || c.id === 'braavos');
+      
+      setStarknetWallet((prev) => ({
+        ...prev,
+        address: starknetAddress,
+        isConnected: true,
+        wallet: activeConnector?.available() ? {
+          id: activeConnector.id,
+          name: activeConnector.name,
+          icon: activeConnector.icon,
+          version: '1.0.0',
+        } as StarknetWindowObject : null,
+      }));
+
+      // Cache the connection
+      sessionStorage.setItem(
+        'starknet_wallet_cache',
+        JSON.stringify({
+          timestamp: Date.now(),
+          data: {
+            address: starknetAddress,
+            isConnected: true,
+            walletType: activeConnector?.id,
+          },
+        }),
+      );
+    } else {
+      clearStarknetState();
+    }
+  }, [starknetAddress, isStarknetConnected, clearStarknetState, connectors]);
+
+  // Handle auto-reconnection
+  useEffect(() => {
     const checkStarknetConnection = async () => {
       if (
         isLoadingWallet ||
         privyAuthenticated ||
         isManuallyConnecting ||
-        isConnectModalOpen
+        isStarknetConnected
       )
         return;
 
@@ -256,51 +205,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           try {
             const { timestamp, data } = JSON.parse(cachedWallet);
             if (data && timestamp && Date.now() - timestamp < 5 * 60 * 1000) {
-              setStarknetWallet(data);
+              // Find the previously used connector
+              const previousConnector = connectors.find(c => c.id === data.walletType);
+              
+              if (previousConnector?.available()) {
+                await connect({ connector: previousConnector });
+              }
               return;
             }
           } catch {
-            // Invalid JSON in session storage, remove it
             sessionStorage.removeItem('starknet_wallet_cache');
-          }
-        }
-
-        // Check local storage next
-        const savedWallet = localStorage.getItem('starknet_wallet');
-        if (savedWallet) {
-          try {
-            const data = JSON.parse(savedWallet);
-            if (data?.address && data?.isConnected) {
-              const connection = await connect({
-                modalMode: 'neverAsk',
-                modalTheme: 'dark',
-                dappName: 'LeftCurve',
-              });
-
-              if (!connection.wallet || !connection.connectorData?.account) {
-                clearStarknetState();
-                return;
-              }
-
-              const chainId = await connection.wallet
-                .request({
-                  type: 'wallet_requestChainId',
-                })
-                .catch(() => undefined);
-
-              connection.wallet.on('accountsChanged', handleAccountsChanged);
-              connection.wallet.on('networkChanged', handleNetworkChanged);
-
-              setStarknetWallet({
-                wallet: connection.wallet,
-                address: connection.connectorData.account,
-                chainId,
-                isConnected: true,
-              });
-            }
-          } catch {
-            // Invalid JSON in local storage, remove it
-            localStorage.removeItem('starknet_wallet');
           }
         }
       } catch (_error) {
@@ -314,10 +228,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     isLoadingWallet,
     privyAuthenticated,
     isManuallyConnecting,
-    isConnectModalOpen,
+    isStarknetConnected,
     clearStarknetState,
-    handleAccountsChanged,
-    handleNetworkChanged,
+    connect,
+    connectors,
   ]);
 
   // 5. All useMemo hooks
