@@ -15,6 +15,7 @@ import {
 import { useWalletStatus } from '@/hooks/use-wallet-status';
 import { useContractAbi } from '@/utils/abi';
 import { useBuyTokens, useSellTokens } from '@/hooks/use-token-transactions';
+import { useProvider } from '@starknet-react/core';
 
 interface SwapWidgetProps {
   agent: Agent;
@@ -68,6 +69,31 @@ const SwapInput = memo(
 );
 SwapInput.displayName = 'SwapInput';
 
+const ErrorMessage = memo(({ message, isLeftCurve }: { message: string; isLeftCurve: boolean }) => (
+  <div className={cn(
+    "text-xs px-3 py-1.5 rounded-lg flex items-center gap-2.5 transition-all",
+    isLeftCurve 
+      ? "bg-yellow-500/10 text-foreground"
+      : "bg-purple-500/10 text-foreground"
+  )}>
+    <div className={cn(
+      "min-w-4 h-4 rounded-full flex items-center justify-center",
+      isLeftCurve ? "text-yellow-500/90" : "text-purple-500/90"
+    )}>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className="w-3.5 h-3.5"
+      >
+        <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
+      </svg>
+    </div>
+    <span className="opacity-90 font-medium tracking-tight">{message}</span>
+  </div>
+));
+ErrorMessage.displayName = 'ErrorMessage';
+
 const SwapDivider = memo(({ isLeftCurve }: { isLeftCurve: boolean }) => (
   <div className="relative py-2">
     <div className="absolute inset-0 flex items-center">
@@ -99,9 +125,11 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [balance, setBalance] = useState('0');
 
   const { address, isContractReady } = useWalletStatus(agent.contractAddress);
   const { toast } = useToast();
+  const { provider } = useProvider();
 
   // Use our custom ABI hook to handle proxy contracts
   const { abi, error: abiError, isLoading: isAbiLoading } = useContractAbi(agent.contractAddress);
@@ -177,6 +205,33 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
     return () => clearTimeout(timer);
   }, [amount, agent.id, activeTab, address, isInitializing]);
 
+  // Fetch ETH balance
+  useEffect(() => {
+    if (!address || !provider) {
+      setBalance('0');
+      return;
+    }
+
+    const fetchBalance = async () => {
+      try {
+        const balanceResult = await provider.getStorageAt(
+          address,
+          "0x0000000000000000000000000000000000000000000000000000000000000000"
+        );
+        const balanceInEth = Number(balanceResult) / 1e18;
+        setBalance(balanceInEth.toString());
+      } catch (error) {
+        console.error('Failed to fetch balance:', error);
+        setBalance('0');
+      }
+    };
+
+    fetchBalance();
+    // Poll balance every 10 seconds
+    const interval = setInterval(fetchBalance, 10000);
+    return () => clearInterval(interval);
+  }, [address, provider]);
+
   // Handle swap
   const handleSwap = useCallback(async () => {
     console.log('Swap Widget - Wallet Status:', {
@@ -240,7 +295,19 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
       if (result?.transaction_hash) {
         toast({
           title: 'Transaction Submitted',
-          description: `Transaction hash: ${result.transaction_hash}`,
+          description: (
+            <div className="flex flex-col gap-1">
+              <span>Transaction has been submitted.</span>
+              <a 
+                href={`https://starkscan.co/tx/${result.transaction_hash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-500 hover:text-blue-600 flex items-center gap-1"
+              >
+                View on Starkscan <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+          ),
         });
         setAmount('');
         setSimulatedAmount('');
@@ -248,9 +315,14 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
       
     } catch (error) {
       console.error('Swap failed:', error);
+      
+      // Handle specific error messages
+      const errorMessage = error instanceof Error ? error.message : 'Transaction failed';
+      
+      setError(errorMessage);
       toast({
         title: 'Swap Failed',
-        description: error instanceof Error ? error.message : 'Transaction failed',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -321,7 +393,7 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
           onClick={() => window.open('https://app.avnu.fi', '_blank')}
         >
           <LinkIcon className="h-3 w-3" />
-          Get $LEFT
+          Get ETH
           <ExternalLink className="h-3 w-3 opacity-50" />
         </Button>
       </div>
@@ -363,8 +435,8 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
 
         <TabsContent value="buy" className="space-y-4">
           <SwapInput
-            label="Pay with $LEFT"
-            balance="0.00 $LEFT"
+            label="Pay with ETH"
+            balance={`${Number(balance || 0).toFixed(3)} ETH`}
             value={amount}
             onChange={(value) => {
               const num = parseFloat(value);
@@ -379,14 +451,14 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
 
           <SwapInput
             label={`Receive ${agent.name}`}
-            balance={`0.00 ${agent.name}`}
+            balance={`0.000 ${agent.name}`}
             value={simulatedAmount}
-            estimate={amount || '0.00'}
+            estimate={amount || '0.000'}
             readOnly
             isLeftCurve={isLeftCurve}
           />
 
-          {error && <div className="text-sm text-red-500 px-1">{error}</div>}
+          {error && <ErrorMessage message={error} isLeftCurve={isLeftCurve} />}
 
           <Button
             className={buttonStyle}
@@ -406,7 +478,7 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
         <TabsContent value="sell" className="space-y-4">
           <SwapInput
             label={`Pay with ${agent.name}`}
-            balance={`0.00 ${agent.name}`}
+            balance={`0.000 ${agent.name}`}
             value={amount}
             onChange={(value) => {
               const num = parseFloat(value);
@@ -420,15 +492,15 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
           <SwapDivider isLeftCurve={isLeftCurve} />
 
           <SwapInput
-            label="Receive $LEFT"
-            balance="0.00 $LEFT"
+            label="Receive ETH"
+            balance={`${Number(balance || 0).toFixed(3)} ETH`}
             value={simulatedAmount}
-            estimate={amount || '0.00'}
+            estimate={amount || '0.000'}
             readOnly
             isLeftCurve={isLeftCurve}
           />
 
-          {error && <div className="text-sm text-red-500 px-1">{error}</div>}
+          {error && <ErrorMessage message={error} isLeftCurve={isLeftCurve} />}
 
           <Button
             className={buttonStyle}

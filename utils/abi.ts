@@ -15,14 +15,8 @@ export async function fetchAbi(provider: ProviderInterface, address: string) {
     console.log('Attempting to fetch class at address:', address);
     result = await provider.getClassAt(address);
   } catch (e) {
-    console.error('Failed to getClassAt:', e);
-    try {
-      console.log('Attempting to fetch class by hash:', address);
-      result = await provider.getClassByHash(address);
-    } catch (e) {
-      console.error('Failed to getClassByHash:', e);
-      return undefined;
-    }
+    console.error('Failed to fetch contract class:', e);
+    return undefined;
   }
 
   if (!result) {
@@ -113,6 +107,9 @@ export function useContractAbi(address: string) {
 
     // Only proceed if we have both provider and are connected
     if (!provider) {
+      setError('Provider not available');
+      setAbi(null);
+      setIsLoading(false);
       return;
     }
 
@@ -121,22 +118,20 @@ export function useContractAbi(address: string) {
     const load = async () => {
       setIsLoading(true);
       try {
-        console.log('Starting ABI fetch for address:', address);
         const result = await fetchAbi(provider, address);
         if (!mounted) return;
         
         if (!result) {
-          setError('Failed to fetch ABI');
+          setError('Contract ABI not available');
           setAbi(null);
         } else {
-          console.log('Successfully fetched ABI for address:', address);
           setError(null);
           setAbi(result);
         }
       } catch (e) {
         if (!mounted) return;
-        console.error('Error in useContractAbi:', e);
-        setError('Failed to fetch ABI');
+        console.error('Error loading contract ABI:', e);
+        setError('Failed to load contract ABI');
         setAbi(null);
       } finally {
         if (mounted) {
