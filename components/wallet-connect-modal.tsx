@@ -53,7 +53,6 @@ export const WalletConnectModal = memo(
       connectors: connectors as unknown as StarknetkitConnector[]
     });
 
-    // Reset state when modal opens
     useEffect(() => {
       if (isOpen) {
         setStep('choose');
@@ -62,7 +61,6 @@ export const WalletConnectModal = memo(
     }, [isOpen]);
 
     const handleStarknetConnect = async () => {
-      // Close our modal first to prevent blocking StarknetKit's modal
       onClose();
       
       try {

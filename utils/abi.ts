@@ -2,6 +2,7 @@ import { Contract, ProviderInterface, num } from 'starknet';
 import type { Abi } from 'starknet';
 import { useState, useEffect } from 'react';
 import { useProvider } from '@starknet-react/core';
+import { useAccount } from '@starknet-react/core';
 
 export async function fetchAbi(provider: ProviderInterface, address: string) {
   if (!address || address === '0x' || address === '0x0') {
@@ -96,28 +97,35 @@ export async function fetchAbi(provider: ProviderInterface, address: string) {
 
 export function useContractAbi(address: string) {
   const { provider } = useProvider();
+  const { isConnected } = useAccount();
   const [abi, setAbi] = useState<Abi | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!address || !provider) {
-      setIsLoading(false);
+    // Reset state when disconnected or invalid address
+    if (!isConnected || !address || address === '0x0' || address === '0x') {
       setAbi(null);
       setError(null);
+      setIsLoading(false);
+      return;
+    }
+
+    // Only proceed if we have both provider and are connected
+    if (!provider) {
       return;
     }
 
     let mounted = true;
     
     const load = async () => {
+      setIsLoading(true);
       try {
         console.log('Starting ABI fetch for address:', address);
         const result = await fetchAbi(provider, address);
         if (!mounted) return;
         
         if (!result) {
-          console.error('No ABI result for address:', address);
           setError('Failed to fetch ABI');
           setAbi(null);
         } else {
@@ -142,7 +150,7 @@ export function useContractAbi(address: string) {
     return () => {
       mounted = false;
     };
-  }, [address, provider]);
+  }, [address, provider, isConnected]);
 
   return { abi, error, isLoading };
 } 

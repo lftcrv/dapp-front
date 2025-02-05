@@ -5,7 +5,6 @@ import { Agent } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useWallet } from '@/app/context/wallet-context';
 import { ArrowDownUp, ExternalLink, Link as LinkIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -14,7 +13,8 @@ import {
   simulateSellTokens,
 } from '@/actions/agents/token/getTokenInfo';
 import { useWalletStatus } from '@/hooks/use-wallet-status';
-import { useSendTransaction, TransactionCall } from '@/hooks/use-send-transaction';
+import { useContractAbi } from '@/utils/abi';
+import { useBuyTokens, useSellTokens } from '@/hooks/use-token-transactions';
 
 interface SwapWidgetProps {
   agent: Agent;
@@ -93,19 +93,31 @@ const SwapDivider = memo(({ isLeftCurve }: { isLeftCurve: boolean }) => (
 SwapDivider.displayName = 'SwapDivider';
 
 export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
-  // 1. All useState hooks
   const [amount, setAmount] = useState('');
   const [simulatedAmount, setSimulatedAmount] = useState('');
   const [activeTab, setActiveTab] = useState('buy');
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [calls, setCalls] = useState<TransactionCall[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // 2. All context hooks
-  const { currentAddress: address } = useWallet();
-  const { isContractReady, getStatus } = useWalletStatus(agent.contractAddress);
+  const { address, isContractReady } = useWalletStatus(agent.contractAddress);
   const { toast } = useToast();
-  const { sendTransaction } = useSendTransaction({ calls });
+
+  // Use our custom ABI hook to handle proxy contracts
+  const { abi, error: abiError, isLoading: isAbiLoading } = useContractAbi(agent.contractAddress);
+
+  // Use transaction hooks
+  const { buyTokens } = useBuyTokens({
+    address: agent.contractAddress,
+    abi: abi || agent.abi,
+  });
+
+  const { sellTokens } = useSellTokens({
+    address: agent.contractAddress,
+    abi: abi || agent.abi,
+  });
+
+  const isInitializing = isAbiLoading || !buyTokens || !sellTokens;
 
   // 3. All derived values
   const isLeftCurve = agent.type === 'leftcurve';
@@ -113,15 +125,16 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
   // 4. All useEffect hooks
   useEffect(() => {
     const simulateSwap = async () => {
-      if (!amount || !agent.id) {
+      if (!amount || !agent.id || !address || isInitializing) {
         setSimulatedAmount('');
         setError(null);
         return;
       }
 
+      setIsLoading(true);
       try {
         const inputAmount = parseFloat(amount);
-        if (isNaN(inputAmount) || inputAmount === 0 || !isFinite(inputAmount)) {
+        if (isNaN(inputAmount) || inputAmount <= 0) {
           setSimulatedAmount('');
           setError(null);
           return;
@@ -155,15 +168,25 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
         } else {
           setError('Failed to simulate swap');
         }
+      } finally {
+        setIsLoading(false);
       }
     };
 
     const timer = setTimeout(simulateSwap, 500);
     return () => clearTimeout(timer);
-  }, [amount, agent.id, activeTab]);
+  }, [amount, agent.id, activeTab, address, isInitializing]);
 
-  // 5. All useCallback hooks
+  // Handle swap
   const handleSwap = useCallback(async () => {
+    console.log('Swap Widget - Wallet Status:', {
+      address,
+      isContractReady,
+      hasAbi: !!abi,
+      agentId: agent.id,
+      agentContractAddress: agent.contractAddress
+    });
+
     if (!address) {
       toast({
         title: 'Connect Wallet',
@@ -172,9 +195,6 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
       });
       return;
     }
-
-    const status = getStatus();
-    console.log('Attempting swap with wallet status:', status);
 
     if (!isContractReady) {
       toast({
@@ -201,61 +221,63 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
       setError(null);
 
       const inputAmount = parseFloat(amount);
-      if (isNaN(inputAmount) || inputAmount === 0 || !isFinite(inputAmount)) {
+      if (isNaN(inputAmount) || inputAmount <= 0) {
         throw new Error('Invalid amount');
       }
 
       const amountInWei = BigInt(Math.floor(inputAmount * 1e18)).toString();
       
-      // Prepare the contract call with the correct selector
-      const transactionCalls = [{
-        contractAddress: agent.contractAddress as `0x${string}`,
-        entrypoint: activeTab === 'buy' ? 'buy' : 'sell',
-        calldata: [amountInWei]
-      }];
-
-      // Set the calls first
-      setCalls(transactionCalls);
-
-      // Wait for the next render cycle
-      await new Promise(resolve => setTimeout(resolve, 0));
+      console.log('Initiating swap with amount:', amountInWei);
+      console.log('Active tab:', activeTab);
       
-      // Send the transaction
-      const response = await sendTransaction();
-      console.log('Transaction response:', response);
+      // Execute the appropriate transaction based on active tab
+      const result = await (activeTab === 'buy' 
+        ? buyTokens(amountInWei)
+        : sellTokens(amountInWei));
+        
+      console.log('Transaction result:', result);
       
-      // Handle success
-      toast({
-        title: 'Transaction Sent',
-        description: 'Your swap transaction has been sent to the network.',
-      });
-
-      // Reset form
-      setAmount('');
-      setSimulatedAmount('');
-      setCalls([]);
+      if (result?.transaction_hash) {
+        toast({
+          title: 'Transaction Submitted',
+          description: `Transaction hash: ${result.transaction_hash}`,
+        });
+        setAmount('');
+        setSimulatedAmount('');
+      }
       
-    } catch (err) {
-      console.error('Swap failed:', err);
+    } catch (error) {
+      console.error('Swap failed:', error);
       toast({
         title: 'Swap Failed',
-        description: err instanceof Error ? err.message : 'Failed to execute swap',
+        description: error instanceof Error ? error.message : 'Transaction failed',
         variant: 'destructive',
       });
-      // Clear the calls on error
-      setCalls([]);
     } finally {
       setIsProcessing(false);
     }
-  }, [address, amount, agent.id, agent.contractAddress, activeTab, getStatus, isContractReady, sendTransaction, setCalls, toast]);
+  }, [
+    address,
+    amount,
+    activeTab,
+    agent.id,
+    agent.contractAddress,
+    isContractReady,
+    buyTokens,
+    sellTokens,
+    toast,
+  ]);
 
-  // 6. All useMemo hooks
+  // Update button text to show ABI loading state
   const buttonText = useMemo(() => {
-    if (!address) return 'Connect Wallet';
-    if (!amount) return 'Enter Amount';
+    if (isAbiLoading) return 'Loading Contract...';
+    if (isLoading) return 'Loading...';
     if (isProcessing) return 'Processing...';
+    if (abiError) return 'Contract Error';
+    if (error) return 'Error';
+    if (!address) return 'Connect Wallet';
     return 'Swap';
-  }, [address, amount, isProcessing]);
+  }, [isAbiLoading, isLoading, isProcessing, abiError, error, address]);
 
   const buttonStyle = useMemo(
     () =>
@@ -267,6 +289,18 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
       ),
     [isLeftCurve],
   );
+
+  // Add ABI error handling
+  useEffect(() => {
+    if (abiError) {
+      console.error('Failed to load contract ABI:', abiError);
+      toast({
+        title: 'Contract Error',
+        description: 'Failed to load contract interface. Please try again later.',
+        variant: 'destructive',
+      });
+    }
+  }, [abiError, toast]);
 
   return (
     <div className={cn('p-6 space-y-4', className)}>
@@ -358,7 +392,7 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
             className={buttonStyle}
             size="lg"
             onClick={handleSwap}
-            disabled={!address || !amount || !!error}
+            disabled={!address || !amount || isProcessing || isLoading || !!error}
           >
             {buttonText}
           </Button>
@@ -400,7 +434,7 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
             className={buttonStyle}
             size="lg"
             onClick={handleSwap}
-            disabled={!address || !amount || !!error}
+            disabled={!address || !amount || isProcessing || isLoading || !!error}
           >
             {buttonText}
           </Button>
