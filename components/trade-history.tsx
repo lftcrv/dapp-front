@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Trade } from '@/lib/types';
 import { memo, useMemo } from 'react';
 import {
   ArrowUpRight,
@@ -19,6 +18,28 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+
+interface TradeInfo {
+  buyAmount: string;
+  sellAmount: string;
+  explanation: string;
+  buyTokenName: string;
+  sellTokenName: string;
+  tradePriceUSD: number;
+  buyTokenAddress: string;
+  sellTokenAddress: string;
+}
+
+interface APITrade {
+  id: string;
+  createdAt: string;
+  information: {
+    trade: TradeInfo;
+    tradeId: string;
+    containerId: string;
+  };
+  elizaAgentId: string;
+}
 
 const formatTimeAgo = (timestamp: string): string => {
   const date = new Date(timestamp);
@@ -37,7 +58,7 @@ const formatTimeAgo = (timestamp: string): string => {
 };
 
 interface TradeItemProps {
-  trade: Trade;
+  trade: APITrade;
   isLatest?: boolean;
 }
 
@@ -51,12 +72,65 @@ const TradeIcon = memo(({ type }: { type: 'buy' | 'sell' }) =>
 TradeIcon.displayName = 'TradeIcon';
 
 const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
-  const isBuy = trade.type === 'buy';
+  const formattedTime = useMemo(() => formatTimeAgo(trade.createdAt), [trade.createdAt]);
+
+  if (!trade?.information?.trade) {
+    return null;
+  }
+
+  const tradeInfo = trade.information.trade;
+  const { buyTokenName, sellTokenName, buyAmount, sellAmount, tradePriceUSD, explanation } = tradeInfo;
+
+  if (!buyTokenName || !sellTokenName) {
+    return null;
+  }
+
+  const isBuy = buyTokenName === 'USDT';
   const colorClass = isBuy ? 'text-green-500' : 'text-red-500';
   const bgClass = isBuy
     ? 'bg-green-500/5 border-green-500/20'
     : 'bg-red-500/5 border-red-500/20';
-  const formattedTime = useMemo(() => formatTimeAgo(trade.time), [trade.time]);
+
+  const formatAmount = (amount: string | undefined, tokenName: string) => {
+    if (!amount) return '0';
+    try {
+      const decimals = tokenName === 'USDT' ? 6 : 18;
+      const num = parseFloat(amount) / Math.pow(10, decimals);
+      return num.toLocaleString(undefined, { 
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 6 
+      });
+    } catch {
+      return '0';
+    }
+  };
+
+  const formatPrice = (price: number | undefined) => {
+    if (!price) return '0.00';
+    try {
+      return price.toLocaleString(undefined, { 
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2 
+      });
+    } catch {
+      return '0.00';
+    }
+  };
+
+  const getChangeIndicator = (explanation: string) => {
+    const match = explanation.match(/-?\d+%/);
+    return match ? match[0] : '';
+  };
+
+  const changePercentage = getChangeIndicator(explanation);
+  const displayAmount = isBuy ? 
+    formatAmount(buyAmount, buyTokenName) : 
+    formatAmount(sellAmount, sellTokenName);
+  const otherAmount = !isBuy ? 
+    formatAmount(buyAmount, buyTokenName) : 
+    formatAmount(sellAmount, sellTokenName);
+  const displayToken = isBuy ? buyTokenName : sellTokenName;
+  const otherToken = !isBuy ? buyTokenName : sellTokenName;
 
   return (
     <motion.div
@@ -72,23 +146,47 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <TradeIcon type={trade.type} />
+          <TradeIcon type={isBuy ? 'buy' : 'sell'} />
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="flex items-center gap-1.5 cursor-help">
                   <span className={cn('text-sm font-medium', colorClass)}>
-                    ${trade.price.toLocaleString()}
+                    ${formatPrice(tradePriceUSD)}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    ({trade.amount.toLocaleString()} tokens)
+                    ({displayAmount} {displayToken})
                   </span>
+                  {changePercentage && (
+                    <span className={cn(
+                      "text-xs px-1.5 py-0.5 rounded-full",
+                      changePercentage.includes('-') ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'
+                    )}>
+                      {changePercentage}
+                    </span>
+                  )}
                 </div>
               </TooltipTrigger>
-              <TooltipContent>
-                <p>
-                  Total Value: ${(trade.price * trade.amount).toLocaleString()}
-                </p>
+              <TooltipContent className="w-64">
+                <div className="text-xs space-y-1">
+                  <div className="font-medium">
+                    {isBuy ? 'Buying' : 'Selling'} {sellTokenName} for {buyTokenName}
+                  </div>
+                  <div className="grid grid-cols-2 gap-1">
+                    <div>Amount {isBuy ? 'In' : 'Out'}:</div>
+                    <div>{displayAmount} {displayToken}</div>
+                    <div>Amount {!isBuy ? 'In' : 'Out'}:</div>
+                    <div>{otherAmount} {otherToken}</div>
+                    <div>Price:</div>
+                    <div>${formatPrice(tradePriceUSD)}</div>
+                    {changePercentage && (
+                      <>
+                        <div>Change:</div>
+                        <div>{changePercentage}</div>
+                      </>
+                    )}
+                  </div>
+                </div>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -101,16 +199,16 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
               </span>
             </TooltipTrigger>
             <TooltipContent>
-              <p>{new Date(trade.time).toLocaleString()}</p>
+              <p>{new Date(trade.createdAt).toLocaleString()}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>
       <div
         className="text-xs text-muted-foreground leading-relaxed line-clamp-2"
-        title={trade.summary}
+        title={explanation}
       >
-        {trade.summary}
+        {explanation}
       </div>
     </motion.div>
   );
@@ -206,7 +304,7 @@ const EmptyState = memo(() => (
 EmptyState.displayName = 'EmptyState';
 
 interface TradeHistoryProps {
-  trades: Trade[];
+  trades: APITrade[];
   isLoading: boolean;
 }
 
@@ -215,16 +313,30 @@ export function TradeHistory({ trades, isLoading }: TradeHistoryProps) {
     return <LoadingState />;
   }
 
-  if (!trades.length) {
+  if (!trades || !Array.isArray(trades)) {
+    return <EmptyState />;
+  }
+
+  const validTrades = trades
+    .filter(trade => 
+      trade && 
+      trade.id &&
+      trade.information?.trade &&
+      trade.information.trade.buyTokenName && 
+      trade.information.trade.sellTokenName
+    )
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  if (!validTrades.length) {
     return <EmptyState />;
   }
 
   return (
     <div className="space-y-4">
       <AnimatePresence mode="popLayout">
-        {trades.map((trade, index) => (
+        {validTrades.map((trade, index) => (
           <TradeItem 
-            key={trade.id} 
+            key={`${trade.id}-${index}`}
             trade={trade}
             isLatest={index === 0} 
           />
