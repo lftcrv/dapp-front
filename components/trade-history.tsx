@@ -71,6 +71,25 @@ const TradeIcon = memo(({ type }: { type: 'buy' | 'sell' }) =>
 );
 TradeIcon.displayName = 'TradeIcon';
 
+// Update token decimals handling
+const TOKEN_DECIMALS: { [key: string]: number } = {
+  'USDT': 6,
+  'STRK': 18,
+  'ETH': 18,
+  // Add more tokens here
+};
+
+// Helper function to get token decimals with default
+const getTokenDecimals = (tokenName: string): number => {
+  // Default to 18 decimals (most common in ERC20 tokens)
+  return TOKEN_DECIMALS[tokenName] ?? 18;
+};
+
+// Helper function to determine if token is a stablecoin
+const isStableCoin = (tokenName: string): boolean => {
+  return ['USDT', 'USDC', 'DAI', 'USDC'].includes(tokenName);
+};
+
 const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
   const formattedTime = useMemo(() => formatTimeAgo(trade.createdAt), [trade.createdAt]);
 
@@ -94,11 +113,14 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
   const formatAmount = (amount: string | undefined, tokenName: string) => {
     if (!amount) return '0';
     try {
-      const decimals = tokenName === 'USDT' ? 6 : 18;
+      const decimals = getTokenDecimals(tokenName);
       const num = parseFloat(amount) / Math.pow(10, decimals);
+      
+      // Use 2 decimals for stablecoins, 6 for others
+      const maxDecimals = isStableCoin(tokenName) ? 2 : 6;
       return num.toLocaleString(undefined, { 
         minimumFractionDigits: 2,
-        maximumFractionDigits: 6 
+        maximumFractionDigits: maxDecimals
       });
     } catch {
       return '0';
