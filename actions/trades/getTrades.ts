@@ -15,15 +15,12 @@ interface ApiTrade {
 }
 
 export async function getTrades(agentId?: string) {
+  const startTime = Date.now();
   try {
     const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL;
     const apiKey = process.env.API_KEY;
 
-    console.log('Fetching trades with config:', {
-      apiUrl,
-      hasApiKey: !!apiKey,
-      agentId,
-    });
+    console.log(`[Server] 🔄 Fetching trades ${agentId ? `for agent ${agentId}` : 'all'}`);
 
     if (!apiUrl || !apiKey) {
       throw new Error('Missing API configuration');
@@ -32,8 +29,6 @@ export async function getTrades(agentId?: string) {
     const endpoint = agentId
       ? `${apiUrl}/api/trading-information/${agentId}`
       : `${apiUrl}/api/trading-information`;
-
-    console.log('Making request to:', endpoint);
 
     const response = await fetch(endpoint, {
       headers: {
@@ -44,28 +39,19 @@ export async function getTrades(agentId?: string) {
       next: { revalidate: 5 },
     });
 
-    console.log('Response status:', response.status);
     const data = await response.json();
-    console.log('Response data:', data);
+    const tradeCount = Array.isArray(data) ? data.length : (data.trades || []).length;
+    const duration = Date.now() - startTime;
+    console.log(`[Server] ✅ Found ${tradeCount} trades (${duration}ms)`);
 
     if (!response.ok) {
       // Handle specific error cases
       if (response.status === 401) {
-        console.error('API Key error:', {
-          status: response.status,
-          data,
-          headers: Object.fromEntries(response.headers.entries()),
-        });
         throw new Error('Invalid API key');
       } else if (response.status === 404) {
-        console.warn('No trades found for agent:', agentId);
+        console.warn(`[Server] ⚠️ No trades found for agent: ${agentId}`);
         throw new Error('No trades found');
       } else if (response.status >= 500) {
-        console.error('Server error:', {
-          status: response.status,
-          data,
-          headers: Object.fromEntries(response.headers.entries()),
-        });
         throw new Error('Server error - please try again later');
       }
       throw new Error(data.message || 'Failed to fetch trades');
@@ -73,7 +59,6 @@ export async function getTrades(agentId?: string) {
 
     // Handle both array response and object with trades property
     const trades = Array.isArray(data) ? data : data.trades || [];
-    console.log('Parsed trades:', trades);
 
     return {
       success: true,
@@ -83,7 +68,8 @@ export async function getTrades(agentId?: string) {
       })) as Trade[],
     };
   } catch (error) {
-    console.error('Error fetching trades:', error);
+    const duration = Date.now() - startTime;
+    console.error(`[Server] ❌ Error (${duration}ms):`, error instanceof Error ? error.message : error);
     return {
       success: false,
       error:

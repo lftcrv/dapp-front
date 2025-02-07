@@ -1,3 +1,5 @@
+import { Abi } from 'starknet';
+
 // Common Types
 export type AgentType = 'leftcurve' | 'rightcurve';
 export type AgentStatus = 'bonding' | 'live' | 'ended';
@@ -58,6 +60,8 @@ export interface Agent {
   lore?: string;
   creativityIndex: number;
   performanceIndex: number;
+  contractAddress: `0x${string}`;
+  abi: Abi;
 }
 
 // Trade Types

@@ -10,7 +10,6 @@ import {
 interface UseBondingCurveProps {
   agentId: string;
   enabled?: boolean;
-  interval?: number;
 }
 
 interface BondingCurveData {
@@ -19,7 +18,8 @@ interface BondingCurveData {
   percentage: number;
   isLoading: boolean;
   error: string | null;
-  refresh: () => Promise<void>;
+  simulateBuy: () => Promise<void>;
+  simulateSell: () => Promise<void>;
 }
 
 const INITIAL_STATE = {
@@ -30,15 +30,27 @@ const INITIAL_STATE = {
   error: null,
 };
 
+// Cache for bonding curve data
+const dataCache = new Map<string, { data: Omit<BondingCurveData, 'simulateBuy' | 'simulateSell'>; timestamp: number }>();
+const CACHE_DURATION = 5000; // 5 seconds
+
 export function useBondingCurve({
   agentId,
+  enabled = true,
 }: UseBondingCurveProps): BondingCurveData {
-  const [data, setData] =
-    useState<Omit<BondingCurveData, 'refresh'>>(INITIAL_STATE);
+  const [data, setData] = useState<Omit<BondingCurveData, 'simulateBuy' | 'simulateSell'>>(INITIAL_STATE);
   const isFetching = useRef(false);
+  const hasInitialFetch = useRef(false);
 
-  const fetchData = useCallback(async () => {
-    if (!agentId || isFetching.current) return;
+  const fetchPercentage = useCallback(async () => {
+    if (!agentId || isFetching.current || !enabled) return;
+
+    // Check cache first
+    const cached = dataCache.get(agentId);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      setData(cached.data);
+      return;
+    }
 
     isFetching.current = true;
 
@@ -46,27 +58,22 @@ export function useBondingCurve({
       const percentageResult = await getBondingCurvePercentage(agentId);
       if (!percentageResult.success) throw new Error(percentageResult.error);
 
-      const percentage = percentageResult.data ?? 0;
-
-      /// WIth 6 decimals instead of 18 (it's token not ether)
-      const [buyResult, sellResult] = await Promise.all([
-        simulateBuyTokens(agentId, '1000000'),
-        simulateSellTokens(agentId, '1000000'),
-      ]);
-
-      if (!buyResult.success || !sellResult.success) {
-        throw new Error('Simulation failed');
-      }
-
-      setData({
-        buyPrice: buyResult.data ?? null,
-        sellPrice: sellResult.data ?? null,
-        percentage,
+      const newData = {
+        ...data,
+        percentage: percentageResult.data ?? 0,
         isLoading: false,
         error: null,
+      };
+
+      // Update cache
+      dataCache.set(agentId, {
+        data: newData,
+        timestamp: Date.now(),
       });
+
+      setData(newData);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching bonding curve percentage:', error);
       setData((prev) => ({
         ...prev,
         isLoading: false,
@@ -75,23 +82,69 @@ export function useBondingCurve({
     } finally {
       isFetching.current = false;
     }
+  }, [agentId, enabled, data]);
+
+  const simulateBuy = useCallback(async () => {
+    if (!agentId || isFetching.current) return;
+    
+    try {
+      setData(prev => ({ ...prev, isLoading: true }));
+      const result = await simulateBuyTokens(agentId, '1000000');
+      if (!result.success) throw new Error(result.error);
+      
+      setData(prev => ({
+        ...prev,
+        buyPrice: result.data ?? null,
+        isLoading: false,
+        error: null,
+      }));
+    } catch (error) {
+      setData(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }));
+    }
   }, [agentId]);
 
-  useEffect(() => {
-    let mounted = true;
+  const simulateSell = useCallback(async () => {
+    if (!agentId || isFetching.current) return;
+    
+    try {
+      setData(prev => ({ ...prev, isLoading: true }));
+      const result = await simulateSellTokens(agentId, '1000000');
+      if (!result.success) throw new Error(result.error);
+      
+      setData(prev => ({
+        ...prev,
+        sellPrice: result.data ?? null,
+        isLoading: false,
+        error: null,
+      }));
+    } catch (error) {
+      setData(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }));
+    }
+  }, [agentId]);
 
-    if (mounted) {
-      setData((prev) => ({ ...prev, isLoading: true }));
-      fetchData();
+  // Initial fetch of percentage only
+  useEffect(() => {
+    if (!hasInitialFetch.current && enabled) {
+      hasInitialFetch.current = true;
+      fetchPercentage();
     }
 
     return () => {
-      mounted = false;
+      hasInitialFetch.current = false;
     };
-  }, [fetchData]);
+  }, [fetchPercentage, enabled]);
 
   return {
     ...data,
-    refresh: fetchData,
+    simulateBuy,
+    simulateSell,
   };
 }

@@ -5,7 +5,6 @@ import { Agent } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useWallet } from '@/app/context/wallet-context';
 import { ArrowDownUp, ExternalLink, Link as LinkIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -13,6 +12,10 @@ import {
   simulateBuyTokens,
   simulateSellTokens,
 } from '@/actions/agents/token/getTokenInfo';
+import { useWalletStatus } from '@/hooks/use-wallet-status';
+import { useContractAbi } from '@/utils/abi';
+import { useBuyTokens, useSellTokens } from '@/hooks/use-token-transactions';
+import { useProvider } from '@starknet-react/core';
 
 interface SwapWidgetProps {
   agent: Agent;
@@ -66,6 +69,31 @@ const SwapInput = memo(
 );
 SwapInput.displayName = 'SwapInput';
 
+const ErrorMessage = memo(({ message, isLeftCurve }: { message: string; isLeftCurve: boolean }) => (
+  <div className={cn(
+    "text-xs px-3 py-1.5 rounded-lg flex items-center gap-2.5 transition-all",
+    isLeftCurve 
+      ? "bg-yellow-500/10 text-foreground"
+      : "bg-purple-500/10 text-foreground"
+  )}>
+    <div className={cn(
+      "min-w-4 h-4 rounded-full flex items-center justify-center",
+      isLeftCurve ? "text-yellow-500/90" : "text-purple-500/90"
+    )}>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className="w-3.5 h-3.5"
+      >
+        <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
+      </svg>
+    </div>
+    <span className="opacity-90 font-medium tracking-tight">{message}</span>
+  </div>
+));
+ErrorMessage.displayName = 'ErrorMessage';
+
 const SwapDivider = memo(({ isLeftCurve }: { isLeftCurve: boolean }) => (
   <div className="relative py-2">
     <div className="absolute inset-0 flex items-center">
@@ -95,33 +123,55 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
   const [simulatedAmount, setSimulatedAmount] = useState('');
   const [activeTab, setActiveTab] = useState('buy');
   const [error, setError] = useState<string | null>(null);
-  const { currentAddress: address } = useWallet();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [balance, setBalance] = useState('0');
+
+  const { address, isContractReady } = useWalletStatus(agent.contractAddress);
   const { toast } = useToast();
+  const { provider } = useProvider();
+
+  // Use our custom ABI hook to handle proxy contracts
+  const { abi, error: abiError, isLoading: isAbiLoading } = useContractAbi(agent.contractAddress);
+
+  // Use transaction hooks
+  const { buyTokens } = useBuyTokens({
+    address: agent.contractAddress,
+    abi: abi || agent.abi,
+  });
+
+  const { sellTokens } = useSellTokens({
+    address: agent.contractAddress,
+    abi: abi || agent.abi,
+  });
+
+  const isInitializing = isAbiLoading || !buyTokens || !sellTokens;
+
+  // 3. All derived values
   const isLeftCurve = agent.type === 'leftcurve';
 
-  // Simulate swap when amount changes
+  // 4. All useEffect hooks
   useEffect(() => {
     const simulateSwap = async () => {
-      if (!amount || !agent.id) {
+      if (!amount || !agent.id || !address || isInitializing) {
         setSimulatedAmount('');
         setError(null);
         return;
       }
 
+      setIsLoading(true);
       try {
         const inputAmount = parseFloat(amount);
-        if (isNaN(inputAmount) || inputAmount === 0 || !isFinite(inputAmount)) {
+        if (isNaN(inputAmount) || inputAmount <= 0) {
           setSimulatedAmount('');
           setError(null);
           return;
         }
 
-        // For sell, we need to convert the agent token amount to wei
-        // For buy, we convert the LEFT amount to wei
         const amountInWei = BigInt(Math.floor(inputAmount * 1e18)).toString();
         const result = await (activeTab === 'buy'
-          ? simulateBuyTokens(agent.id, amountInWei) // Buying with LEFT
-          : simulateSellTokens(agent.id, amountInWei)); // Selling agent tokens
+          ? simulateBuyTokens(agent.id, amountInWei)
+          : simulateSellTokens(agent.id, amountInWei));
 
         if (result.success && result.data) {
           const outputAmount = Number(result.data) / 1e18;
@@ -129,7 +179,6 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
           setError(null);
         } else {
           setSimulatedAmount('');
-          // Check if it's the unwrap error (insufficient liquidity)
           if (result.error?.includes('Option::unwrap failed')) {
             setError('Insufficient liquidity in the bonding curve');
           } else {
@@ -139,7 +188,6 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
       } catch (error) {
         console.error('Failed to simulate swap:', error);
         setSimulatedAmount('');
-        // Check for the specific contract error
         if (
           error instanceof Error &&
           error.message.includes('Option::unwrap failed')
@@ -148,14 +196,52 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
         } else {
           setError('Failed to simulate swap');
         }
+      } finally {
+        setIsLoading(false);
       }
     };
 
     const timer = setTimeout(simulateSwap, 500);
     return () => clearTimeout(timer);
-  }, [amount, agent.id, activeTab]);
+  }, [amount, agent.id, activeTab, address, isInitializing]);
 
-  const handleSwap = useCallback(() => {
+  // Fetch ETH balance
+  useEffect(() => {
+    if (!address || !provider) {
+      setBalance('0');
+      return;
+    }
+
+    const fetchBalance = async () => {
+      try {
+        const balanceResult = await provider.getStorageAt(
+          address,
+          "0x0000000000000000000000000000000000000000000000000000000000000000"
+        );
+        const balanceInEth = Number(balanceResult) / 1e18;
+        setBalance(balanceInEth.toString());
+      } catch (error) {
+        console.error('Failed to fetch balance:', error);
+        setBalance('0');
+      }
+    };
+
+    fetchBalance();
+    // Poll balance every 10 seconds
+    const interval = setInterval(fetchBalance, 10000);
+    return () => clearInterval(interval);
+  }, [address, provider]);
+
+  // Handle swap
+  const handleSwap = useCallback(async () => {
+    console.log('Swap Widget - Wallet Status:', {
+      address,
+      isContractReady,
+      hasAbi: !!abi,
+      agentId: agent.id,
+      agentContractAddress: agent.contractAddress
+    });
+
     if (!address) {
       toast({
         title: 'Connect Wallet',
@@ -165,17 +251,105 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
       return;
     }
 
-    toast({
-      title: 'Coming Soon',
-      description: 'Trading functionality will be available soon!',
-    });
-  }, [address, toast]);
+    if (!isContractReady) {
+      toast({
+        title: 'Wallet Not Ready',
+        description: 'Please ensure your wallet is properly connected and on the correct network.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
+    if (!amount || !agent.id || !agent.contractAddress || agent.contractAddress === '0x0') {
+      toast({
+        title: 'Invalid Parameters',
+        description: agent.contractAddress === '0x0' ? 
+          'This agent does not have a token contract yet.' :
+          'Please ensure all parameters are valid.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      setError(null);
+
+      const inputAmount = parseFloat(amount);
+      if (isNaN(inputAmount) || inputAmount <= 0) {
+        throw new Error('Invalid amount');
+      }
+
+      const amountInWei = BigInt(Math.floor(inputAmount * 1e18)).toString();
+      
+      console.log('Initiating swap with amount:', amountInWei);
+      console.log('Active tab:', activeTab);
+      
+      // Execute the appropriate transaction based on active tab
+      const result = await (activeTab === 'buy' 
+        ? buyTokens(amountInWei)
+        : sellTokens(amountInWei));
+        
+      console.log('Transaction result:', result);
+      
+      if (result?.transaction_hash) {
+        toast({
+          title: 'Transaction Submitted',
+          description: (
+            <div className="flex flex-col gap-1">
+              <span>Transaction has been submitted.</span>
+              <a 
+                href={`https://starkscan.co/tx/${result.transaction_hash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-500 hover:text-blue-600 flex items-center gap-1"
+              >
+                View on Starkscan <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+          ),
+        });
+        setAmount('');
+        setSimulatedAmount('');
+      }
+      
+    } catch (error) {
+      console.error('Swap failed:', error);
+      
+      // Handle specific error messages
+      const errorMessage = error instanceof Error ? error.message : 'Transaction failed';
+      
+      setError(errorMessage);
+      toast({
+        title: 'Swap Failed',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [
+    address,
+    amount,
+    activeTab,
+    agent.id,
+    agent.contractAddress,
+    isContractReady,
+    buyTokens,
+    sellTokens,
+    toast,
+  ]);
+
+  // Update button text to show ABI loading state
   const buttonText = useMemo(() => {
+    if (isAbiLoading) return 'Loading Contract...';
+    if (isLoading) return 'Loading...';
+    if (isProcessing) return 'Processing...';
+    if (abiError) return 'Contract Error';
+    if (error) return 'Error';
     if (!address) return 'Connect Wallet';
-    if (!amount) return 'Enter Amount';
     return 'Swap';
-  }, [address, amount]);
+  }, [isAbiLoading, isLoading, isProcessing, abiError, error, address]);
 
   const buttonStyle = useMemo(
     () =>
@@ -187,6 +361,18 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
       ),
     [isLeftCurve],
   );
+
+  // Add ABI error handling
+  useEffect(() => {
+    if (abiError) {
+      console.error('Failed to load contract ABI:', abiError);
+      toast({
+        title: 'Contract Error',
+        description: 'Failed to load contract interface. Please try again later.',
+        variant: 'destructive',
+      });
+    }
+  }, [abiError, toast]);
 
   return (
     <div className={cn('p-6 space-y-4', className)}>
@@ -207,7 +393,7 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
           onClick={() => window.open('https://app.avnu.fi', '_blank')}
         >
           <LinkIcon className="h-3 w-3" />
-          Get $LEFT
+          Get ETH
           <ExternalLink className="h-3 w-3 opacity-50" />
         </Button>
       </div>
@@ -249,8 +435,8 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
 
         <TabsContent value="buy" className="space-y-4">
           <SwapInput
-            label="Pay with $LEFT"
-            balance="0.00 $LEFT"
+            label="Pay with ETH"
+            balance={`${Number(balance || 0).toFixed(3)} ETH`}
             value={amount}
             onChange={(value) => {
               const num = parseFloat(value);
@@ -265,20 +451,20 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
 
           <SwapInput
             label={`Receive ${agent.name}`}
-            balance={`0.00 ${agent.name}`}
+            balance={`0.000 ${agent.name}`}
             value={simulatedAmount}
-            estimate={amount || '0.00'}
+            estimate={amount || '0.000'}
             readOnly
             isLeftCurve={isLeftCurve}
           />
 
-          {error && <div className="text-sm text-red-500 px-1">{error}</div>}
+          {error && <ErrorMessage message={error} isLeftCurve={isLeftCurve} />}
 
           <Button
             className={buttonStyle}
             size="lg"
             onClick={handleSwap}
-            disabled={!address || !amount || !!error}
+            disabled={!address || !amount || isProcessing || isLoading || !!error}
           >
             {buttonText}
           </Button>
@@ -292,7 +478,7 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
         <TabsContent value="sell" className="space-y-4">
           <SwapInput
             label={`Pay with ${agent.name}`}
-            balance={`0.00 ${agent.name}`}
+            balance={`0.000 ${agent.name}`}
             value={amount}
             onChange={(value) => {
               const num = parseFloat(value);
@@ -306,21 +492,21 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
           <SwapDivider isLeftCurve={isLeftCurve} />
 
           <SwapInput
-            label="Receive $LEFT"
-            balance="0.00 $LEFT"
+            label="Receive ETH"
+            balance={`${Number(balance || 0).toFixed(3)} ETH`}
             value={simulatedAmount}
-            estimate={amount || '0.00'}
+            estimate={amount || '0.000'}
             readOnly
             isLeftCurve={isLeftCurve}
           />
 
-          {error && <div className="text-sm text-red-500 px-1">{error}</div>}
+          {error && <ErrorMessage message={error} isLeftCurve={isLeftCurve} />}
 
           <Button
             className={buttonStyle}
             size="lg"
             onClick={handleSwap}
-            disabled={!address || !amount || !!error}
+            disabled={!address || !amount || isProcessing || isLoading || !!error}
           >
             {buttonText}
           </Button>

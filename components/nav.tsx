@@ -1,4 +1,4 @@
-import { ConnectWallet } from './connect-wallet';
+import { WalletButton } from './wallet-button';
 import { DepositButton } from './deposit-button';
 import { memo } from 'react';
 import { motion } from 'framer-motion';
@@ -29,7 +29,7 @@ const Actions = memo(() => (
     className="flex items-center gap-4"
   >
     <DepositButton />
-    <ConnectWallet />
+    <WalletButton />
   </motion.div>
 ));
 Actions.displayName = 'Actions';

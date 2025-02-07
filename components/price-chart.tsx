@@ -16,7 +16,7 @@ import { Badge } from './ui/badge';
 import { Rocket, LineChart } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { Alert, AlertDescription } from './ui/alert';
-import { useBondingCurve } from '@/hooks/use-bonding-curve';
+import { useBondingCurve } from '@/lib/bonding-curve-context';
 
 type Interval = '15m' | '1h' | '4h' | '1d';
 
@@ -37,7 +37,6 @@ interface PriceChartProps {
   inBondingCurve?: boolean;
   isLoading?: boolean;
   error?: Error | null;
-  agentId?: string;
 }
 
 const LoadingState = memo(() => (
@@ -168,7 +167,6 @@ export const PriceChart = memo(
     inBondingCurve = true,
     isLoading,
     error,
-    agentId,
   }: PriceChartProps) => {
     const chartContainerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<IChartApi | null>(null);
@@ -177,11 +175,10 @@ export const PriceChart = memo(
     const [showMarketCap, setShowMarketCap] = useState(false);
     const tradingPair = `${baseToken}/${quoteToken}`;
 
-    const bondingCurveData = useBondingCurve({ agentId: agentId || '' });
-    const bondingPercentage =
-      agentId && !bondingCurveData.isLoading
-        ? bondingCurveData.percentage
-        : null;
+    const { data: bondingCurveData } = useBondingCurve();
+    const bondingPercentage = !bondingCurveData.isLoading
+      ? bondingCurveData.percentage
+      : null;
 
     const aggregateData = useCallback(
       (rawData: CandleData[], intervalType: Interval) => {
@@ -230,13 +227,9 @@ export const PriceChart = memo(
       if (data?.length) return aggregateData(data, interval);
 
       // Generate initial data points for bonding curve
-      if (
-        inBondingCurve &&
-        !bondingCurveData.isLoading &&
-        bondingCurveData.buyPrice
-      ) {
-        const initialPrice = Number(bondingCurveData.buyPrice) / 1e18;
+      if (inBondingCurve && !bondingCurveData.isLoading) {
         const now = Math.floor(Date.now() / 1000);
+        const initialPrice = 0.001; // Start with a small initial price
 
         // Create a simple line chart for initial state (ascending order)
         const dataPoints = [
