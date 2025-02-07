@@ -189,22 +189,27 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
                   )}
                 </div>
               </TooltipTrigger>
-              <TooltipContent className="w-64">
-                <div className="text-xs space-y-1">
-                  <div className="font-medium">
+              <TooltipContent className="w-64 bg-white border shadow-xl z-50 relative">
+                <div className="text-xs space-y-1 p-3 rounded-md">
+                  <div className="font-medium border-b border-gray-100 pb-2 text-gray-900">
                     {isBuy ? 'Buying' : 'Selling'} {sellTokenName} for {buyTokenName}
                   </div>
-                  <div className="grid grid-cols-2 gap-1">
-                    <div>Amount {isBuy ? 'In' : 'Out'}:</div>
-                    <div>{displayAmount} {displayToken}</div>
-                    <div>Amount {!isBuy ? 'In' : 'Out'}:</div>
-                    <div>{otherAmount} {otherToken}</div>
-                    <div>Price:</div>
-                    <div>${formatPrice(tradePriceUSD)}</div>
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    <div className="text-gray-500">Amount {isBuy ? 'In' : 'Out'}:</div>
+                    <div className="font-medium text-gray-900">{displayAmount} {displayToken}</div>
+                    <div className="text-gray-500">Amount {!isBuy ? 'In' : 'Out'}:</div>
+                    <div className="font-medium text-gray-900">{otherAmount} {otherToken}</div>
+                    <div className="text-gray-500">Price:</div>
+                    <div className="font-medium text-gray-900">${formatPrice(tradePriceUSD)}</div>
                     {changePercentage && (
                       <>
-                        <div>Change:</div>
-                        <div>{changePercentage}</div>
+                        <div className="text-gray-500">Change:</div>
+                        <div className={cn(
+                          "font-medium",
+                          changePercentage.includes('-') ? 'text-red-500' : 'text-green-500'
+                        )}>
+                          {changePercentage}
+                        </div>
                       </>
                     )}
                   </div>
@@ -220,8 +225,12 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
                 {formattedTime}
               </span>
             </TooltipTrigger>
-            <TooltipContent>
-              <p>{new Date(trade.createdAt).toLocaleString()}</p>
+            <TooltipContent className="bg-white border shadow-xl z-50 relative">
+              <div className="p-3 rounded-md">
+                <p className="text-xs font-medium text-gray-900">
+                  {new Date(trade.createdAt).toLocaleString()}
+                </p>
+              </div>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
