@@ -12,10 +12,6 @@ export async function createAgent(
     const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL
     const apiKey = process.env.API_KEY
 
-    console.log('API URL:', apiUrl)
-    console.log('API Key:', apiKey)
-    console.log('Creator Wallet:', creatorAddress)
-
     if (!apiUrl || !apiKey) {
       throw new Error('Missing API configuration')
     }
@@ -38,7 +34,6 @@ export async function createAgent(
       'Content-Type': 'application/json',
       'x-api-key': apiKey
     }
-    console.log('Request Headers:', headers)
 
     const requestBody = { 
       name, 
@@ -46,7 +41,6 @@ export async function createAgent(
       curveSide,
       creatorWallet: formattedAddress
     }
-    console.log('Request Body:', JSON.stringify(requestBody, null, 2))
 
     const response = await fetch(`${apiUrl}/api/eliza-agent`, {
       method: 'POST',
@@ -54,7 +48,6 @@ export async function createAgent(
       body: JSON.stringify(requestBody)
     })
 
-    console.log('Response Status:', response.status)
     const data = await response.json()
     console.log('Response Data:', data)
 

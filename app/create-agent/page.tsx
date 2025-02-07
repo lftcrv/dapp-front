@@ -277,7 +277,7 @@ export default function CreateAgentPage() {
       const characterConfig: CharacterConfig = {
         name: formData.name,
         clients: [],
-        modelProvider: 'openai',
+        modelProvider: 'anthropic',
         settings: {
           secrets: {},
           voice: {
