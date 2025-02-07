@@ -139,12 +139,6 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
     }
   };
 
-  const getChangeIndicator = (explanation: string) => {
-    const match = explanation.match(/-?\d+%/);
-    return match ? match[0] : '';
-  };
-
-  const changePercentage = getChangeIndicator(explanation);
   const displayAmount = isBuy ? 
     formatAmount(buyAmount, buyTokenName) : 
     formatAmount(sellAmount, sellTokenName);
@@ -179,14 +173,6 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
                   <span className="text-xs text-muted-foreground">
                     ({displayAmount} {displayToken})
                   </span>
-                  {changePercentage && (
-                    <span className={cn(
-                      "text-xs px-1.5 py-0.5 rounded-full",
-                      changePercentage.includes('-') ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'
-                    )}>
-                      {changePercentage}
-                    </span>
-                  )}
                 </div>
               </TooltipTrigger>
               <TooltipContent className="w-64 bg-white border shadow-xl z-50 relative">
@@ -201,17 +187,6 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
                     <div className="font-medium text-gray-900">{otherAmount} {otherToken}</div>
                     <div className="text-gray-500">Price:</div>
                     <div className="font-medium text-gray-900">${formatPrice(tradePriceUSD)}</div>
-                    {changePercentage && (
-                      <>
-                        <div className="text-gray-500">Change:</div>
-                        <div className={cn(
-                          "font-medium",
-                          changePercentage.includes('-') ? 'text-red-500' : 'text-green-500'
-                        )}>
-                          {changePercentage}
-                        </div>
-                      </>
-                    )}
                   </div>
                 </div>
               </TooltipContent>
