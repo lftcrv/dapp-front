@@ -3,7 +3,6 @@ import { tradeService } from '@/lib/services/api/trades';
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { unstable_cache } from 'next/cache';
-import { headers } from 'next/headers';
 import { AgentContent } from './agent-content';
 
 // Generate static params for known agents
