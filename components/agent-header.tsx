@@ -1,14 +1,15 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { Brain, Flame, Zap, ChevronUp, ChevronDown } from 'lucide-react';
+import { Brain, Flame, Zap, ChevronUp, ChevronDown, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Agent } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { memo } from 'react';
+import { memo, useState } from 'react';
+import { Button } from '@/components/ui/button';
 
 interface AgentHeaderProps {
   agent?: Agent;
@@ -127,87 +128,118 @@ const AgentInfo = memo(
     agent: Agent;
     isLeftCurve: boolean;
     gradientClass: string;
-  }) => (
-    <div className="space-y-3 flex-1">
-      <div className="flex flex-wrap items-center gap-3">
-        <motion.h1
-          className={cn(
-            'font-sketch text-4xl bg-gradient-to-r text-transparent bg-clip-text',
-            gradientClass,
-          )}
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
-          {agent.name}
-        </motion.h1>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-        >
-          <Badge
-            variant={isLeftCurve ? 'default' : 'secondary'}
+  }) => {
+    const [showCopied, setShowCopied] = useState(false);
+
+    const handleCopyAddress = () => {
+      navigator.clipboard.writeText(agent.contractAddress);
+      setShowCopied(true);
+      setTimeout(() => setShowCopied(false), 1000);
+    };
+
+    return (
+      <div className="space-y-3 flex-1">
+        <div className="flex flex-wrap items-center gap-3">
+          <motion.h1
             className={cn(
-              'bg-gradient-to-r font-mono text-white',
+              'font-sketch text-4xl bg-gradient-to-r text-transparent bg-clip-text',
               gradientClass,
             )}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
           >
-            {isLeftCurve ? (
-              <div className="flex items-center gap-1.5">
-                <Flame className="h-3.5 w-3.5" />
-                DEGEN APE
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5">
-                <Brain className="h-3.5 w-3.5" />
-                GALAXY BRAIN
-              </div>
-            )}
-          </Badge>
-        </motion.div>
-      </div>
+            {agent.name}
+          </motion.h1>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
+            <Badge
+              variant={isLeftCurve ? 'default' : 'secondary'}
+              className={cn(
+                'bg-gradient-to-r font-mono text-white',
+                gradientClass,
+              )}
+            >
+              {isLeftCurve ? (
+                <div className="flex items-center gap-1.5">
+                  <Flame className="h-3.5 w-3.5" />
+                  DEGEN APE
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <Brain className="h-3.5 w-3.5" />
+                  GALAXY BRAIN
+                </div>
+              )}
+            </Badge>
+          </motion.div>
+        </div>
 
-      <motion.div
-        className="flex flex-wrap items-center gap-4 text-sm"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.5 }}
-      >
-        <div
-          className={cn(
-            'px-2 py-1 rounded-md font-mono',
-            isLeftCurve
-              ? 'bg-yellow-500/10 text-yellow-500'
-              : 'bg-purple-500/10 text-purple-500',
-          )}
+        <motion.div
+          className="flex flex-wrap items-center gap-4 text-sm"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
         >
-          {agent.creator.slice(0, 6)}...{agent.creator.slice(-4)}
-        </div>
-        <div className="flex items-center gap-1.5 text-muted-foreground">
-          <Zap className="h-4 w-4" />
-          Created {agent.createdAt}
-        </div>
-      </motion.div>
+          <div className="flex items-center gap-2 relative">
+            <div
+              className={cn(
+                'px-2 py-1 rounded-md font-mono cursor-pointer',
+                isLeftCurve
+                  ? 'bg-yellow-500/10 text-yellow-500'
+                  : 'bg-purple-500/10 text-purple-500',
+              )}
+              onClick={handleCopyAddress}
+            >
+              {agent.contractAddress.slice(0, 6)}...{agent.contractAddress.slice(-4)}
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 hover:bg-gray-100"
+              onClick={handleCopyAddress}
+            >
+              <Copy className="h-3 w-3" />
+            </Button>
+            {showCopied && (
+              <motion.div 
+                className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs text-muted-foreground"
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+              >
+                Copied!
+              </motion.div>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Zap className="h-4 w-4" />
+            Created {agent.createdAt}
+          </div>
+        </motion.div>
 
-      <motion.p
-        className={cn(
-          'text-sm max-w-2xl rounded-lg p-3 border-2',
-          isLeftCurve
-            ? 'bg-yellow-500/5 border-yellow-500/20'
-            : 'bg-purple-500/5 border-purple-500/20',
-        )}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.6 }}
-      >
-        {agent.lore ||
-          (isLeftCurve
-            ? "Born in the depths of /biz/, forged in the fires of leverage trading. This absolute unit of an ape doesn't know what 'risk management' means. Moon or food stamps, there is no in-between. 🚀🦧"
-            : 'A sophisticated trading entity utilizing advanced quantitative analysis and machine learning. Precision entries, calculated exits, and a complete disregard for human emotions. Pure alpha generation. 🐙📊')}
-      </motion.p>
-    </div>
-  ),
+        <motion.p
+          className={cn(
+            'text-sm max-w-2xl rounded-lg p-3 border-2',
+            isLeftCurve
+              ? 'bg-yellow-500/5 border-yellow-500/20'
+              : 'bg-purple-500/5 border-purple-500/20',
+          )}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+        >
+          {agent.lore ||
+            (isLeftCurve
+              ? "Born in the depths of /biz/, forged in the fires of leverage trading. This absolute unit of an ape doesn't know what 'risk management' means. Moon or food stamps, there is no in-between. 🚀🦧"
+              : 'A sophisticated trading entity utilizing advanced quantitative analysis and machine learning. Precision entries, calculated exits, and a complete disregard for human emotions. Pure alpha generation. 🐙📊')}
+        </motion.p>
+      </div>
+    );
+  },
 );
 AgentInfo.displayName = 'AgentInfo';
 
