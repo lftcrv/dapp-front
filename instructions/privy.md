@@ -13,11 +13,10 @@ Integration steps
 This guide assumes you have already integrated Privy into your app. If not, please begin with the Privy Quickstart.
 
 1. Install dependencies
-Install the latest versions of wagmi, @tanstack/react-query, @privy-io/react-auth, and @privy-io/wagmi:
+   Install the latest versions of wagmi, @tanstack/react-query, @privy-io/react-auth, and @privy-io/wagmi:
 
 sh
-npm i wagmi @privy-io/react-auth @privy-io/wagmi @tanstack/react-query
-2. Setup TanStack Query
+npm i wagmi @privy-io/react-auth @privy-io/wagmi @tanstack/react-query 2. Setup TanStack Query
 To start, set up your app with the TanStack Query's React Provider. Wagmi uses TanStack Query under the hood to power its data fetching and caching of wallet and blockchain data.
 
 To set up your app with TanStack Query, in the component where you render your PrivyProvider, import the QueryClient class and the QueryClientProvider component from @tanstack/react-query:
@@ -32,12 +31,12 @@ Then, like the PrivyProvider, wrap your app's components with the QueryClientPro
 
 tsx
 <PrivyProvider appId="your-privy-app-id" config={insertYourPrivyConfig}>
-  <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 </PrivyProvider>
 For the client property of the QueryClientProvider, pass the queryClient instance you created.
 
 3. Setup wagmi
-Next, setup wagmi. This involves creating your wagmi config and wrapping your app with the WagmiProvider.
+   Next, setup wagmi. This involves creating your wagmi config and wrapping your app with the WagmiProvider.
 
 WARNING
 While completing the wagmi setup, make sure to import createConfig and WagmiProvider from @privy-io/wagmi. Do not import these from wagmi directly.
@@ -63,13 +62,13 @@ tsx
 import {createConfig} from '@privy-io/wagmi';
 ...
 export const config = createConfig({
-  chains: [mainnet, sepolia], // Pass your required chains as an array
-  transports: {
-    [mainnet.id]: http(),
-    [sepolia.id]: http(),
-    // For each of your required chains, add an entry to `transports` with
-    // a key of the chain's `id` and a value of `http()`
-  },
+chains: [mainnet, sepolia], // Pass your required chains as an array
+transports: {
+[mainnet.id]: http(),
+[sepolia.id]: http(),
+// For each of your required chains, add an entry to `transports` with
+// a key of the chain's `id` and a value of `http()`
+},
 });
 Wrap your app with the WagmiProvider
 Once you've built your wagmi config, in the same component where you render your PrivyProvider, import the WagmiProvider component from @privy-io/wagmi.
@@ -87,11 +86,11 @@ import {WagmiProvider} from '@privy-io/wagmi';
 import {QueryClientProvider} from '@tanstack/react-query';
 ...
 <PrivyProvider appId='insert-your-privy-app-id' config={insertYourPrivyConfig}>
-  <QueryClientProvider client={queryClient}>
-    <WagmiProvider config={config}>
-      {children}
-    </WagmiProvider>
-  </QueryClientProvider>
+<QueryClientProvider client={queryClient}>
+<WagmiProvider config={config}>
+{children}
+</WagmiProvider>
+</QueryClientProvider>
 </PrivyProvider>
 For the config property of the WagmiProvider, pass the config you created earlier.
 
@@ -112,18 +111,18 @@ import {wagmiConfig} from './wagmiConfig';
 const queryClient = new QueryClient();
 
 export default function Providers({children}: {children: React.ReactNode}) {
-  return (
-    <PrivyProvider appId="insert-your-privy-app-id" config={privyConfig}>
-      <QueryClientProvider client={queryClient}>
-        <WagmiProvider config={wagmiConfig}>{children}</WagmiProvider>
-      </QueryClientProvider>
-    </PrivyProvider>
-  );
+return (
+<PrivyProvider appId="insert-your-privy-app-id" config={privyConfig}>
+<QueryClientProvider client={queryClient}>
+<WagmiProvider config={wagmiConfig}>{children}</WagmiProvider>
+</QueryClientProvider>
+</PrivyProvider>
+);
 }
 That's it! You've successfully integrated Privy alongside wagmi in your app! 🎉
 
 4. Use wagmi throughout your app
-Once you've completed the setup above, you can use wagmi's React hooks throughout your app to interface with wallets and take read and write actions on the blockchain.
+   Once you've completed the setup above, you can use wagmi's React hooks throughout your app to interface with wallets and take read and write actions on the blockchain.
 
 Using wagmi hooks
 To use wagmi hooks, like useAccount, in your components, import the hook directly from wagmi and call it as usual:
@@ -132,12 +131,11 @@ tsx
 import {useAccount} from 'wagmi';
 
 export default const WalletAddress = () => {
-  const {address} = useAccount();
-  return <p>Wallet address: {address}</p>;
+const {address} = useAccount();
+return <p>Wallet address: {address}</p>;
 }
 INFO
 Injected wallets, like the MetaMask browser extension, cannot be programmatically disconnected from your site; they can only be manually disconnected. In kind, Privy does not currently support programmatically disconnecting a wallet via wagmi's useDisconnect hook. This hook "shims" a disconnection, which can create discrepancies between what wallets are connected to an app vs. wagmi.
-
 
 Instead of disconnecting a given wallet, you can always prompt a user to connect a different wallet via the connectWallet method.
 
@@ -175,7 +173,7 @@ Migrating from wagmi v1
 If your app previously used wagmi version 1.x with Privy's @privy-io/wagmi-connector package, follow the steps below to migrate to wagmi version 2.x.
 
 1. Install wagmi v2 and @privy-io/wagmi
-Privy's wagmi integration is now managed by the @privy-io/wagmi package instead of @privy-io/wagmi-connector. The former is maintained only for apps using wagmi version 1.x.
+   Privy's wagmi integration is now managed by the @privy-io/wagmi package instead of @privy-io/wagmi-connector. The former is maintained only for apps using wagmi version 1.x.
 
 To migrate to the new package, first upgrade your@privy-io/react-auth and wagmi versions to the latest:
 
@@ -184,34 +182,33 @@ npm i @privy-io/react-auth@latest wagmi@latest
 Then, install @privy-io/wagmi and the new dependencies required by wagmi version 2.x, including @tanstack/react-query and viem
 
 2. Replace configureChains with createConfig
-Previously, your app configured wagmi via the configureChains method exported by wagmi. You should now configure wagmi via the createConfig method exported by @privy-io/wagmi:
+   Previously, your app configured wagmi via the configureChains method exported by wagmi. You should now configure wagmi via the createConfig method exported by @privy-io/wagmi:
 
 tsx
-import {configureChains} from 'wagmi'; 
+import {configureChains} from 'wagmi';
 // Make sure to import `createConfig` from `@privy-io/wagmi`, not `wagmi`
-import {createConfig} from '@privy-io/wagmi'; 
+import {createConfig} from '@privy-io/wagmi';
 
 ...
 
-const configureChainsConfig = configureChains([mainnet, sepolia], [publicProvider()]); 
-const config = createConfig({ 
-  chains: [mainnet, sepolia], 
-  transports: { 
-    [mainnet.id]: http(), 
-    [sepolia.id]: http(), 
-  }, 
-}); 
-3. Replace the PrivyWagmiConnector with the WagmiProvider and QueryClientProvider
+const configureChainsConfig = configureChains([mainnet, sepolia], [publicProvider()]);
+const config = createConfig({
+chains: [mainnet, sepolia],
+transports: {
+[mainnet.id]: http(),
+[sepolia.id]: http(),
+},
+}); 3. Replace the PrivyWagmiConnector with the WagmiProvider and QueryClientProvider
 Previously, your app's components were wrapped with the PrivyWagmiConnector exported by @privy-io/wagmi-connector. You should now wrap your components with the WagmiProvider exported by @privy-io/wagmi and the QueryClientProvider exported by @tanstack/react-query:
 
 tsx
 import {PrivyProvider} from '@privy-io/react-auth';
-import {PrivyWagmiConnector} from '@privy-io/wagmi-connector'; 
+import {PrivyWagmiConnector} from '@privy-io/wagmi-connector';
 // Make sure to import `WagmiProvider` from `@privy-io/wagmi`, not `wagmi`
-import {WagmiProvider} from '@privy-io/wagmi'; 
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query'; 
+import {WagmiProvider} from '@privy-io/wagmi';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
-const queryClient = new QueryClient(); 
+const queryClient = new QueryClient();
 
 ...
 
@@ -228,43 +225,43 @@ const queryClient = new QueryClient();
 Previously, your app used the setActiveWallet method returned by the usePrivyWagmi hook. You should now use the setActiveWallet method returned by the useSetActiveWallet hook:
 
 tsx
-import {usePrivyWagmi} from '@privy-io/wagmi-connector'; 
-import {useSetActiveWallet} from '@privy-io/wagmi'; 
+import {usePrivyWagmi} from '@privy-io/wagmi-connector';
+import {useSetActiveWallet} from '@privy-io/wagmi';
 
 ...
-const {activeWallet, setActiveWallet} = usePrivyWagmi(); 
-const {setActiveWallet} = useSetActiveWallet(); 
+const {activeWallet, setActiveWallet} = usePrivyWagmi();
+const {setActiveWallet} = useSetActiveWallet();
 If you need to get the current active wallet for the user, you can get the active wallet's address from useAccount and filter Privy's useWallets array for the ConnectedWallet object with the same address.
 
 At this point, you should have replaced all usages of @privy-io/wagmi-connector and you can uninstall the package.
 
 5. Migrate wagmi's hooks
-Follow wagmi's migration guide to update how you call wagmi hooks to match their new interfaces.
+   Follow wagmi's migration guide to update how you call wagmi hooks to match their new interfaces.
 
 Quickstart
 Get started with Privy in the 5 quick steps below.
 
 0. Prerequisites
-In order to integrate the Privy React SDK, your project must be on:
+   In order to integrate the Privy React SDK, your project must be on:
 
 a minimum React version of 18
 a minimum TypeScript version of 5
+
 1. Install the Privy React SDK
-Install the latest version of the Privy React SDK using your package manager of choice:
+   Install the latest version of the Privy React SDK using your package manager of choice:
 
 npmpnpmyarn
 sh
-npm install @privy-io/react-auth@latest
-2. Set your login methods
+npm install @privy-io/react-auth@latest 2. Set your login methods
 Navigate to the Login methods page on the Privy Dashboard by selecting your app and then clicking Login Methods in the side bar. Select the account types you'd like users to be able to login with. By default, Privy enables wallet and email logins for new apps; you can update this setting now or later. For more information on how to enable social logins, check out the Dashboard docs
 
 3. Get your Privy app ID
-From the Privy dashboard for select your desired app, navigate to the Settings page in the side bar. On the Basics tab, find the API keys section. Get your Privy app ID, you will need it in the next step.
+   From the Privy dashboard for select your desired app, navigate to the Settings page in the side bar. On the Basics tab, find the API keys section. Get your Privy app ID, you will need it in the next step.
 
 The app ID serves as an API key used to initialize the Privy React SDK. This value can be safely exposed in a client-side environment, and you can further secure it for production applications.
 
 4. Import Privy into your app
-In your project, import the PrivyProvider component and wrap your app with it. Set the appId field to the app ID you got from the Dashboard in step 3.
+   In your project, import the PrivyProvider component and wrap your app with it. Set the appId field to the app ID you got from the Dashboard in step 3.
 
 Concretely, the PrivyProvider must wrap any component or page that will use the Privy React SDK. It is generally recommended to render it as close to the root of your application as possible.
 
@@ -280,10 +277,10 @@ tsx
 import {PrivyProvider} from '@privy-io/react-auth';
 
 export default function Providers({children}: {children: React.ReactNode}) {
-  return (
-    <PrivyProvider
-      appId="your-privy-app-id"
-      config={{
+return (
+<PrivyProvider
+appId="your-privy-app-id"
+config={{
         // Customize Privy's appearance in your app
         appearance: {
           theme: 'light',
@@ -294,20 +291,18 @@ export default function Providers({children}: {children: React.ReactNode}) {
         embeddedWallets: {
           createOnLogin: 'users-without-wallets',
         },
-      }}
-    >
-      {children}
-    </PrivyProvider>
-  );
+      }} >
+{children}
+</PrivyProvider>
+);
 }
-This example assumes you are using the NextJS App Router. You can copy the component above into a providers.tsx file, and import it and render it in your project's _app.tsx.
+This example assumes you are using the NextJS App Router. You can copy the component above into a providers.tsx file, and import it and render it in your project's \_app.tsx.
 
 In the examples above, notice that the PrivyProvider component takes two properties:
 
-Property	Description
-appId	(Required) Your Privy app ID, from step 3.
-config	(Optional) An object to customize your app's appearance, login vs. linking methods, embedded wallets, supported networks, and more. Learn about customizing your configuration.
-5. Just usePrivy! 🎉
+Property Description
+appId (Required) Your Privy app ID, from step 3.
+config (Optional) An object to customize your app's appearance, login vs. linking methods, embedded wallets, supported networks, and more. Learn about customizing your configuration. 5. Just usePrivy! 🎉
 Once you've wrapped your app with the PrivyProvider, you can now use the Privy SDK throughout your components and pages via the usePrivy hook!
 
 Check out our starter repo to see what a simple end-to-end integration looks like, or read on to learn how you can use Privy to:

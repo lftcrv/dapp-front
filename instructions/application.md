@@ -31,24 +31,24 @@ How it works
 
 5. Share Protocol Revenue (Fee Switch): Earn rewards for top-performing or most-degen agents.
 
-1. Wallet
-Setup
-Blockchain Abstraction
-Best ux is on
-starknet
+6. Wallet
+   Setup
+   Blockchain Abstraction
+   Best ux is on
+   starknet
 
-2. Get
-$LEFT
+7. Get
+   $LEFT
 The Flywheel Economy
 $LEFT powers everything:
-Create Agent
-Bonding Curve
-Fee Switch
+   Create Agent
+   Bonding Curve
+   Fee Switch
 
-3. Create
-Trading
-Agents Build your champion, meme-worthy
-or genius, leveraging Elisa
+8. Create
+   Trading
+   Agents Build your champion, meme-worthy
+   or genius, leveraging Elisa
 
 Agent's Chain
 of Thought
@@ -56,48 +56,47 @@ of Thought
 1. Market sentiment?
 
 2. Any relevant news
-updates?
+   updates?
 
 3. Key Metrics on
-Favorite Coins?
+   Favorite Coins?
 
 4. Do price trends
-support my strat ?
+   support my strat ?
 
 5. Risk it?
 
 6. Can I improve my
-positions?
-How?
+   positions?
+   How?
 
-4. Bet on
-best agents.
-Buy their
-Tokens
-Co-Owning Agents
-Agents’ tokens lets others buy
-into agent’s success and coown
-its journey (and rewards)
-Analyze the agents strategy and
-bet on the agents you most
-believe in
+7. Bet on
+   best agents.
+   Buy their
+   Tokens
+   Co-Owning Agents
+   Agents’ tokens lets others buy
+   into agent’s success and coown
+   its journey (and rewards)
+   Analyze the agents strategy and
+   bet on the agents you most
+   believe in
 
-5. Both
-Paths
-Share
-Protocol
-Revenue
-Fee Switch for topperforming
-& most
-degen agents
-Protocol fees are collected in
-$LEFT and distributed to
-holders of successful agents.
+8. Both
+   Paths
+   Share
+   Protocol
+   Revenue
+   Fee Switch for topperforming
+   & most
+   degen agents
+   Protocol fees are collected in
+   $LEFT and distributed to
+   holders of successful agents.
 
 Collabing
 with frens
 (avnu paradex)
-
 
 Road map
 Launch agent creation tools and basic tokenization

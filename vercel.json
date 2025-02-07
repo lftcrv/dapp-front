@@ -4,4 +4,4 @@
   "installCommand": "npm install",
   "framework": "nextjs",
   "outputDirectory": ".next"
-} 
+}

@@ -2,17 +2,17 @@
  * Common response type for all API actions
  */
 export interface ApiResponse<T> {
-  success: boolean
-  data?: T
-  error?: string
+  success: boolean;
+  data?: T;
+  error?: string;
 }
 
 /**
  * Common pagination parameters
  */
 export interface PaginationParams {
-  limit?: number
-  offset?: number
+  limit?: number;
+  offset?: number;
 }
 
 /**
@@ -24,23 +24,23 @@ export enum ApiErrorType {
   NOT_FOUND = 'Resource not found',
   SERVER_ERROR = 'Server error - please try again later',
   VALIDATION = 'Validation error',
-  UNKNOWN = 'An unexpected error occurred'
+  UNKNOWN = 'An unexpected error occurred',
 }
 
 /**
  * Common validation error response
  */
 export interface ValidationError {
-  field: string
-  message: string
+  field: string;
+  message: string;
 }
 
 /**
  * Common search parameters
  */
 export interface SearchParams extends PaginationParams {
-  query: string
-  filters?: Record<string, string | number | boolean>
-  sortBy?: string
-  sortOrder?: 'asc' | 'desc'
-} 
+  query: string;
+  filters?: Record<string, string | number | boolean>;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
