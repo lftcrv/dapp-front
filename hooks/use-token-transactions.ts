@@ -1,9 +1,6 @@
 import { useCallback } from 'react';
-import { useContract, useAccount, useProvider } from '@starknet-react/core';
+import { useContract, useAccount, useProvider, useSendTransaction } from '@starknet-react/core';
 import type { Abi } from 'starknet';
-
-// ERC20 contract address for $LEFT token
-const LEFT_TOKEN_ADDRESS = "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7";
 
 // ERC20 ABI for approve function
 const ERC20_ABI = [
@@ -57,25 +54,25 @@ export function useBuyTokens({ address, abi }: UseTokenTransactionProps) {
     address: address as `0x${string}`,
   });
 
-  // Add ERC20 contract
-  const { contract: leftToken } = useContract({
-    address: LEFT_TOKEN_ADDRESS as `0x${string}`,
+  const { contract: ethToken } = useContract({
+    address: process.env.NEXT_PUBLIC_ETH_TOKEN_ADDRESS as `0x${string}`,
     abi: ERC20_ABI
   });
 
-  const { account, address: accountAddress, status } = useAccount();
+  const { account } = useAccount();
   const { provider } = useProvider();
+  const { sendAsync } = useSendTransaction({ calls: [] });
 
   const execute = useCallback(async (amountInWei: string) => {
-    console.log('Buy Transaction - Wallet Status:', {
-      hasAccount: !!account,
-      accountAddress,
-      connectionStatus: status,
-      hasContract: !!contract,
-      contractAddress: address
+    console.log('🔍 Contract Status:', {
+      agentContract: !!contract,
+      agentAbi: !!abi,
+      ethContract: !!ethToken,
+      ethAbi: !!ERC20_ABI,
+      wallet: !!account
     });
 
-    if (!contract || !address || !leftToken) {
+    if (!contract || !address || !ethToken) {
       throw new Error('Contract not initialized');
     }
 
@@ -84,113 +81,60 @@ export function useBuyTokens({ address, abi }: UseTokenTransactionProps) {
     }
 
     try {
-      // Check balance first
-      const balance = await leftToken.balanceOf(accountAddress);
       const amountBN = BigInt(amountInWei);
-      
-      console.log('Balance response:', balance);
-      
-      // Handle balance based on response format
-      let balanceBN;
-      if (typeof balance === 'string') {
-        balanceBN = BigInt(balance);
-      } else if (balance && typeof balance === 'object') {
-        if ('balance' in balance) {
-          // Handle {balance: BigIntn} format
-          balanceBN = balance.balance;
-        } else if ('low' in balance && 'high' in balance) {
-          balanceBN = BigInt(balance.low) + (BigInt(balance.high) << BigInt(128));
-        } else if (Array.isArray(balance)) {
-          // Some contracts return balance as [low, high]
-          balanceBN = BigInt(balance[0]) + (BigInt(balance[1]) << BigInt(128));
-        } else {
-          console.error('Unexpected balance format:', balance);
-          throw new Error('Unexpected balance format');
-        }
-      } else {
-        console.error('Invalid balance response:', balance);
-        throw new Error('Invalid balance response');
-      }
-      
-      console.log('Parsed balance:', balanceBN.toString());
-      console.log('Amount to spend:', amountBN.toString());
-      
-      if (balanceBN < amountBN) {
-        throw new Error(`Insufficient balance. Have: ${(Number(balanceBN) / 1e18).toFixed(6)} ETH, Need: ${(Number(amountBN) / 1e18).toFixed(6)} ETH`);
-      }
+      console.log('💱 Amount to spend:', amountBN.toString());
 
-      // First approve the token spend
-      console.log('Approving token spend...');
-      
-      // Convert to Uint256 array format like in dapp-v3
-      const amountLow = amountBN & ((1n << 128n) - 1n);
-      const amountHigh = amountBN >> 128n;
-      
-      console.log('Amount components:', {
-        original: amountBN.toString(),
-        lowDec: amountLow.toString(),
-        highDec: amountHigh.toString(),
-        lowHex: '0x' + amountLow.toString(16),
-        highHex: '0x' + amountHigh.toString(16)
-      });
-      
-      // Pass amount components directly without array
-      const approveCall = await leftToken.populate("approve", [
-        address,
-        '0x' + amountLow.toString(16),
-        '0x' + amountHigh.toString(16)
+      // Prepare approve call
+      console.log('📝 Preparing approve call...');
+      const approveCall = await ethToken.populate("approve", [
+        address, // spender address
+        amountBN.toString() // amount as string
       ]);
       
-      console.log('Approve call details:', {
+      console.log('✅ Approve call prepared:', {
+        contractAddress: approveCall.contractAddress,
         entrypoint: approveCall.entrypoint,
-        calldata: approveCall.calldata
+        calldata: approveCall.calldata,
+        args: [address, amountBN.toString()]
       });
-      
-      const approveTx = await account.execute({
-        contractAddress: LEFT_TOKEN_ADDRESS,
-        entrypoint: approveCall.entrypoint,
-        calldata: approveCall.calldata
-      });
-      
-      // Wait for approval to be mined
+
+      // Send approve transaction
+      console.log('👉 Sending approve transaction...');
+      const approveTx = await sendAsync([approveCall]);
+      console.log('✅ Approval sent:', approveTx);
+
+      // Wait for approval confirmation
+      console.log('⏳ Waiting for approval confirmation...');
       await provider.waitForTransaction(approveTx.transaction_hash);
+      console.log('✅ Approval confirmed:', approveTx.transaction_hash);
 
-      // Then execute the buy
-      console.log('Executing buy...');
+      // Prepare buy call
+      console.log('📝 Preparing buy call...');
       const buyCall = await contract.populate('buy', [
-        '0x' + amountLow.toString(16),
-        '0x' + amountHigh.toString(16)
+        amountBN.toString() // amount as string
       ]);
-      
-      console.log('Buy call details:', {
+      console.log('✅ Buy call prepared:', {
+        contractAddress: buyCall.contractAddress,
         entrypoint: buyCall.entrypoint,
-        calldata: buyCall.calldata
+        calldata: buyCall.calldata,
+        args: [amountBN.toString()]
       });
+
+      // Send buy transaction
+      console.log('👉 Sending buy transaction...');
+      const buyTx = await sendAsync([buyCall]);
+      console.log('✅ Buy transaction sent:', buyTx);
+
+      // Wait for buy confirmation
+      await provider.waitForTransaction(buyTx.transaction_hash);
+      console.log('✅ Buy confirmed:', buyTx.transaction_hash);
       
-      const response = await account.execute({
-        contractAddress: address,
-        entrypoint: buyCall.entrypoint,
-        calldata: buyCall.calldata
-      });
-      return response;
+      return buyTx;
     } catch (error) {
-      console.error('Buy transaction failed:', error);
-      // Extract error message from RPC error if available
-      if (error instanceof Error) {
-        const message = error.message;
-        if (message.includes('Contract not found')) {
-          throw new Error('Contract is not available. Please try again later.');
-        } else if (message.includes('Insufficient balance')) {
-          throw error; // Re-throw balance errors as is
-        } else if (message.includes('Failed to deserialize param')) {
-          throw new Error('Invalid transaction amount. Please try a smaller amount.');
-        } else if (message.includes('execution has failed')) {
-          throw new Error('Transaction failed. The amount may be too large for the current liquidity.');
-        }
-      }
+      console.error('❌ Transaction failed:', error);
       throw error;
     }
-  }, [contract, address, account, accountAddress, status, leftToken, provider]);
+  }, [contract, address, account, ethToken, provider, sendAsync, abi]);
 
   return {
     buyTokens: execute,
