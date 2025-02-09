@@ -70,29 +70,39 @@ const SwapInput = memo(
 );
 SwapInput.displayName = 'SwapInput';
 
-const ErrorMessage = memo(({ message, isLeftCurve }: { message: string; isLeftCurve: boolean }) => (
-  <div className={cn(
-    "text-xs px-3 py-1.5 rounded-lg flex items-center gap-2.5 transition-all",
-    isLeftCurve 
-      ? "bg-yellow-500/10 text-foreground"
-      : "bg-purple-500/10 text-foreground"
-  )}>
-    <div className={cn(
-      "min-w-4 h-4 rounded-full flex items-center justify-center",
-      isLeftCurve ? "text-yellow-500/90" : "text-purple-500/90"
-    )}>
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        className="w-3.5 h-3.5"
+const ErrorMessage = memo(
+  ({ message, isLeftCurve }: { message: string; isLeftCurve: boolean }) => (
+    <div
+      className={cn(
+        'text-xs px-3 py-1.5 rounded-lg flex items-center gap-2.5 transition-all',
+        isLeftCurve
+          ? 'bg-yellow-500/10 text-foreground'
+          : 'bg-purple-500/10 text-foreground',
+      )}
+    >
+      <div
+        className={cn(
+          'min-w-4 h-4 rounded-full flex items-center justify-center',
+          isLeftCurve ? 'text-yellow-500/90' : 'text-purple-500/90',
+        )}
       >
-        <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
-      </svg>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          className="w-3.5 h-3.5"
+        >
+          <path
+            fillRule="evenodd"
+            d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z"
+            clipRule="evenodd"
+          />
+        </svg>
+      </div>
+      <span className="opacity-90 font-medium tracking-tight">{message}</span>
     </div>
-    <span className="opacity-90 font-medium tracking-tight">{message}</span>
-  </div>
-));
+  ),
+);
 ErrorMessage.displayName = 'ErrorMessage';
 
 const SwapDivider = memo(({ isLeftCurve }: { isLeftCurve: boolean }) => (
@@ -134,7 +144,11 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
   const { provider } = useProvider();
 
   // Use our custom ABI hook to handle proxy contracts
-  const { abi, error: abiError, isLoading: isAbiLoading } = useContractAbi(agent.contractAddress);
+  const {
+    abi,
+    error: abiError,
+    isLoading: isAbiLoading,
+  } = useContractAbi(agent.contractAddress);
 
   // Get contract instance
   const { contract } = useContract({
@@ -181,16 +195,7 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
         // Convert input amount to token decimals (6) once
         const tokenAmount = BigInt(Math.floor(inputAmount * 1e6)).toString();
         setConvertedTokenAmount(tokenAmount);
-        
-        // Only log in development
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Simulating swap with token amount:', {
-            input: amount,
-            tokenAmount,
-            humanReadable: Number(tokenAmount) / 1e6
-          });
-        }
-        
+
         const result = await (activeTab === 'buy'
           ? simulateBuyTokens(agent.id, tokenAmount)
           : simulateSellTokens(agent.id, tokenAmount));
@@ -198,18 +203,6 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
         if (result.success && result.data) {
           setSimulatedEthAmount(result.data.toString());
           setError(null);
-          
-          // Only log in development
-          if (process.env.NODE_ENV === 'development') {
-            console.log('Simulation result:', {
-              tokenAmount,
-              requiredEthAmount: result.data,
-              humanReadable: {
-                tokens: Number(tokenAmount) / 1e6,
-                eth: Number(result.data) / 1e18
-              }
-            });
-          }
         } else {
           setSimulatedEthAmount('');
           if (result.error?.includes('Option::unwrap failed')) {
@@ -252,7 +245,7 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
       try {
         const balanceResult = await provider.getStorageAt(
           address,
-          "0x0000000000000000000000000000000000000000000000000000000000000000"
+          '0x0000000000000000000000000000000000000000000000000000000000000000',
         );
         const balanceInEth = Number(balanceResult) / 1e18;
         setBalance(balanceInEth.toString());
@@ -270,18 +263,6 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
 
   // Handle swap
   const handleSwap = useCallback(async () => {
-    // Only log in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Swap Widget - Wallet Status:', {
-        address,
-        isContractReady,
-        isInitializing,
-        activeTab,
-        amount,
-        simulatedEthAmount
-      });
-    }
-
     if (!address) {
       setError('Please connect your wallet');
       return;
@@ -301,46 +282,37 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
       setIsProcessing(true);
       setError(null);
 
-      // Only log in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Initiating swap with amounts:', {
-          input: amount,
-          tokenAmount: convertedTokenAmount,
-          requiredEthAmount: simulatedEthAmount,
-          humanReadable: {
-            tokens: Number(convertedTokenAmount) / 1e6,
-            eth: Number(simulatedEthAmount) / 1e18
-          }
-        });
-      }
-
       // Additional validation for sell transactions
       if (activeTab === 'sell') {
         const tokenBalance = await contract?.balanceOf(address);
         if (!tokenBalance) {
           throw new Error('Failed to fetch token balance');
         }
-        
+
         const sellAmount = BigInt(convertedTokenAmount);
         if (tokenBalance < sellAmount) {
-          throw new Error(`Insufficient token balance. You have ${Number(tokenBalance) / 1e6} tokens`);
+          throw new Error(
+            `Insufficient token balance. You have ${
+              Number(tokenBalance) / 1e6
+            } tokens`,
+          );
         }
       }
-      
+
       // Execute the appropriate transaction based on active tab
-      const result = await (activeTab === 'buy' 
+      const result = await (activeTab === 'buy'
         ? buyTokens(convertedTokenAmount, simulatedEthAmount)
         : sellTokens(convertedTokenAmount));
-        
-      console.log('Transaction result:', result);
-      
+
       if (result?.transaction_hash) {
         toast({
-          title: `${activeTab === 'buy' ? 'Buy' : 'Sell'} Transaction Submitted`,
+          title: `${
+            activeTab === 'buy' ? 'Buy' : 'Sell'
+          } Transaction Submitted`,
           description: (
             <div className="flex flex-col gap-1">
               <span>Transaction has been submitted.</span>
-              <a 
+              <a
                 href={`https://starkscan.co/tx/${result.transaction_hash}`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -355,24 +327,22 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
         setSimulatedEthAmount('');
         setConvertedTokenAmount('');
       }
-      
     } catch (error) {
-      // Only log in development
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Swap failed:', error);
-      }
-      const errorMessage = error instanceof Error ? error.message : 'Transaction failed';
       
+      const errorMessage =
+        error instanceof Error ? error.message : 'Transaction failed';
+
       // Format error message for display
       let displayError = errorMessage;
       if (errorMessage.includes('insufficient')) {
-        displayError = activeTab === 'buy' 
-          ? 'Insufficient ETH balance for this purchase'
-          : 'Insufficient token balance for this sale';
+        displayError =
+          activeTab === 'buy'
+            ? 'Insufficient ETH balance for this purchase'
+            : 'Insufficient token balance for this sale';
       } else if (errorMessage.includes('rejected')) {
         displayError = 'Transaction rejected by wallet';
       }
-      
+
       setError(displayError);
       toast({
         title: 'Swap Failed',
@@ -393,7 +363,7 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
     contract,
     buyTokens,
     sellTokens,
-    toast
+    toast,
   ]);
 
   // Update button text to show ABI loading state
@@ -424,7 +394,8 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
       console.error('Failed to load contract ABI:', abiError);
       toast({
         title: 'Contract Error',
-        description: 'Failed to load contract interface. Please try again later.',
+        description:
+          'Failed to load contract interface. Please try again later.',
         variant: 'destructive',
       });
     }
@@ -509,7 +480,11 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
           <SwapInput
             label="Required ETH"
             balance={`${Number(balance || 0).toFixed(3)} ETH`}
-            value={simulatedEthAmount ? (Number(simulatedEthAmount) / 1e18).toString() : ''}
+            value={
+              simulatedEthAmount
+                ? (Number(simulatedEthAmount) / 1e18).toString()
+                : ''
+            }
             readOnly
             isLeftCurve={isLeftCurve}
           />
@@ -520,7 +495,14 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
             className={buttonStyle}
             size="lg"
             onClick={handleSwap}
-            disabled={!address || !amount || !simulatedEthAmount || isProcessing || isLoading || !!error}
+            disabled={
+              !address ||
+              !amount ||
+              !simulatedEthAmount ||
+              isProcessing ||
+              isLoading ||
+              !!error
+            }
           >
             {buttonText}
           </Button>
@@ -550,7 +532,11 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
           <SwapInput
             label="Receive ETH"
             balance={`${Number(balance || 0).toFixed(3)} ETH`}
-            value={simulatedEthAmount ? (Number(simulatedEthAmount) / 1e18).toString() : ''}
+            value={
+              simulatedEthAmount
+                ? (Number(simulatedEthAmount) / 1e18).toString()
+                : ''
+            }
             readOnly
             isLeftCurve={isLeftCurve}
           />
@@ -561,7 +547,9 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
             className={buttonStyle}
             size="lg"
             onClick={handleSwap}
-            disabled={!address || !amount || isProcessing || isLoading || !!error}
+            disabled={
+              !address || !amount || isProcessing || isLoading || !!error
+            }
           >
             {buttonText}
           </Button>

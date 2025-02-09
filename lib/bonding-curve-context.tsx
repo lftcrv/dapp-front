@@ -49,12 +49,6 @@ const CACHE_DURATION = 5000; // 5 seconds
 
 const isDev = process.env.NODE_ENV === 'development';
 
-const logDebug = (message: string, data?: Record<string, unknown>) => {
-  if (isDev) {
-    console.debug(`[BondingCurve] ${message}`, data);
-  }
-};
-
 // function BondingIcon({ percentage }: { percentage: number }) {
 //   if (percentage <= 0 || percentage >= 100) return null;
 
@@ -104,39 +98,41 @@ export function BondingCurveProvider({
     isFetching.current = true;
 
     try {
-      const [percentageResult, priceResult, marketCapResult] = await Promise.all([
-        getBondingCurvePercentage(agentId),
-        getCurrentPrice(agentId),
-        getMarketCap(agentId),
-      ]);
-
-      logDebug('Fetch completed', {
-        agentId,
-        success: {
-          percentage: percentageResult.success,
-          price: priceResult.success,
-          marketCap: marketCapResult.success,
-        }
-      });
+      const [percentageResult, priceResult, marketCapResult] =
+        await Promise.all([
+          getBondingCurvePercentage(agentId),
+          getCurrentPrice(agentId),
+          getMarketCap(agentId),
+        ]);
 
       // Handle each result independently, keeping previous values if there's an error
       const newData: BondingCurveData = {
-        percentage: percentageResult.success ? (percentageResult.data ?? 0) / 100 : data.percentage,
-        currentPrice: (priceResult.success && priceResult.data) ? priceResult.data : (data.currentPrice || '0'),
-        marketCap: (marketCapResult.success && marketCapResult.data) ? marketCapResult.data : (data.marketCap || '0'),
+        percentage: percentageResult.success
+          ? (percentageResult.data ?? 0) / 100
+          : data.percentage,
+        currentPrice:
+          priceResult.success && priceResult.data
+            ? priceResult.data
+            : data.currentPrice || '0',
+        marketCap:
+          marketCapResult.success && marketCapResult.data
+            ? marketCapResult.data
+            : data.marketCap || '0',
         isLoading: false,
         error: null,
       };
 
       // Collect any errors but don't reset the data
       const errors: string[] = [];
-      if (!percentageResult.success) errors.push(`Percentage: ${percentageResult.error}`);
+      if (!percentageResult.success)
+        errors.push(`Percentage: ${percentageResult.error}`);
       if (!priceResult.success) errors.push(`Price: ${priceResult.error}`);
-      if (!marketCapResult.success) errors.push(`Market Cap: ${marketCapResult.error}`);
+      if (!marketCapResult.success)
+        errors.push(`Market Cap: ${marketCapResult.error}`);
 
       if (errors.length > 0) {
         const errorMessage = errors.join(', ');
-        logDebug('Fetch errors', { errors });
+
         newData.error = errorMessage;
       }
 
@@ -147,8 +143,9 @@ export function BondingCurveProvider({
 
       setData(newData);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logDebug('Fetch failed', { error: errorMessage });
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+
       setData((prev) => ({
         ...prev,
         isLoading: false,

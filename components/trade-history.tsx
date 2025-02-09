@@ -32,7 +32,7 @@ interface TradeInfo {
 
 interface APITrade {
   id: string;
-  createdAt: string;
+  time: string;
   information: {
     trade: TradeInfo;
     tradeId: string;
@@ -41,20 +41,64 @@ interface APITrade {
   elizaAgentId: string;
 }
 
-const formatTimeAgo = (timestamp: string): string => {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+const parseDate = (isoString: string | undefined): Date | null => {
+  if (!isoString) return null;
+  
+  try {
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return null;
+    return date;
+  } catch (error) {
+    return null;
+  }
+};
 
-  if (seconds < 60) return `${seconds}s ago`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  return `${months}mo ago`;
+const formatTimeAgo = (isoString: string | undefined): string => {
+  if (!isoString) return 'Just now';
+
+  const date = parseDate(isoString);
+  if (!date) return 'Just now';
+
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  
+  // For future dates or very recent trades (last few seconds)
+  if (diffMs < 1000) return 'Just now';
+  
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+  const diffWeek = Math.floor(diffDay / 7);
+  const diffMonth = Math.floor(diffDay / 30);
+  const diffYear = Math.floor(diffMonth / 12);
+
+  // Return the most appropriate time difference
+  if (diffSec < 60) return `${diffSec}s ago`;
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHour < 24) return `${diffHour}h ago`;
+  if (diffDay < 7) return `${diffDay}d ago`;
+  if (diffWeek < 4) return `${diffWeek}w ago`;
+  if (diffMonth < 12) return `${diffMonth}mo ago`;
+  return `${diffYear}y ago`;
+};
+
+const formatFullDate = (isoString: string | undefined): string => {
+  if (!isoString) return 'Just now';
+
+  const date = parseDate(isoString);
+  if (!date) return 'Just now';
+
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+    timeZoneName: 'short'
+  }).format(date);
 };
 
 interface TradeItemProps {
@@ -91,7 +135,15 @@ const isStableCoin = (tokenName: string): boolean => {
 };
 
 const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
-  const formattedTime = useMemo(() => formatTimeAgo(trade.createdAt), [trade.createdAt]);
+  const formattedTime = useMemo(() => {
+    if (!trade?.time) return 'Just now';
+    return formatTimeAgo(trade.time);
+  }, [trade?.time]);
+
+  const fullDate = useMemo(() => {
+    if (!trade?.time) return 'Just now';
+    return formatFullDate(trade.time);
+  }, [trade?.time]);
 
   if (!trade?.information?.trade) {
     return null;
@@ -104,7 +156,8 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
     return null;
   }
 
-  const isBuy = buyTokenName === 'USDT';
+  // A trade is a "buy" if we're selling USDT/USDC/DAI for another token
+  const isBuy = isStableCoin(sellTokenName);
   const colorClass = isBuy ? 'text-green-500' : 'text-red-500';
   const bgClass = isBuy
     ? 'bg-green-500/5 border-green-500/20'
@@ -203,7 +256,7 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
             <TooltipContent className="bg-white border shadow-xl z-50 relative">
               <div className="p-3 rounded-md">
                 <p className="text-xs font-medium text-gray-900">
-                  {new Date(trade.createdAt).toLocaleString()}
+                  {fullDate}
                 </p>
               </div>
             </TooltipContent>
@@ -315,34 +368,31 @@ interface TradeHistoryProps {
 }
 
 export function TradeHistory({ trades, isLoading }: TradeHistoryProps) {
-  if (isLoading) {
-    return <LoadingState />;
-  }
+  if (isLoading) return <LoadingState />;
+  if (!trades?.length) return <EmptyState />;
 
-  if (!trades || !Array.isArray(trades)) {
-    return <EmptyState />;
-  }
-
-  const validTrades = trades
-    .filter(trade => 
-      trade && 
-      trade.id &&
-      trade.information?.trade &&
-      trade.information.trade.buyTokenName && 
-      trade.information.trade.sellTokenName
-    )
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-  if (!validTrades.length) {
-    return <EmptyState />;
-  }
+  // Sort by ISO string (which is chronologically sortable)
+  const sortedTrades = [...trades].sort((a, b) => {
+    if (!a.time && !b.time) return 0;
+    if (!a.time) return 1;  // Move items without dates to the end
+    if (!b.time) return -1;
+    
+    const dateA = new Date(a.time);
+    const dateB = new Date(b.time);
+    
+    if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0;
+    if (isNaN(dateA.getTime())) return 1;
+    if (isNaN(dateB.getTime())) return -1;
+    
+    return dateB.getTime() - dateA.getTime();
+  });
 
   return (
     <div className="space-y-4">
       <AnimatePresence mode="popLayout">
-        {validTrades.map((trade, index) => (
+        {sortedTrades.map((trade, index) => (
           <TradeItem 
-            key={`${trade.id}-${index}`}
+            key={trade.id}
             trade={trade}
             isLatest={index === 0} 
           />

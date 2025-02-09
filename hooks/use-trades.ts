@@ -1,52 +1,60 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Trade } from '@/lib/types';
 import { tradeService } from '@/lib/services/api/trades';
-import { useAsyncState } from '@/lib/core/state';
+import { useState, useMemo } from 'react';
 
 interface UseTradesOptions {
   agentId?: string;
   initialData?: Trade[];
   limit?: number;
+  enabled?: boolean;
 }
 
 export function useTrades({
   agentId,
   initialData,
   limit = 10,
+  enabled = true,
 }: UseTradesOptions = {}) {
-  const state = useAsyncState<Trade[]>(initialData);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [allTrades, setAllTrades] = useState<Trade[]>([]);
+  
+  const queryKey = ['trades', agentId];
 
-  useEffect(() => {
-    async function fetchTrades() {
-      if (initialData) return;
-
-      state.setLoading(true);
+  const { data: allTrades, isLoading, error } = useQuery<Trade[], Error>({
+    queryKey,
+    queryFn: async () => {
       const result = agentId
         ? await tradeService.getByAgent(agentId)
         : await tradeService.getAll();
 
-      if (result.success && result.data) {
-        setAllTrades(result.data);
-        const paginatedTrades = result.data.slice(0, page * limit);
-        state.setData(paginatedTrades);
-        setHasMore(paginatedTrades.length < result.data.length);
-      } else if (result.error) {
-        state.setError(result.error);
+      if (!result.success) {
+        throw new Error(typeof result.error === 'string' ? result.error : 'Failed to fetch trades');
       }
-    }
 
-    fetchTrades();
-  }, [agentId, page, limit, initialData]);
+      return result.data || [];
+    },
+    initialData,
+    enabled: enabled && !initialData, // Only fetch if enabled and no initial data
+    staleTime: 10000, // Consider data fresh for 10 seconds
+    gcTime: 60000, // Keep in cache for 1 minute
+  });
+
+  // Memoize the paginated trades and hasMore
+  const { paginatedTrades, hasMore } = useMemo(() => {
+    const trades = allTrades || [];
+    const slicedTrades = trades.slice(0, page * limit);
+    return {
+      paginatedTrades: slicedTrades,
+      hasMore: slicedTrades.length < trades.length
+    };
+  }, [allTrades, page, limit]);
 
   const loadMore = () => setPage((p) => p + 1);
 
   return {
-    trades: state.data || [],
-    isLoading: state.isLoading,
-    error: state.error,
+    trades: paginatedTrades,
+    isLoading,
+    error: error as Error | null,
     hasMore,
     loadMore,
   };
