@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { Agent } from '@/lib/types';
 import { memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { useBondingCurve } from '@/lib/bonding-curve-context';
 import {
   Tooltip,
   TooltipContent,
@@ -45,16 +46,15 @@ interface AgentStatsCardProps {
 
 const AgentStatsCard = memo(({ agent }: AgentStatsCardProps) => {
   const isLeftCurve = agent.type === 'leftcurve';
+  const { data: bondingCurveData } = useBondingCurve();
 
   const stats = useMemo(() => {
-    const marketCap = agent.price * agent.holders * 1000;
-    const formattedMarketCap = marketCap.toLocaleString();
     const baseColor = isLeftCurve ? 'bg-yellow-500/5' : 'bg-purple-500/5';
 
     return [
       {
         label: 'Price',
-        value: `$${agent.price.toFixed(4)}`,
+        value: `Ξ${(Number(bondingCurveData.currentPrice) / 1e18).toFixed(14)}`,
         color: baseColor,
         delay: 0.1,
       },
@@ -66,7 +66,7 @@ const AgentStatsCard = memo(({ agent }: AgentStatsCardProps) => {
       },
       {
         label: 'Market Cap',
-        value: `$${formattedMarketCap}`,
+        value: `Ξ${(Number(bondingCurveData.marketCap) / 1e18).toFixed(14)}`,
         color: baseColor,
         delay: 0.3,
       },
@@ -86,7 +86,7 @@ const AgentStatsCard = memo(({ agent }: AgentStatsCardProps) => {
             delay: 0.4,
           },
     ];
-  }, [agent, isLeftCurve]);
+  }, [agent, isLeftCurve, bondingCurveData]);
 
   return (
     <TooltipProvider>

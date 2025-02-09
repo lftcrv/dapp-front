@@ -16,6 +16,20 @@ interface BondingCurveResponse {
   };
 }
 
+interface CurrentPriceResponse {
+  status: string;
+  data: {
+    price: string;
+  };
+}
+
+interface MarketCapResponse {
+  status: string;
+  data: {
+    marketCap: string;
+  };
+}
+
 // Cache simulation results for 5 seconds
 const getCachedSimulation = unstable_cache(
   async (agentId: string, tokenAmount: string, type: 'buy' | 'sell') => {
@@ -173,6 +187,71 @@ export async function getTokenPriceHistory(agentId: string) {
       success: false,
       error:
         error instanceof Error ? error.message : 'An unexpected error occurred',
+    };
+  }
+}
+
+export async function getCurrentPrice(agentId: string) {
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL;
+    const apiKey = process.env.API_KEY;
+
+    if (!apiUrl || !apiKey) throw new Error('Missing API configuration');
+
+
+    const response = await fetch(`${apiUrl}/api/agent-token/${agentId}/current-price`, {
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+    });
+
+    if (!response.ok) {
+      console.error(`[getCurrentPrice] Error response:`, {
+        status: response.status,
+        statusText: response.statusText
+      });
+      throw new Error('Failed to get current price');
+    }
+
+    const data = (await response.json()) as CurrentPriceResponse;
+    
+    return { success: true, data: data.data.price };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unexpected error occurred',
+    };
+  }
+}
+
+export async function getMarketCap(agentId: string) {
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL;
+    const apiKey = process.env.API_KEY;
+
+    if (!apiUrl || !apiKey) throw new Error('Missing API configuration');
+
+
+
+    const response = await fetch(`${apiUrl}/api/agent-token/${agentId}/market-cap`, {
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+    });
+
+    if (!response.ok) {
+      console.error(`[getMarketCap] Error response:`, {
+        status: response.status,
+        statusText: response.statusText
+      });
+      throw new Error('Failed to get market cap');
+    }
+
+    const data = (await response.json()) as MarketCapResponse;
+    
+
+    
+    return { success: true, data: data.data.marketCap };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unexpected error occurred',
     };
   }
 }
