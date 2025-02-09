@@ -1,7 +1,6 @@
 'use server';
 
 import { unstable_cache } from 'next/cache';
-import { headers } from 'next/headers';
 
 interface TokenSimulationResponse {
   status: string;
@@ -27,7 +26,10 @@ const getCachedSimulation = unstable_cache(
       throw new Error('Missing API configuration');
     }
 
-    console.log(`[Server] 🔄 Simulating ${type} for agent ${agentId} with amount ${tokenAmount}`);
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Server] 🔄 Simulating ${type} for agent ${agentId} with amount ${tokenAmount}`);
+    }
     const startTime = Date.now();
 
     const response = await fetch(
@@ -41,13 +43,20 @@ const getCachedSimulation = unstable_cache(
     );
 
     if (!response.ok) {
-      console.error(`[Server] ❌ Simulation failed with status ${response.status}`);
+      // Only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`[Server] ❌ Simulation failed with status ${response.status}`);
+      }
       throw new Error(`Failed to simulate ${type}`);
     }
 
     const data = (await response.json()) as TokenSimulationResponse;
-    const duration = Date.now() - startTime;
-    console.log(`[Server] ✅ Simulation completed in ${duration}ms`);
+    
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      const duration = Date.now() - startTime;
+      console.log(`[Server] ✅ Simulation completed in ${duration}ms`);
+    }
 
     // Convert BigInt to string for serialization
     return data.data.amount;
@@ -64,7 +73,10 @@ export async function simulateBuyTokens(agentId: string, tokenAmount: string) {
       data: BigInt(result), // Convert back to BigInt after cache retrieval
     };
   } catch (error) {
-    console.error(`[Server] ❌ Buy simulation error:`, error);
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`[Server] ❌ Buy simulation error:`, error);
+    }
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unexpected error occurred',
@@ -80,7 +92,10 @@ export async function simulateSellTokens(agentId: string, tokenAmount: string) {
       data: BigInt(result), // Convert back to BigInt after cache retrieval
     };
   } catch (error) {
-    console.error(`[Server] ❌ Sell simulation error:`, error);
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`[Server] ❌ Sell simulation error:`, error);
+    }
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unexpected error occurred',
