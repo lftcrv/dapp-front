@@ -189,3 +189,15 @@ export interface ProtocolFeesData {
   };
   userShares: Record<string, string>;
 }
+
+export interface User {
+  id: string;
+  evmAddress?: string;
+  starknetAddress?: string;
+  name?: string;
+  twitter?: string;
+  lastConnection: string;
+  createdAt: string;
+  updatedAt: string;
+  type: 'derived' | 'starknet_native';
+}
