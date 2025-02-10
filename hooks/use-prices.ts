@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { getTokenPriceHistory, getCurrentPrice } from '@/actions/agents/token/getTokenInfo';
+import {
+  getTokenPriceHistory,
+  getCurrentPrice,
+} from '@/actions/agents/token/getTokenInfo';
 
 interface PriceData {
   time: number;
@@ -24,15 +27,11 @@ function formatEthPrice(priceInWei: string): number {
     const ethString = (Number(wei) / 1e18).toFixed(18);
     // Convert back to number for the chart
     const priceInEth = parseFloat(ethString);
-    
+
     // Validate the result
     if (isNaN(priceInEth) || !isFinite(priceInEth)) {
       console.warn('[formatEthPrice] Invalid price value:', priceInWei);
       return 0;
-    }
-
-    if (process.env.NODE_ENV === 'development') {
-      console.debug(`[formatEthPrice] Converted ${priceInWei} wei to ${ethString} ETH`);
     }
 
     return priceInEth;
@@ -50,26 +49,17 @@ export function usePrices({ symbol, agentId }: UsePricesOptions) {
   const fetchPrices = useCallback(async () => {
     try {
       setIsLoading(true);
-      
-      // Log fetch attempt in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[usePrices] Fetching prices for agent ${agentId}`);
-      }
 
       // Fetch both price history and current price in parallel
       const [historyResponse, currentPriceResponse] = await Promise.all([
         getTokenPriceHistory(agentId),
-        getCurrentPrice(agentId)
+        getCurrentPrice(agentId),
       ]);
 
-      // Log responses in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[usePrices] History response:', historyResponse);
-        console.log('[usePrices] Current price response:', currentPriceResponse);
-      }
-      
       if (!historyResponse.success) {
-        throw new Error(historyResponse.error || 'Failed to fetch price history');
+        throw new Error(
+          historyResponse.error || 'Failed to fetch price history',
+        );
       }
 
       if (!historyResponse.data || !historyResponse.data.prices) {
@@ -81,14 +71,10 @@ export function usePrices({ symbol, agentId }: UsePricesOptions) {
 
       // Process historical data
       historyResponse.data.prices.forEach((price) => {
-        const timestamp = Math.floor(new Date(price.timestamp).getTime() / 1000);
+        const timestamp = Math.floor(
+          new Date(price.timestamp).getTime() / 1000,
+        );
         const priceValue = formatEthPrice(price.price);
-        
-        // Only log invalid prices in development to avoid console spam
-        if (priceValue <= 0 && process.env.NODE_ENV === 'development') {
-          console.debug(`[usePrices] Skipping invalid price at ${new Date(timestamp * 1000).toISOString()}`);
-          return; // Skip invalid prices
-        }
 
         // If we have a duplicate timestamp, keep the latest price
         const existing = priceMap.get(timestamp);
@@ -107,10 +93,10 @@ export function usePrices({ symbol, agentId }: UsePricesOptions) {
       // Add current price if available
       if (currentPriceResponse.success && currentPriceResponse.data) {
         const currentPrice = formatEthPrice(currentPriceResponse.data);
-        
+
         if (currentPrice > 0) {
           const now = Math.floor(Date.now() / 1000);
-          
+
           // Ensure current price has a unique timestamp
           let currentTimestamp = now;
           while (priceMap.has(currentTimestamp)) {
@@ -129,23 +115,17 @@ export function usePrices({ symbol, agentId }: UsePricesOptions) {
       }
 
       // Convert map to array and sort by timestamp
-      const priceData = Array.from(priceMap.values())
-        .sort((a, b) => a.time - b.time); // Ensure ascending order
-
-      // Log final data in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[usePrices] Processed ${priceData.length} unique price points`);
-        if (priceData.length > 0) {
-          const latestPrice = priceData[priceData.length - 1].close;
-          console.log(`[usePrices] Latest price: ${latestPrice.toFixed(18)} ETH`);
-        }
-      }
+      const priceData = Array.from(priceMap.values()).sort(
+        (a, b) => a.time - b.time,
+      ); // Ensure ascending order
 
       setData(priceData);
       setError(null);
     } catch (err) {
       console.error('[usePrices] Error:', err);
-      setError(err instanceof Error ? err : new Error('Failed to fetch prices'));
+      setError(
+        err instanceof Error ? err : new Error('Failed to fetch prices'),
+      );
       setData([]); // Reset data on error
     } finally {
       setIsLoading(false);
@@ -154,7 +134,7 @@ export function usePrices({ symbol, agentId }: UsePricesOptions) {
 
   useEffect(() => {
     fetchPrices();
-    
+
     // Refresh every minute
     const interval = setInterval(fetchPrices, 60000);
     return () => clearInterval(interval);
@@ -164,6 +144,6 @@ export function usePrices({ symbol, agentId }: UsePricesOptions) {
     prices: data,
     isLoading,
     error,
-    refetch: fetchPrices
+    refetch: fetchPrices,
   };
 }
