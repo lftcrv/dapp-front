@@ -47,8 +47,6 @@ const dataCache = new Map<
 >();
 const CACHE_DURATION = 5000; // 5 seconds
 
-const isDev = process.env.NODE_ENV === 'development';
-
 // function BondingIcon({ percentage }: { percentage: number }) {
 //   if (percentage <= 0 || percentage >= 100) return null;
 
@@ -154,7 +152,7 @@ export function BondingCurveProvider({
     } finally {
       isFetching.current = false;
     }
-  }, [agentId, enabled]);
+  }, [agentId, enabled, data.percentage, data.currentPrice, data.marketCap]);
 
   // Initial fetch only
   useEffect(() => {

@@ -18,7 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { TradeInfo, ApiTrade } from '@/lib/types';
+import { Trade } from '@/lib/types';
 
 const parseDate = (isoString: string | undefined): Date | null => {
   if (!isoString) return null;
@@ -27,7 +27,7 @@ const parseDate = (isoString: string | undefined): Date | null => {
     const date = new Date(isoString);
     if (isNaN(date.getTime())) return null;
     return date;
-  } catch (error) {
+  } catch {
     return null;
   }
 };
@@ -81,7 +81,7 @@ const formatFullDate = (isoString: string | undefined): string => {
 };
 
 interface TradeItemProps {
-  trade: ApiTrade;
+  trade: Trade;
   isLatest?: boolean;
 }
 
@@ -342,7 +342,7 @@ const EmptyState = memo(() => (
 EmptyState.displayName = 'EmptyState';
 
 interface TradeHistoryProps {
-  trades: ApiTrade[];
+  trades: Trade[];
   isLoading: boolean;
 }
 

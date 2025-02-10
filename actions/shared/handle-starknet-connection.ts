@@ -1,4 +1,4 @@
-import type { User } from '@/types/user';
+import type { User } from '@/lib/types';
 
 export async function handleStarknetConnection(
   starknetAddress: string,

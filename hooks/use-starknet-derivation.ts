@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { ConnectedWallet } from '@privy-io/react-auth';
 import { useWallets } from '@privy-io/react-auth';
 import { deriveStarknetAccount } from '@/actions/shared/derive-starknet-account';
-import type { User } from '@/types/user';
+import type { User } from '@/lib/types';
 
 // DEBUG LOGS: Prefix for easy removal
 const DEBUG = {
