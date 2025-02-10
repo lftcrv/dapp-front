@@ -5,18 +5,9 @@ import { notFound } from 'next/navigation';
 import { unstable_cache } from 'next/cache';
 import { AgentContent } from './agent-content';
 
-// Generate static params for known agents
-export async function generateStaticParams() {
-  const result = await agentService.getAll();
-  if (!result.success || !result.data) return [];
-
-  return result.data.map((agent) => ({
-    id: agent.id,
-  }));
-}
-
-// Cache the page for 5 seconds
-export const revalidate = 5;
+// Mark this page as dynamic to skip static build
+export const dynamic = 'force-dynamic';
+export const revalidate = 0; // Disable static page generation
 
 // Cache the getPageData function with a 5-second revalidation
 const getCachedPageData = unstable_cache(
@@ -50,14 +41,11 @@ const getCachedPageData = unstable_cache(
 );
 
 interface PageProps {
-  params: { id: string };
-  searchParams: { [key: string]: string | string[] | undefined };
+  params: Promise<{ id: string }>;
 }
 
 export default async function AgentPage({ params }: PageProps) {
-  // Await params first
-  const resolvedParams = await Promise.resolve(params);
-  const agentId = resolvedParams.id;
+  const { id: agentId } = await params;
   
   console.log(`[Server] 📄 Page requested for agent ${agentId}`);
   
