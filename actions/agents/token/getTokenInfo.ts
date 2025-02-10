@@ -30,6 +30,19 @@ interface MarketCapResponse {
   };
 }
 
+interface PriceHistoryResponse {
+  status: string;
+  data: {
+    prices: {
+      id: string;
+      price: string;
+      timestamp: string;
+    }[];
+    tokenSymbol: string;
+    tokenAddress: string;
+  };
+}
+
 // Cache simulation results for 5 seconds
 const getCachedSimulation = unstable_cache(
   async (agentId: string, tokenAmount: string, type: 'buy' | 'sell') => {
@@ -174,10 +187,13 @@ export async function getTokenPriceHistory(agentId: string) {
     );
 
     if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error(`Token not found for agent ${agentId}`);
+      }
       throw new Error('Failed to fetch price history');
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as PriceHistoryResponse;
     return {
       success: true,
       data: data.data,
@@ -185,8 +201,7 @@ export async function getTokenPriceHistory(agentId: string) {
   } catch (error) {
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'An unexpected error occurred',
+      error: error instanceof Error ? error.message : 'An unexpected error occurred',
     };
   }
 }
