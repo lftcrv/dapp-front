@@ -18,28 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-
-interface TradeInfo {
-  buyAmount: string;
-  sellAmount: string;
-  explanation: string;
-  buyTokenName: string;
-  sellTokenName: string;
-  tradePriceUSD: number;
-  buyTokenAddress: string;
-  sellTokenAddress: string;
-}
-
-interface APITrade {
-  id: string;
-  time: string;
-  information: {
-    trade: TradeInfo;
-    tradeId: string;
-    containerId: string;
-  };
-  elizaAgentId: string;
-}
+import { TradeInfo, ApiTrade } from '@/lib/types';
 
 const parseDate = (isoString: string | undefined): Date | null => {
   if (!isoString) return null;
@@ -102,7 +81,7 @@ const formatFullDate = (isoString: string | undefined): string => {
 };
 
 interface TradeItemProps {
-  trade: APITrade;
+  trade: ApiTrade;
   isLatest?: boolean;
 }
 
@@ -363,7 +342,7 @@ const EmptyState = memo(() => (
 EmptyState.displayName = 'EmptyState';
 
 interface TradeHistoryProps {
-  trades: APITrade[];
+  trades: ApiTrade[];
   isLoading: boolean;
 }
 
