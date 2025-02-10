@@ -31,16 +31,16 @@ const WalletInfo = memo(({ address, walletType, onCopy }: WalletInfoProps) => (
   <div className="flex flex-col px-2 py-1.5 gap-1">
     <div className="flex items-center gap-2 px-2 py-1.5">
       <Wallet2 className="w-4 h-4 text-muted-foreground" />
-      <span className="text-sm font-medium">
+      <span className="text-sm font-medium text-gray-900">
         Connected {walletType === 'starknet' ? 'Starknet' : 'EVM'} Wallet
       </span>
     </div>
-    <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-muted/50">
-      <span className="font-mono text-sm">{shortAddress(address)}</span>
+    <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-gray-50">
+      <span className="font-mono text-sm text-gray-900">{shortAddress(address)}</span>
       <Button
         variant="ghost"
         size="icon"
-        className="h-6 w-6 ml-auto hover:bg-muted"
+        className="h-6 w-6 ml-auto hover:bg-gray-100"
         onClick={() => onCopy(address)}
       >
         <Copy className="w-3 h-3" />
@@ -65,7 +65,7 @@ const ConnectedWallet = memo(
           {walletType === 'starknet' ? '🌟' : '⚡️'} {shortAddress(address)}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72">
+      <DropdownMenuContent align="end" className="w-72 bg-white border shadow-xl z-50 relative">
         <WalletInfo address={address} walletType={walletType} onCopy={onCopy} />
         <DropdownMenuSeparator />
         <DropdownMenuItem

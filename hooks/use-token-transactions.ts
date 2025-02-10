@@ -1,265 +1,371 @@
 import { useCallback } from 'react';
-import { useContract, useAccount, useProvider } from '@starknet-react/core';
+import {
+  useContract,
+  useAccount,
+  useProvider,
+  useSendTransaction,
+} from '@starknet-react/core';
 import type { Abi } from 'starknet';
-
-// ERC20 contract address for $LEFT token
-const LEFT_TOKEN_ADDRESS = "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7";
+import { showToast } from '@/lib/toast';
+import { toast } from 'sonner';
 
 // ERC20 ABI for approve function
 const ERC20_ABI = [
   {
+    type: 'function',
+    name: 'approve',
+    state_mutability: 'external',
     inputs: [
       {
-        name: "spender",
-        type: "felt"
+        name: 'spender',
+        type: 'core::starknet::contract_address::ContractAddress',
       },
       {
-        name: "amount",
-        type: "Uint256"
-      }
+        name: 'amount',
+        type: 'core::integer::u256',
+      },
     ],
-    name: "approve",
-    outputs: [
-      {
-        type: "felt"
-      }
-    ],
-    state_mutability: "external",
-    type: "function"
+    outputs: [],
   },
   {
+    type: 'function',
+    name: 'balanceOf',
+    state_mutability: 'view',
     inputs: [
       {
-        name: "account",
-        type: "felt"
-      }
+        name: 'account',
+        type: 'core::starknet::contract_address::ContractAddress',
+      },
     ],
-    name: "balanceOf",
     outputs: [
       {
-        name: "balance",
-        type: "Uint256"
-      }
+        name: 'balance',
+        type: 'core::integer::u256',
+      },
     ],
-    state_mutability: "view",
-    type: "function"
-  }
-] as Abi;
+  },
+] as const satisfies Abi;
 
 interface UseTokenTransactionProps {
   address?: string;
   abi?: Abi;
 }
 
+/**
+ * Token Transaction Hooks
+ * 
+ * Design Notes:
+ * 1. Buy Flow: Requires two steps
+ *    - First call: Approve ETH token contract to spend ETH (with 2% slippage buffer)
+ *    - Second call: Execute buy on agent contract with exact token amount
+ *    This pattern is necessary because ETH (ERC20) requires explicit approval before spending
+ * 
+ * 2. Sell Flow: Requires single step
+ *    - Direct call: Execute sell on agent contract with exact token amount
+ *    - No approval needed because:
+ *      a) User is selling the agent's own tokens
+ *      b) The agent contract already controls its token supply
+ *      c) The sell function directly burns tokens and releases ETH
+ * 
+ * Implementation Details:
+ * - Both flows use useSendTransaction for consistent transaction handling
+ * - Both validate amounts for overflow and minimum thresholds
+ * - Sell adds extra validation for token balance before execution
+ * - All amounts are handled in wei/smallest unit (18 decimals for ETH, 6 for tokens)
+ */
+
 export function useBuyTokens({ address, abi }: UseTokenTransactionProps) {
+  // Ensure contract address has correct format
+  const formattedAddress = address
+    ? address.startsWith('0x0')
+      ? address
+      : `0x0${address.slice(2)}`
+    : undefined;
+
   const { contract } = useContract({
     abi,
-    address: address as `0x${string}`,
+    address: formattedAddress as `0x0${string}`,
   });
 
-  // Add ERC20 contract
-  const { contract: leftToken } = useContract({
-    address: LEFT_TOKEN_ADDRESS as `0x${string}`,
-    abi: ERC20_ABI
+  const { contract: ethToken } = useContract({
+    address: process.env.NEXT_PUBLIC_ETH_TOKEN_ADDRESS as `0x0${string}`,
+    abi: ERC20_ABI,
   });
 
-  const { account, address: accountAddress, status } = useAccount();
+  const { account } = useAccount();
   const { provider } = useProvider();
 
-  const execute = useCallback(async (amountInWei: string) => {
-    console.log('Buy Transaction - Wallet Status:', {
-      hasAccount: !!account,
-      accountAddress,
-      connectionStatus: status,
-      hasContract: !!contract,
-      contractAddress: address
-    });
+  // Prepare calls directly in the hook
+  const calls = useCallback(
+    (tokenAmount: string, requiredEthAmount: string) => {
+      if (!contract || !address || !ethToken) {
+        return undefined;
+      }
 
-    if (!contract || !address || !leftToken) {
-      throw new Error('Contract not initialized');
-    }
+      // Parse amounts - ethAmount for approve, tokenAmount for buy
+      const ethAmount = BigInt(requiredEthAmount);
+      const targetAmount = BigInt(tokenAmount);
 
-    if (!account) {
-      throw new Error('Wallet not connected');
-    }
+      // Add 2% slippage buffer to ETH amount for approve
+      const slippageBuffer = (ethAmount * 2n) / 100n;
+      const ethAmountWithSlippage = ethAmount + slippageBuffer;
 
-    try {
-      // Check balance first
-      const balance = await leftToken.balanceOf(accountAddress);
-      const amountBN = BigInt(amountInWei);
-      
-      console.log('Balance response:', balance);
-      
-      // Handle balance based on response format
-      let balanceBN;
-      if (typeof balance === 'string') {
-        balanceBN = BigInt(balance);
-      } else if (balance && typeof balance === 'object') {
-        if ('balance' in balance) {
-          // Handle {balance: BigIntn} format
-          balanceBN = balance.balance;
-        } else if ('low' in balance && 'high' in balance) {
-          balanceBN = BigInt(balance.low) + (BigInt(balance.high) << BigInt(128));
-        } else if (Array.isArray(balance)) {
-          // Some contracts return balance as [low, high]
-          balanceBN = BigInt(balance[0]) + (BigInt(balance[1]) << BigInt(128));
-        } else {
-          console.error('Unexpected balance format:', balance);
-          throw new Error('Unexpected balance format');
+      // Validate amounts
+      if (targetAmount === 0n || ethAmount === 0n) {
+        throw new Error('Amount too small');
+      }
+
+      // Check for overflow
+      const MAX_UINT256 = 2n ** 256n - 1n;
+      if (ethAmountWithSlippage > MAX_UINT256 || targetAmount > MAX_UINT256) {
+        throw new Error('Amount too large - would cause overflow');
+      }
+
+      // Approve ETH spending (with slippage buffer)
+      const rawApproveCall = {
+        contractAddress: process.env.NEXT_PUBLIC_ETH_TOKEN_ADDRESS as string,
+        entrypoint: 'approve',
+        calldata: [contract.address, ethAmountWithSlippage.toString(), '0'],
+      };
+
+      // Buy with target token amount
+      const rawBuyCall = {
+        contractAddress: contract.address,
+        entrypoint: 'buy',
+        calldata: [targetAmount.toString(), '0'],
+      };
+
+      // Only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Buy Transaction:', {
+          approve: Number(ethAmountWithSlippage) / 1e18,
+          buy: Number(targetAmount) / 1e6,
+        });
+      }
+
+      return [rawApproveCall, rawBuyCall];
+    },
+    [contract, address, ethToken],
+  );
+
+  // Setup transaction hook
+  const {
+    sendAsync,
+    data: txData,
+    error: txError,
+  } = useSendTransaction({
+    calls: undefined,
+  });
+
+  const execute = useCallback(
+    async (tokenAmount: string, requiredEthAmount: string) => {
+      if (!account) {
+        throw new Error('Wallet not connected');
+      }
+
+      if (!contract || !address || !ethToken) {
+        throw new Error('Contracts not initialized');
+      }
+
+      try {
+        const preparedCalls = await calls(tokenAmount, requiredEthAmount);
+        if (!preparedCalls) {
+          throw new Error('Failed to prepare transaction calls');
         }
-      } else {
-        console.error('Invalid balance response:', balance);
-        throw new Error('Invalid balance response');
-      }
-      
-      console.log('Parsed balance:', balanceBN.toString());
-      console.log('Amount to spend:', amountBN.toString());
-      
-      if (balanceBN < amountBN) {
-        throw new Error(`Insufficient balance. Have: ${(Number(balanceBN) / 1e18).toFixed(6)} ETH, Need: ${(Number(amountBN) / 1e18).toFixed(6)} ETH`);
-      }
 
-      // First approve the token spend
-      console.log('Approving token spend...');
-      
-      // Convert to Uint256 array format like in dapp-v3
-      const amountLow = amountBN & ((1n << 128n) - 1n);
-      const amountHigh = amountBN >> 128n;
-      
-      console.log('Amount components:', {
-        original: amountBN.toString(),
-        lowDec: amountLow.toString(),
-        highDec: amountHigh.toString(),
-        lowHex: '0x' + amountLow.toString(16),
-        highHex: '0x' + amountHigh.toString(16)
-      });
-      
-      // Pass amount components directly without array
-      const approveCall = await leftToken.populate("approve", [
-        address,
-        '0x' + amountLow.toString(16),
-        '0x' + amountHigh.toString(16)
-      ]);
-      
-      console.log('Approve call details:', {
-        entrypoint: approveCall.entrypoint,
-        calldata: approveCall.calldata
-      });
-      
-      const approveTx = await account.execute({
-        contractAddress: LEFT_TOKEN_ADDRESS,
-        entrypoint: approveCall.entrypoint,
-        calldata: approveCall.calldata
-      });
-      
-      // Wait for approval to be mined
-      await provider.waitForTransaction(approveTx.transaction_hash);
+        // Send transaction
+        const response = await sendAsync(preparedCalls);
 
-      // Then execute the buy
-      console.log('Executing buy...');
-      const buyCall = await contract.populate('buy', [
-        '0x' + amountLow.toString(16),
-        '0x' + amountHigh.toString(16)
-      ]);
-      
-      console.log('Buy call details:', {
-        entrypoint: buyCall.entrypoint,
-        calldata: buyCall.calldata
-      });
-      
-      const response = await account.execute({
-        contractAddress: address,
-        entrypoint: buyCall.entrypoint,
-        calldata: buyCall.calldata
-      });
-      return response;
-    } catch (error) {
-      console.error('Buy transaction failed:', error);
-      // Extract error message from RPC error if available
-      if (error instanceof Error) {
-        const message = error.message;
-        if (message.includes('Contract not found')) {
-          throw new Error('Contract is not available. Please try again later.');
-        } else if (message.includes('Insufficient balance')) {
-          throw error; // Re-throw balance errors as is
-        } else if (message.includes('Failed to deserialize param')) {
-          throw new Error('Invalid transaction amount. Please try a smaller amount.');
-        } else if (message.includes('execution has failed')) {
-          throw new Error('Transaction failed. The amount may be too large for the current liquidity.');
+        if (response?.transaction_hash) {
+          const txHash = response.transaction_hash;
+          const explorerUrl = `https://sepolia.voyager.online/tx/${txHash}`;
+
+          // Show pending toast with explorer link
+          const pendingToastId = showToast('TX_PENDING', 'loading', {
+            url: explorerUrl,
+            text: 'View on Explorer',
+          });
+
+          try {
+            // Wait for confirmation
+            await provider.waitForTransaction(txHash);
+            // Dismiss pending toast and show success with link
+            toast.dismiss(pendingToastId);
+            showToast('TX_SUCCESS', 'success', {
+              url: explorerUrl,
+              text: 'View on Explorer',
+            });
+          } catch (error) {
+            // Dismiss pending toast and show error
+            toast.dismiss(pendingToastId);
+            showToast('TX_ERROR', 'error');
+            throw error;
+          }
         }
+
+        return response;
+      } catch (error) {
+        console.error('Transaction failed:', error);
+        showToast('TX_ERROR', 'error');
+        throw error;
       }
-      throw error;
-    }
-  }, [contract, address, account, accountAddress, status, leftToken, provider]);
+    },
+    [account, contract, address, ethToken, provider, sendAsync, calls],
+  );
 
   return {
     buyTokens: execute,
+    isReady: !!(contract && address && ethToken),
+    transactionData: txData,
+    error: txError,
   };
 }
 
 export function useSellTokens({ address, abi }: UseTokenTransactionProps) {
   const { contract } = useContract({
     abi,
-    address: address as `0x${string}`,
+    address: address as `0x0${string}`,
   });
-  const { account, address: accountAddress, status } = useAccount();
+  const { account } = useAccount();
+  const { provider } = useProvider();
 
-  const execute = useCallback(async (amountInWei: string) => {
-    console.log('Sell Transaction - Wallet Status:', {
-      hasAccount: !!account,
-      accountAddress,
-      connectionStatus: status,
-      hasContract: !!contract,
-      contractAddress: address
-    });
+  // Prepare calls directly in the hook
+  const calls = useCallback(
+    (amountInWei: string) => {
+      if (!contract || !address) {
+        return undefined;
+      }
 
-    if (!contract || !address) {
-      throw new Error('Contract not initialized');
-    }
+      const sellAmount = BigInt(amountInWei);
 
-    if (!account) {
-      throw new Error('Wallet not connected');
-    }
+      // Validate amount
+      if (sellAmount === 0n) {
+        throw new Error('Amount too small');
+      }
 
-    try {
-      const amountBN = BigInt(amountInWei);
-      console.log('Executing sell with amount:', amountBN.toString());
-      
-      // Convert to Uint256 array format
-      const amountLow = amountBN & ((1n << 128n) - 1n);
-      const amountHigh = amountBN >> 128n;
-      
-      console.log('Amount components:', {
-        original: amountBN.toString(),
-        lowDec: amountLow.toString(),
-        highDec: amountHigh.toString(),
-        lowHex: amountLow.toString(16),
-        highHex: amountHigh.toString(16)
-      });
-      
-      const call = await contract.populate('sell', [
-        '0x' + amountLow.toString(16),
-        '0x' + amountHigh.toString(16)
-      ]);
-      
-      console.log('Sell call details:', {
-        entrypoint: call.entrypoint,
-        calldata: call.calldata
-      });
-      
-      const response = await account.execute({
+      // Check for overflow
+      const MAX_UINT256 = 2n ** 256n - 1n;
+      if (sellAmount > MAX_UINT256) {
+        throw new Error('Amount too large - would cause overflow');
+      }
+
+      // Sell call
+      const rawSellCall = {
         contractAddress: address,
-        entrypoint: call.entrypoint,
-        calldata: call.calldata
-      });
-      return response;
-    } catch (error) {
-      console.error('Sell transaction failed:', error);
-      throw error;
-    }
-  }, [contract, address, account, accountAddress, status]);
+        entrypoint: 'sell',
+        calldata: [sellAmount.toString(), '0'],
+      };
+
+      // Only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Sell Transaction:', {
+          sell: Number(sellAmount) / 1e6,
+          rawAmount: sellAmount.toString()
+        });
+      }
+
+      return [rawSellCall];
+    },
+    [contract, address],
+  );
+
+  // Setup transaction hook
+  const {
+    sendAsync,
+    data: txData,
+    error: txError,
+  } = useSendTransaction({
+    calls: undefined,
+  });
+
+  const execute = useCallback(
+    async (amountInWei: string) => {
+      if (!account) {
+        throw new Error('Wallet not connected');
+      }
+
+      if (!contract || !address) {
+        throw new Error('Contract not initialized');
+      }
+
+      try {
+        // Only log in development
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Executing sell with amount:', {
+            amountInWei,
+            humanReadable: Number(amountInWei) / 1e6
+          });
+        }
+
+        // Check token balance before selling
+        const balance = await contract.balanceOf(account.address);
+        const sellAmount = BigInt(amountInWei);
+        
+        if (balance < sellAmount) {
+          throw new Error('Insufficient token balance');
+        }
+
+        const preparedCalls = calls(amountInWei);
+        if (!preparedCalls) {
+          throw new Error('Failed to prepare transaction calls');
+        }
+
+        // Send transaction
+        const response = await sendAsync(preparedCalls);
+        
+        if (response?.transaction_hash) {
+          const txHash = response.transaction_hash;
+          const explorerUrl = `https://sepolia.voyager.online/tx/${txHash}`;
+
+          // Show pending toast with explorer link
+          const pendingToastId = showToast('TX_PENDING', 'loading', {
+            url: explorerUrl,
+            text: 'View on Explorer',
+          });
+
+          try {
+            // Wait for confirmation
+            await provider.waitForTransaction(txHash);
+            // Dismiss pending toast and show success with link
+            toast.dismiss(pendingToastId);
+            showToast('TX_SUCCESS', 'success', {
+              url: explorerUrl,
+              text: 'View on Explorer',
+            });
+          } catch (error) {
+            // Dismiss pending toast and show error
+            toast.dismiss(pendingToastId);
+            showToast('TX_ERROR', 'error');
+            throw error;
+          }
+        }
+
+        return response;
+      } catch (error) {
+        // Only log in development
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Sell transaction failed:', error);
+        }
+        const errorMessage = error instanceof Error 
+          ? error.message
+          : 'Failed to execute sell transaction';
+          
+        if (errorMessage.includes('insufficient')) {
+          throw new Error('Insufficient token balance to complete this sale');
+        } else if (errorMessage.includes('rejected')) {
+          throw new Error('Transaction rejected by wallet');
+        } else {
+          throw new Error(errorMessage);
+        }
+      }
+    },
+    [account, contract, address, provider, sendAsync, calls],
+  );
 
   return {
     sellTokens: execute,
+    isReady: !!contract && !!address,
+    transactionData: txData,
+    error: txError,
   };
-} 
+}

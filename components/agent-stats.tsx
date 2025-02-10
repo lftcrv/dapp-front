@@ -82,9 +82,10 @@ const StatItem = memo(
         </div>
         <div
           className={cn(
-            'text-2xl font-bold transition-colors',
+            'text-lg font-bold transition-colors font-mono',
             trendColor,
             'group-hover:opacity-90',
+            label.includes('Price') && 'text-xs leading-relaxed'
           )}
         >
           {formattedValue}
@@ -143,6 +144,9 @@ const formatters = {
     });
     return `${value >= 0 ? '+' : '-'}$${formatted}`;
   },
+  ethPrice: (value: number) => {
+    return `Ξ${value.toFixed(14)}`;
+  }
 } as const;
 
 const StatsGrid = memo(({ performance }: StatsGridProps) => {

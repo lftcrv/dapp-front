@@ -2,6 +2,7 @@
 
 import { Agent } from '@/lib/types';
 import { RpcProvider } from 'starknet';
+import { isInBondingPhase } from '@/lib/utils';
 
 // Initialize provider
 const provider = new RpcProvider({ 
@@ -42,16 +43,20 @@ async function mapApiAgentToAgent(apiAgent: ApiAgent): Promise<Agent> {
       : `0x${apiAgent.Token.contractAddress}`
     : undefined;
 
+  const price = apiAgent.LatestMarketData?.price || 0;
+  const holders = apiAgent.LatestMarketData?.holders || 0;
+  const isBonding = apiAgent.status !== 'RUNNING' || isInBondingPhase(price, holders);
+
   if (!tokenAddress) {
     return {
       id: apiAgent.id,
       name: apiAgent.name,
       symbol: apiAgent.name.substring(0, 4).toUpperCase(),
       type: apiAgent.curveSide === 'LEFT' ? 'leftcurve' : 'rightcurve',
-      status: apiAgent.status === 'STARTING' ? 'bonding' : 'live',
-      price: apiAgent.LatestMarketData?.price || 0,
+      status: isBonding ? 'bonding' : 'live',
+      price,
       marketCap: apiAgent.LatestMarketData?.marketCap || 0,
-      holders: apiAgent.LatestMarketData?.holders || 0,
+      holders,
       creator: apiAgent.Wallet?.deployedAddress ? `0x${apiAgent.Wallet.deployedAddress}` : 'unknown',
       createdAt: apiAgent.createdAt,
       creativityIndex: apiAgent.degenScore || 0,
@@ -73,10 +78,10 @@ async function mapApiAgentToAgent(apiAgent: ApiAgent): Promise<Agent> {
       name: apiAgent.name,
       symbol: apiAgent.name.substring(0, 4).toUpperCase(),
       type: apiAgent.curveSide === 'LEFT' ? 'leftcurve' : 'rightcurve',
-      status: apiAgent.status === 'STARTING' ? 'bonding' : 'live',
-      price: apiAgent.LatestMarketData?.price || 0,
+      status: isBonding ? 'bonding' : 'live',
+      price,
       marketCap: apiAgent.LatestMarketData?.marketCap || 0,
-      holders: apiAgent.LatestMarketData?.holders || 0,
+      holders,
       creator: apiAgent.Wallet?.deployedAddress ? `0x${apiAgent.Wallet.deployedAddress}` : 'unknown',
       createdAt: apiAgent.createdAt,
       creativityIndex: apiAgent.degenScore || 0,
@@ -91,10 +96,10 @@ async function mapApiAgentToAgent(apiAgent: ApiAgent): Promise<Agent> {
       name: apiAgent.name,
       symbol: apiAgent.name.substring(0, 4).toUpperCase(),
       type: apiAgent.curveSide === 'LEFT' ? 'leftcurve' : 'rightcurve',
-      status: apiAgent.status === 'STARTING' ? 'bonding' : 'live',
-      price: apiAgent.LatestMarketData?.price || 0,
+      status: isBonding ? 'bonding' : 'live',
+      price,
       marketCap: apiAgent.LatestMarketData?.marketCap || 0,
-      holders: apiAgent.LatestMarketData?.holders || 0,
+      holders,
       creator: apiAgent.Wallet?.deployedAddress ? `0x${apiAgent.Wallet.deployedAddress}` : 'unknown',
       createdAt: apiAgent.createdAt,
       creativityIndex: apiAgent.degenScore || 0,

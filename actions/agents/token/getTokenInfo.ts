@@ -1,7 +1,6 @@
 'use server';
 
 import { unstable_cache } from 'next/cache';
-import { headers } from 'next/headers';
 
 interface TokenSimulationResponse {
   status: string;
@@ -17,6 +16,20 @@ interface BondingCurveResponse {
   };
 }
 
+interface CurrentPriceResponse {
+  status: string;
+  data: {
+    price: string;
+  };
+}
+
+interface MarketCapResponse {
+  status: string;
+  data: {
+    marketCap: string;
+  };
+}
+
 // Cache simulation results for 5 seconds
 const getCachedSimulation = unstable_cache(
   async (agentId: string, tokenAmount: string, type: 'buy' | 'sell') => {
@@ -27,7 +40,10 @@ const getCachedSimulation = unstable_cache(
       throw new Error('Missing API configuration');
     }
 
-    console.log(`[Server] 🔄 Simulating ${type} for agent ${agentId} with amount ${tokenAmount}`);
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Server] 🔄 Simulating ${type} for agent ${agentId} with amount ${tokenAmount}`);
+    }
     const startTime = Date.now();
 
     const response = await fetch(
@@ -41,13 +57,20 @@ const getCachedSimulation = unstable_cache(
     );
 
     if (!response.ok) {
-      console.error(`[Server] ❌ Simulation failed with status ${response.status}`);
+      // Only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`[Server] ❌ Simulation failed with status ${response.status}`);
+      }
       throw new Error(`Failed to simulate ${type}`);
     }
 
     const data = (await response.json()) as TokenSimulationResponse;
-    const duration = Date.now() - startTime;
-    console.log(`[Server] ✅ Simulation completed in ${duration}ms`);
+    
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      const duration = Date.now() - startTime;
+      console.log(`[Server] ✅ Simulation completed in ${duration}ms`);
+    }
 
     // Convert BigInt to string for serialization
     return data.data.amount;
@@ -64,7 +87,10 @@ export async function simulateBuyTokens(agentId: string, tokenAmount: string) {
       data: BigInt(result), // Convert back to BigInt after cache retrieval
     };
   } catch (error) {
-    console.error(`[Server] ❌ Buy simulation error:`, error);
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`[Server] ❌ Buy simulation error:`, error);
+    }
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unexpected error occurred',
@@ -80,7 +106,10 @@ export async function simulateSellTokens(agentId: string, tokenAmount: string) {
       data: BigInt(result), // Convert back to BigInt after cache retrieval
     };
   } catch (error) {
-    console.error(`[Server] ❌ Sell simulation error:`, error);
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`[Server] ❌ Sell simulation error:`, error);
+    }
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unexpected error occurred',
@@ -158,6 +187,71 @@ export async function getTokenPriceHistory(agentId: string) {
       success: false,
       error:
         error instanceof Error ? error.message : 'An unexpected error occurred',
+    };
+  }
+}
+
+export async function getCurrentPrice(agentId: string) {
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL;
+    const apiKey = process.env.API_KEY;
+
+    if (!apiUrl || !apiKey) throw new Error('Missing API configuration');
+
+
+    const response = await fetch(`${apiUrl}/api/agent-token/${agentId}/current-price`, {
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+    });
+
+    if (!response.ok) {
+      console.error(`[getCurrentPrice] Error response:`, {
+        status: response.status,
+        statusText: response.statusText
+      });
+      throw new Error('Failed to get current price');
+    }
+
+    const data = (await response.json()) as CurrentPriceResponse;
+    
+    return { success: true, data: data.data.price };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unexpected error occurred',
+    };
+  }
+}
+
+export async function getMarketCap(agentId: string) {
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL;
+    const apiKey = process.env.API_KEY;
+
+    if (!apiUrl || !apiKey) throw new Error('Missing API configuration');
+
+
+
+    const response = await fetch(`${apiUrl}/api/agent-token/${agentId}/market-cap`, {
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+    });
+
+    if (!response.ok) {
+      console.error(`[getMarketCap] Error response:`, {
+        status: response.status,
+        statusText: response.statusText
+      });
+      throw new Error('Failed to get market cap');
+    }
+
+    const data = (await response.json()) as MarketCapResponse;
+    
+
+    
+    return { success: true, data: data.data.marketCap };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unexpected error occurred',
     };
   }
 }

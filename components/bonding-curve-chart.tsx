@@ -6,7 +6,6 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Lock, Unlock, Rocket, Sparkles } from 'lucide-react';
 import { cn, calculateBondingProgress } from '@/lib/utils';
-import { getLatestPrice } from '@/lib/dummy-prices';
 import { useBondingCurve } from '@/lib/bonding-curve-context';
 
 interface BondingCurveChartProps {
@@ -16,39 +15,39 @@ interface BondingCurveChartProps {
 
 export const BondingCurveChart = memo(
   ({ agent, className }: BondingCurveChartProps) => {
-    const currentPrice = getLatestPrice(agent.symbol) || agent.price;
-    const isLeftCurve = agent.type === 'leftcurve';
     const { data: bondingCurveData } = useBondingCurve();
 
-    const {
-      progress,
-      nextPrice,
-      remainingLiquidity,
-      isInBonding,
-      progressColor,
-    } = useMemo(() => {
-      // Use bonding curve data if available
-      const bondingPercentage =
-        bondingCurveData.percentage ??
-        calculateBondingProgress(currentPrice, agent.holders);
-      const isInBondingState = agent.status === 'bonding' && !bondingCurveData.error;
+    // Convert agent.price to wei format if using it as fallback
+    const currentPrice =
+      bondingCurveData.currentPrice ||
+      (BigInt(agent.price) * BigInt(1e18)).toString();
+    const isLeftCurve = agent.type === 'leftcurve';
 
-      return {
-        progress: bondingPercentage,
-        nextPrice: (currentPrice * 1.1).toFixed(3),
-        remainingLiquidity: 10000 - agent.holders * currentPrice * 1000,
-        isInBonding: isInBondingState,
-        progressColor: isLeftCurve
-          ? 'bg-gradient-to-r from-yellow-500 via-orange-500 to-pink-500 animate-gradient'
-          : 'bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 animate-gradient',
-      };
-    }, [
-      currentPrice,
-      agent.holders,
-      agent.status,
-      isLeftCurve,
-      bondingCurveData,
-    ]);
+    const { progress, remainingLiquidity, isInBonding, progressColor } =
+      useMemo(() => {
+        // Use bonding curve data if available
+        const bondingPercentage =
+          bondingCurveData.percentage ??
+          calculateBondingProgress(Number(currentPrice), agent.holders);
+        const isInBondingState =
+          agent.status === 'bonding' && !bondingCurveData.error;
+
+        return {
+          progress: bondingPercentage,
+          remainingLiquidity:
+            10000 - agent.holders * Number(currentPrice) * 1000,
+          isInBonding: isInBondingState,
+          progressColor: isLeftCurve
+            ? 'bg-gradient-to-r from-yellow-500 via-orange-500 to-pink-500 animate-gradient'
+            : 'bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 animate-gradient',
+        };
+      }, [
+        currentPrice,
+        agent.holders,
+        agent.status,
+        isLeftCurve,
+        bondingCurveData,
+      ]);
 
     return (
       <Card
@@ -94,7 +93,10 @@ export const BondingCurveChart = memo(
             {progress >= 90 && (
               <div className="absolute inset-0 animate-pulse duration-1000">
                 <div
-                  className={cn('h-full w-full rounded-full opacity-50', progressColor)}
+                  className={cn(
+                    'h-full w-full rounded-full opacity-50',
+                    progressColor,
+                  )}
                 />
               </div>
             )}
@@ -102,25 +104,25 @@ export const BondingCurveChart = memo(
 
           <div className="flex items-center justify-between text-sm">
             <div className="space-y-1">
-              <p className="text-muted-foreground">Entry Price</p>
+              <p className="text-muted-foreground">Current Price</p>
               <p
                 className={cn(
-                  'font-bold font-mono',
+                  'font-bold font-mono text-xs',
                   isLeftCurve ? 'text-yellow-500' : 'text-purple-500',
                 )}
               >
-                ${currentPrice.toFixed(4)}
+                Ξ{(Number(currentPrice) / 1e18).toFixed(14)}
               </p>
             </div>
             <div className="text-right space-y-1">
               <p className="text-muted-foreground">Target Price</p>
               <p
                 className={cn(
-                  'font-bold font-mono',
+                  'font-bold font-mono text-xs',
                   isLeftCurve ? 'text-yellow-500' : 'text-purple-500',
                 )}
               >
-                ${nextPrice}
+                Ξ{((Number(currentPrice) / 1e18) * 1.1).toFixed(14)}
               </p>
             </div>
           </div>
@@ -134,7 +136,9 @@ export const BondingCurveChart = memo(
                   ) : (
                     <Lock className="h-3 w-3 text-muted-foreground" />
                   )}
-                  <span className="text-muted-foreground">Liquidity Status</span>
+                  <span className="text-muted-foreground">
+                    Liquidity Status
+                  </span>
                 </div>
                 <span
                   className={cn(
@@ -142,7 +146,12 @@ export const BondingCurveChart = memo(
                     isLeftCurve ? 'text-yellow-500' : 'text-purple-500',
                   )}
                 >
-                  {(agent.holders * currentPrice * 1000).toLocaleString()} / 10,000 LEFT
+                  {(
+                    agent.holders *
+                    Number(currentPrice) *
+                    1000
+                  ).toLocaleString()}{' '}
+                  / 10,000 LEFT
                 </span>
               </div>
               <div
@@ -151,15 +160,16 @@ export const BondingCurveChart = memo(
                   !isInBonding
                     ? 'bg-green-500/20 border-green-500/30 text-green-500'
                     : isLeftCurve
-                      ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500'
-                      : 'bg-purple-500/10 border-purple-500/20 text-purple-500',
+                    ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500'
+                    : 'bg-purple-500/10 border-purple-500/20 text-purple-500',
                 )}
               >
                 {!isInBonding ? (
                   <>🚀 Trading Now Live!</>
                 ) : remainingLiquidity <= 1000 ? (
                   <>
-                    ✨ Only {remainingLiquidity.toLocaleString()} LEFT until launch!
+                    ✨ Only {remainingLiquidity.toLocaleString()} LEFT until
+                    launch!
                   </>
                 ) : (
                   <>
@@ -187,6 +197,6 @@ export const BondingCurveChart = memo(
         </div>
       </Card>
     );
-  }
+  },
 );
 BondingCurveChart.displayName = 'BondingCurveChart';

@@ -100,14 +100,6 @@ export default function CreateAgentPage() {
 
   // Debug logging
   React.useEffect(() => {
-    console.log('Create Agent Page State:', {
-      activeWalletType,
-      starknetConnected: starknetWallet.isConnected,
-      privyAuthenticated,
-      isLoading,
-      privyReady,
-      isWalletConnected,
-    });
   }, [
     activeWalletType,
     starknetWallet.isConnected,
