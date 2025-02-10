@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useMemo } from 'react';
+import { memo, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { Agent } from '@/lib/types';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -13,9 +13,13 @@ interface BondingCurveChartProps {
   className?: string;
 }
 
-export const BondingCurveChart = memo(
-  ({ agent, className }: BondingCurveChartProps) => {
-    const { data: bondingCurveData } = useBondingCurve();
+export const BondingCurveChart = forwardRef<{ refetch?: () => void }, BondingCurveChartProps>(
+  ({ agent, className }, ref) => {
+    const { data: bondingCurveData, refresh } = useBondingCurve();
+
+    useImperativeHandle(ref, () => ({
+      refetch: refresh
+    }), [refresh]);
 
     // Convert agent.price to wei format if using it as fallback
     const currentPrice =

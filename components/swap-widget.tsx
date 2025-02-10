@@ -21,6 +21,7 @@ import { useContract } from '@starknet-react/core';
 interface SwapWidgetProps {
   agent: Agent;
   className?: string;
+  onTransactionSuccess?: () => void;
 }
 
 interface SwapInputProps {
@@ -129,7 +130,7 @@ const SwapDivider = memo(({ isLeftCurve }: { isLeftCurve: boolean }) => (
 ));
 SwapDivider.displayName = 'SwapDivider';
 
-export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
+export const SwapWidget = memo(({ agent, className, onTransactionSuccess }: SwapWidgetProps) => {
   const [amount, setAmount] = useState('');
   const [simulatedEthAmount, setSimulatedEthAmount] = useState('');
   const [convertedTokenAmount, setConvertedTokenAmount] = useState('');
@@ -326,6 +327,9 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
         setAmount('');
         setSimulatedEthAmount('');
         setConvertedTokenAmount('');
+        
+        // Trigger refresh callback after successful transaction
+        onTransactionSuccess?.();
       }
     } catch (error) {
       const errorMessage =
@@ -363,6 +367,7 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
     buyTokens,
     sellTokens,
     toast,
+    onTransactionSuccess,
   ]);
 
   // Update button text to show ABI loading state
