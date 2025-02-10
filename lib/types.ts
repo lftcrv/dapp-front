@@ -201,3 +201,11 @@ export interface User {
   updatedAt: string;
   type: 'derived' | 'starknet_native';
 }
+
+export interface TokenMarketData {
+  price: string | null;
+  priceChange24h: number | null;
+  marketCap: number | null;
+  bondingStatus: 'BONDING' | 'LIVE';
+  holders: number | null;
+}

@@ -1,6 +1,7 @@
 'use server';
 
 import { unstable_cache } from 'next/cache';
+import { TokenMarketData } from '@/lib/types';
 
 interface TokenSimulationResponse {
   status: string;
@@ -41,6 +42,11 @@ interface PriceHistoryResponse {
     tokenSymbol: string;
     tokenAddress: string;
   };
+}
+
+interface TokenMarketDataResponse {
+  status: string;
+  data: TokenMarketData;
 }
 
 // Cache simulation results for 5 seconds
@@ -244,6 +250,42 @@ export async function getMarketCap(agentId: string) {
 
     
     return { success: true, data: data.data.marketCap };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unexpected error occurred',
+    };
+  }
+}
+
+export async function getTokenMarketData(agentId: string) {
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL;
+    const apiKey = process.env.API_KEY;
+
+    if (!apiUrl || !apiKey) throw new Error('Missing API configuration');
+
+    const response = await fetch(
+      `${apiUrl}/api/agent-token/${agentId}/current-price`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+        },
+        next: { revalidate: 60 }, // Cache for 1 minute since data updates every minute
+      },
+    );
+
+    if (!response.ok) {
+      console.error(`[getTokenMarketData] Error response:`, {
+        status: response.status,
+        statusText: response.statusText,
+      });
+      throw new Error('Failed to get token market data');
+    }
+
+    const data = (await response.json()) as TokenMarketDataResponse;
+    return { success: true, data: data.data };
   } catch (error) {
     return {
       success: false,
