@@ -21,7 +21,6 @@ import {
   Wallet,
 } from 'lucide-react';
 import { createAgent } from '@/actions/agents/create/createAgent';
-import type { CharacterConfig } from '@/lib/types';
 import { showToast } from '@/lib/toast';
 import { useWallet } from '@/app/context/wallet-context';
 import { useAccount, useContract, useNetwork, useSendTransaction, useTransactionReceipt } from '@starknet-react/core';
@@ -93,6 +92,30 @@ export default function CreateAgentPage() {
     privyReady,
     currentAddress,
   } = useWallet();
+
+  // Move hooks to component level
+  const { address } = useAccount();
+  const { chain } = useNetwork();
+  const { contract } = useContract({
+    abi: [
+      {
+        type: "function",
+        name: "transfer",
+        state_mutability: "external",
+        inputs: [
+          { name: "recipient", type: "core::starknet::contract_address::ContractAddress" },
+          { name: "amount", type: "core::integer::u256" },
+        ],
+        outputs: [],
+      },
+    ] as Abi,
+    address: process.env.NEXT_PUBLIC_ETH_TOKEN_ADDRESS as `0x${string}`,
+  });
+
+  // Transaction hooks
+  const { sendAsync } = useSendTransaction({
+    calls: undefined,
+  });
 
   // Compute wallet connection state
   const isWalletConnected = React.useMemo(() => {
@@ -317,76 +340,64 @@ export default function CreateAgentPage() {
     showToast('AGENT_CREATING', 'loading');
   
     try {
-      const characterConfig: CharacterConfig = {
-        name: formData.name,
-        clients: [],
-        modelProvider: 'anthropic',
-        settings: {
-          secrets: {},
-          voice: { model: 'en_US-male-medium' },
-        },
-        plugins: [],
-        bio: formData.bio.filter(Boolean),
-        lore: formData.lore.filter(Boolean),
-        knowledge: formData.knowledge.filter(Boolean),
-        messageExamples: formData.messageExamples.filter(msg => msg[0].content.text && msg[1].content.text),
-        postExamples: formData.postExamples.filter(Boolean),
-        topics: formData.topics.filter(Boolean),
-        style: {
-          all: formData.style.all.filter(Boolean),
-          chat: formData.style.chat.filter(Boolean),
-          post: formData.style.post.filter(Boolean),
-        },
-        adjectives: formData.adjectives.filter(Boolean),
-      };
-  
       const curveSide = agentType === 'leftcurve' ? 'LEFT' : 'RIGHT';
       const recipientAddress = process.env.NEXT_PUBLIC_DEPLOYMENT_FEES_RECIPIENT;
       const amountToSend = process.env.NEXT_PUBLIC_DEPLOYMENT_FEES;
-  
-      const abi: Abi = [
-        {
-          type: "function",
-          name: "transfer",
-          state_mutability: "external",
-          inputs: [
-            { name: "recipient", type: "core::starknet::contract_address::ContractAddress" },
-            { name: "amount", type: "core::integer::u256" },
-          ],
-          outputs: [],
-        },
-      ];
-  
-      const { address } = useAccount();
-      const { chain } = useNetwork();
-      const { contract } = useContract({
-        abi,
-        address: chain.nativeCurrency.address, // Native currency contract address
+
+      if (!recipientAddress || !amountToSend) {
+        throw new Error("Deployment fees not configured");
+      }
+
+      console.log('🔵 Payment Debug:', {
+        recipientAddress,
+        amountToSend,
+        curveSide,
+      });
+
+      console.log('🔵 Contract Debug:', {
+        userAddress: address,
+        chainId: chain?.id,
+        contractAddress: contract?.address,
       });
   
       if (!contract || !address) {
         throw new Error("Contract or address not available");
       }
-  
-      const { sendAsync, data } = useSendTransaction({
-        calls: [contract.populate("transfer", [recipientAddress, amountToSend])],
+
+      // Call transfer directly
+      const transferCall = {
+        contractAddress: contract.address,
+        entrypoint: "transfer",
+        calldata: [
+          recipientAddress,
+          BigInt(amountToSend).toString(),
+          "0" // For uint256, we need low and high parts
+        ]
+      };
+      
+      console.log('🔵 Transaction Debug:', {
+        method: 'transfer',
+        params: [recipientAddress, BigInt(amountToSend).toString()],
+        calldata: [recipientAddress, BigInt(amountToSend).toString(), "0"]
       });
   
       showToast('TX_PENDING', 'loading');
   
-      await sendAsync();
-  
-      setTransactionHash(data?.transaction_hash);
-  
-      showToast('TX_SUCCESS', 'success');
+      const response = await sendAsync([transferCall]);
+
+      if (response?.transaction_hash) {
+        console.log('🔵 Transaction Hash:', response.transaction_hash);
+        setTransactionHash(response.transaction_hash);
+        showToast('TX_SUCCESS', 'success');
+      }
     } catch (error) {
-      console.error('Transaction Error:', error);
+      console.error('❌ Transaction Error:', error);
       showToast('TX_ERROR', 'error');
       setIsSubmitting(false);
     }
   };
 
-  const { data, error, isLoading: isLoadingTx } = useTransactionReceipt({
+  const { data: receiptData, error: receiptError } = useTransactionReceipt({
     hash: transactionHash,
     watch: true,
   });
@@ -394,22 +405,32 @@ export default function CreateAgentPage() {
   React.useEffect(() => {
     if (isLoading || !transactionHash) return;
   
-    if (error) {
-      console.error("Transaction Receipt Error:", error);
+    if (receiptError) {
+      console.error("❌ Transaction Receipt Error:", receiptError);
       showToast('TX_ERROR', 'error');
     }
   
-    if (data && data.isSuccess()) {
+    if (receiptData && receiptData.isSuccess()) {
+      console.log('🔵 Transaction Receipt:', {
+        status: 'success',
+        receipt: receiptData,
+      });
       showToast('TX_SUCCESS', 'success');
       setIsTransactionConfirmed(true);
     }
-  }, [data, error, isLoading, transactionHash]);
+  }, [receiptData, receiptError, isLoading, transactionHash]);
 
   React.useEffect(() => {
     if (!isTransactionConfirmed || !transactionHash || !currentAddress) return;
   
     const createAgentAfterTx = async () => {
       try {
+        console.log('🔵 Creating Agent:', {
+          transactionHash,
+          userAddress: currentAddress,
+          agentType,
+        });
+
         const result = await createAgent(
           formData.name,
           {
@@ -437,14 +458,15 @@ export default function CreateAgentPage() {
         );
   
         if (result.success) {
+          console.log('🔵 Agent Created Successfully:', result);
           showToast('AGENT_SUCCESS', 'success');
           router.push('/');
         } else {
-          console.error('Agent creation failed:', result.error);
+          console.error('❌ Agent Creation Failed:', result.error);
           showToast('AGENT_ERROR', 'error');
         }
       } catch (error) {
-        console.error('Agent Creation Error:', error);
+        console.error('❌ Agent Creation Error:', error);
         showToast('AGENT_ERROR', 'error');
       } finally {
         setIsSubmitting(false);
