@@ -18,7 +18,7 @@ import { Skeleton } from './ui/skeleton';
 import { Alert, AlertDescription } from './ui/alert';
 import { useBondingCurve } from '@/lib/bonding-curve-context';
 
-type Interval = '15m' | '1h' | '4h' | '1d';
+type Interval = '1m' | '15m' | '1h' | '4h' | '1d';
 
 interface CandleData {
   time: number;
@@ -98,7 +98,7 @@ const ChartControls = memo(
             {showMarketCap ? 'MCAP' : 'PRICE'}
           </Button>
           <div className="flex items-center gap-2">
-            {(['15m', '1h', '4h', '1d'] as const).map((i) => (
+            {(['1m', '15m', '1h', '4h', '1d'] as const).map((i) => (
               <Button
                 key={i}
                 size="sm"
@@ -184,14 +184,16 @@ export const PriceChart = memo(
 
     const aggregateData = useCallback(
       (rawData: CandleData[], intervalType: Interval) => {
-        if (intervalType === '15m') return rawData;
+        // Return raw data for 1m and 15m intervals
+        if (intervalType === '1m') return rawData;
 
         const intervalMinutes =
           {
+            '15m': 15,
             '1h': 60,
             '4h': 240,
             '1d': 1440,
-          }[intervalType] || 15;
+          }[intervalType] || 1;
 
         const groupedData = new Map<number, CandleData>();
 

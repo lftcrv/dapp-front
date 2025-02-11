@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useMemo, forwardRef, useImperativeHandle } from 'react';
+import { useMemo, forwardRef, useImperativeHandle } from 'react';
 import { Agent } from '@/lib/types';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
