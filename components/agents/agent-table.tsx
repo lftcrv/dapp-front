@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Agent } from '@/lib/types';
 import { cn, isInBondingPhase } from '@/lib/utils';
 import { AgentAvatar } from '@/components/ui/agent-avatar';
@@ -18,8 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
 import { PriceChange } from '@/components/price-change';
-import { memo } from 'react';
-import { useTokenMarketData } from '@/hooks/use-token-market-data';
+import { useAgentsData } from '@/hooks/use-agents-data';
 
 interface TableHeaderProps {
   label: string;
@@ -72,8 +72,9 @@ interface AgentRowProps {
 }
 
 const AgentRow = memo(({ agent, index }: AgentRowProps) => {
-  const { data: marketData } = useTokenMarketData(agent.id);
-  const isBonding = marketData?.bondingStatus === 'BONDING' || isInBondingPhase(agent.price, agent.holders);
+  const { data } = useAgentsData();
+  const agentMarketData = data?.marketData[agent.id];
+  const isBonding = agentMarketData?.bondingStatus === 'BONDING' || isInBondingPhase(agent.price, agent.holders);
   const isLeftCurve = agent.type === 'leftcurve';
 
   // Helper function to safely format ETH values from Wei with bold non-zero digits
@@ -92,7 +93,7 @@ const AgentRow = memo(({ agent, index }: AgentRowProps) => {
     });
 
     // Split the string into characters and wrap non-zero digits in strong tags
-    return rawValue.split('').map((char, i) => {
+    return rawValue.split('').map((char) => {
       if (char >= '1' && char <= '9') {
         return `<strong>${char}</strong>`;
       }
@@ -145,12 +146,12 @@ const AgentRow = memo(({ agent, index }: AgentRowProps) => {
         <span className="font-medium">Ξ</span>
         <span 
           className="tabular-nums" 
-          dangerouslySetInnerHTML={{ __html: formatEthValue(marketData?.price || agent.price) }}
+          dangerouslySetInnerHTML={{ __html: formatEthValue(agentMarketData?.price || agent.price) }}
         />
       </TableCell>
       <TableCell className="text-right py-2">
-        {marketData?.priceChange24h !== undefined && marketData?.priceChange24h !== null ? (
-          <PriceChange initialValue={marketData.priceChange24h} />
+        {typeof agentMarketData?.priceChange24h === 'number' ? (
+          <PriceChange initialValue={agentMarketData.priceChange24h} />
         ) : (
           <span className="text-xs text-muted-foreground font-mono">N/A</span>
         )}
@@ -159,7 +160,7 @@ const AgentRow = memo(({ agent, index }: AgentRowProps) => {
         <span className="font-medium">Ξ</span>
         <span 
           className="tabular-nums"
-          dangerouslySetInnerHTML={{ __html: formatEthValue(marketData?.marketCap || agent.marketCap) }}
+          dangerouslySetInnerHTML={{ __html: formatEthValue(agentMarketData?.marketCap || agent.marketCap) }}
         />
       </TableCell>
       <TableCell className="text-right font-mono text-[10px] py-2">
@@ -171,8 +172,8 @@ const AgentRow = memo(({ agent, index }: AgentRowProps) => {
           )}
         >
           <Users className="w-2.5 h-2.5" />
-          {(marketData?.holders || agent.holders) > 0 ? 
-            formatNumber(marketData?.holders || agent.holders) : 
+          {(agentMarketData?.holders || agent.holders) > 0 ? 
+            formatNumber(agentMarketData?.holders || agent.holders) : 
             'N/A'
           }
         </div>

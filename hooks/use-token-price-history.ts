@@ -1,27 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getTokenPriceHistory } from '@/actions/agents/token/getTokenInfo';
-
-interface PriceHistoryData {
-  prices: {
-    id: string;
-    price: string;
-    timestamp: string;
-  }[];
-  tokenSymbol: string;
-  tokenAddress: string;
-}
-
-interface CandleData {
-  time: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
+import { PriceData } from '@/lib/types';
 
 export function useTokenPriceHistory(agentId: string) {
-  const [data, setData] = useState<CandleData[]>([]);
+  const [data, setData] = useState<PriceData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -34,8 +16,8 @@ export function useTokenPriceHistory(agentId: string) {
         throw new Error(response.error || 'Failed to fetch price history');
       }
 
-      // Transform API data to CandleData format
-      const candleData: CandleData[] = response.data.prices.map((price) => {
+      // Transform API data to PriceData format
+      const priceData: PriceData[] = response.data.prices.map((price) => {
         const timestamp = Math.floor(new Date(price.timestamp).getTime() / 1000);
         const priceValue = parseFloat(price.price);
         
@@ -49,7 +31,7 @@ export function useTokenPriceHistory(agentId: string) {
         };
       }).sort((a, b) => a.time - b.time); // Sort by timestamp ascending
 
-      setData(candleData);
+      setData(priceData);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch price history'));
@@ -60,10 +42,6 @@ export function useTokenPriceHistory(agentId: string) {
 
   useEffect(() => {
     fetchPriceHistory();
-    
-    // Refresh every minute
-    const interval = setInterval(fetchPriceHistory, 60000);
-    return () => clearInterval(interval);
   }, [fetchPriceHistory]);
 
   return {

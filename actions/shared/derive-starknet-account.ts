@@ -92,11 +92,6 @@ function generateRandomHex(length: number): string {
   );
 }
 
-// This interface will be used when we integrate with the real backend
-interface DerivedStarknetAccount {
-  starknetAddress: string;
-}
-
 export async function deriveStarknetAccount(
   evmAddress: string,
   signMessage: (message: string) => Promise<string>,

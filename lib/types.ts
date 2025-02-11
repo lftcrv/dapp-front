@@ -5,6 +5,97 @@ export type AgentType = 'leftcurve' | 'rightcurve';
 export type AgentStatus = 'bonding' | 'live' | 'ended';
 export type TradeType = 'buy' | 'sell';
 
+// Core Service Types
+export interface IBaseService<T> {
+  get(): Promise<T>;
+  set(value: T): Promise<void>;
+  clear(): Promise<void>;
+}
+
+export interface ISingletonService<T> {
+  getInstance(): Promise<T>;
+}
+
+export interface IServiceConfig {
+  storage?: Storage;
+  prefix?: string;
+}
+
+// API Parameter Types
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+}
+
+export interface TimeRangeParams {
+  startTime?: string;
+  endTime?: string;
+}
+
+export interface MarketMetricsParams extends PaginationParams, TimeRangeParams {
+  agentId?: string;
+  type?: string;
+}
+
+export interface PerformanceParams extends PaginationParams, TimeRangeParams {
+  agentId: string;
+  period?: 'daily' | 'weekly' | 'monthly';
+}
+
+export interface PriceHistoryParams extends TimeRangeParams {
+  agentId: string;
+  resolution?: string;
+  limit?: number;
+}
+
+export interface TradeHistoryParams extends PaginationParams, TimeRangeParams {
+  agentId?: string;
+  type?: TradeType;
+  status?: 'success' | 'failed';
+}
+
+export interface LeaderboardParams extends PaginationParams {
+  type?: AgentType;
+  sortBy?: string;
+  order?: 'asc' | 'desc';
+}
+
+export interface AgentFilters extends PaginationParams {
+  search?: string;
+  type?: AgentType;
+  status?: AgentStatus;
+  sortBy?: string;
+  order?: 'asc' | 'desc';
+}
+
+// State Types
+export interface AsyncState<T> {
+  data: T | null;
+  loading: boolean;
+  error: Error | null;
+}
+
+export interface SwapState {
+  amount: string;
+  estimatedReturn: string;
+  slippage: number;
+  error: string | null;
+}
+
+export interface SwapResult {
+  success: boolean;
+  hash?: string;
+  error?: string;
+}
+
+// Stats Types
+export interface AgentStats {
+  price: string;
+  marketCap: string;
+  holders: number;
+  score: number;
+}
+
 // Price Types
 export interface PriceData {
   time: number;
@@ -42,6 +133,86 @@ export interface ApiResponse<T> {
     code: string;
     message: string;
   };
+}
+
+export interface GetTradesResponse {
+  status: 'success' | 'error';
+  data: {
+    trades: ApiTrade[];
+    trade?: ApiTrade;
+  };
+}
+
+export interface TokenSimulationResponse {
+  status: string;
+  data: {
+    amount: string;
+  };
+}
+
+export interface BondingCurveResponse {
+  status: string;
+  data: {
+    percentage: number;
+  };
+}
+
+export interface CurrentPriceResponse {
+  status: string;
+  data: {
+    price: string;
+  };
+}
+
+export interface MarketCapResponse {
+  status: string;
+  data: {
+    marketCap: string;
+  };
+}
+
+export interface PriceHistoryResponse {
+  status: string;
+  data: {
+    prices: {
+      id: string;
+      price: string;
+      timestamp: string;
+    }[];
+    tokenSymbol: string;
+    tokenAddress: string;
+  };
+}
+
+export interface TokenMarketDataResponse {
+  status: string;
+  data: TokenMarketData;
+}
+
+export interface ApiAgent {
+  id: string;
+  name: string;
+  curveSide: 'LEFT' | 'RIGHT';
+  status: 'STARTING' | 'RUNNING' | 'STOPPED';
+  createdAt: string;
+  degenScore: number;
+  winScore: number;
+  Token: {  // Note: Capital T to match Prisma model
+    contractAddress: string;
+    elizaAgentId: string;
+  };
+  Wallet: {  // Note: Capital W to match Prisma model
+    contractAddress: string;
+    deployedAddress: string;
+    elizaAgentId: string;
+  };
+  LatestMarketData: {
+    price: number;
+    priceChange24h: number;
+    marketCap: number;
+    holders: number;
+    updatedAt: string;
+  } | null;
 }
 
 // Agent Types

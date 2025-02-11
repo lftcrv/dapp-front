@@ -3,18 +3,9 @@ import {
   getTokenPriceHistory,
   getCurrentPrice,
 } from '@/actions/agents/token/getTokenInfo';
-
-interface PriceData {
-  time: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
+import { PriceData } from '@/lib/types';
 
 interface UsePricesOptions {
-  symbol: string;
   agentId: string;
 }
 
@@ -41,7 +32,7 @@ function formatEthPrice(priceInWei: string): number {
   }
 }
 
-export function usePrices({ symbol, agentId }: UsePricesOptions) {
+export function usePrices({ agentId }: UsePricesOptions) {
   const [data, setData] = useState<PriceData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
