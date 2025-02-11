@@ -13,7 +13,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { useAgentStats } from '@/lib/agent-stats';
+import { useAgentStats } from '@/lib/use-agent-stats';
 
 interface StatItemProps {
   label: string;

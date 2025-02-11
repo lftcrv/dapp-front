@@ -15,7 +15,16 @@ if (!process.env.NEXT_PUBLIC_PRIVY_APP_ID) {
 // After the check above, we can safely assert this is defined
 const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
 
-const queryClient = new QueryClient();
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000, // 1 minute
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (

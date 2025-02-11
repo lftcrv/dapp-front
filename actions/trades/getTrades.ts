@@ -1,14 +1,6 @@
 'use server';
 
-import { Trade, TradeType, ApiTrade } from '@/lib/types';
-
-interface GetTradesResponse {
-  status: 'success' | 'error';
-  data: {
-    trades: ApiTrade[];
-    trade?: ApiTrade;
-  };
-}
+import { Trade, TradeType, ApiTrade, GetTradesResponse } from '@/lib/types';
 
 export async function getTrades(agentId?: string) {
   try {

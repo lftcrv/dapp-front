@@ -1,6 +1,6 @@
 'use server';
 
-import { Agent } from '@/lib/types';
+import { Agent, ApiAgent } from '@/lib/types';
 import { RpcProvider } from 'starknet';
 import { isInBondingPhase } from '@/lib/utils';
 
@@ -8,32 +8,6 @@ import { isInBondingPhase } from '@/lib/utils';
 const provider = new RpcProvider({ 
   nodeUrl: process.env.NEXT_PUBLIC_NODE_URL 
 });
-
-interface ApiAgent {
-  id: string;
-  name: string;
-  curveSide: 'LEFT' | 'RIGHT';
-  status: 'STARTING' | 'RUNNING' | 'STOPPED';
-  createdAt: string;
-  degenScore: number;
-  winScore: number;
-  Token: {  // Note: Capital T to match Prisma model
-    contractAddress: string;
-    elizaAgentId: string;
-  };
-  Wallet: {  // Note: Capital W to match Prisma model
-    contractAddress: string;
-    deployedAddress: string;
-    elizaAgentId: string;
-  };
-  LatestMarketData: {
-    price: number;
-    priceChange24h: number;
-    marketCap: number;
-    holders: number;
-    updatedAt: string;
-  } | null;
-}
 
 async function mapApiAgentToAgent(apiAgent: ApiAgent): Promise<Agent> {
   // Format token contract address - ensure it starts with 0x but avoid double prefix

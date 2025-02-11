@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { AgentAvatar } from '@/components/ui/agent-avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAgentsData } from '@/hooks/use-agents-data';
 
 interface AgentListProps {
   title: string;
@@ -82,7 +83,11 @@ const AgentItem = memo(
               </div>
               <div className="text-right">
                 <div className="font-mono text-[10px]">
-                  ${agent.price.toFixed(2)}
+                  {agent.contractAddress ? (
+                    `Ξ${(agent.price / 1e18).toFixed(14).replace(/\.?0+$/, '')}`
+                  ) : (
+                    'Initializing...'
+                  )}
                 </div>
                 <div
                   className={cn(
@@ -240,14 +245,13 @@ const LoadingState = () => (
   </div>
 );
 
-interface TopAgentsProps {
-  agents: Agent[];
-  isLoading?: boolean;
-  error?: Error | null;
-}
+export const TopAgents = memo(() => {
+    const { 
+      data,
+      isLoading, 
+      error 
+    } = useAgentsData();
 
-export const TopAgents = memo(
-  ({ agents, isLoading = false, error = null }: TopAgentsProps) => {
     if (isLoading) {
       return <LoadingState />;
     }
@@ -260,7 +264,7 @@ export const TopAgents = memo(
       );
     }
 
-    if (!agents) {
+    if (!data) {
       return null;
     }
 
@@ -270,13 +274,13 @@ export const TopAgents = memo(
           <AgentList
             title="DEGEN KINGS"
             subtitle="yolo masters farming midcurver rekt posts"
-            agents={agents}
+            agents={data.leftLeaderboard}
             type="leftcurve"
           />
           <AgentList
             title="SIGMA LORDS"
             subtitle="gigabrain quants making midcurvers ngmi"
-            agents={agents}
+            agents={data.rightLeaderboard}
             type="rightcurve"
           />
         </div>

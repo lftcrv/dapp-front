@@ -257,9 +257,6 @@ export const SwapWidget = memo(({ agent, className, onTransactionSuccess }: Swap
     };
 
     fetchBalance();
-    // Poll balance every 10 seconds
-    const interval = setInterval(fetchBalance, 10000);
-    return () => clearInterval(interval);
   }, [address, provider]);
 
   // Handle swap
