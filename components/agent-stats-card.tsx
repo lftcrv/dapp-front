@@ -41,13 +41,9 @@ const StatItem = memo(
 );
 StatItem.displayName = 'StatItem';
 
-interface AgentStatsCardProps {
-  agent: Agent;
-}
-
 export const AgentStatsCard = forwardRef<{ refetch?: () => void }, { agent: Agent }>(
   ({ agent }, ref) => {
-    const { data: stats, isLoading, error, refetch } = useAgentStats(agent.id);
+    const { refetch } = useAgentStats(agent.id);
 
     useImperativeHandle(ref, () => ({
       refetch

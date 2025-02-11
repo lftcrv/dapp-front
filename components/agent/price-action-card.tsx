@@ -16,7 +16,6 @@ interface PriceActionCardProps {
 export const PriceActionCard = forwardRef<{ refetch?: () => void }, PriceActionCardProps>(
   ({ agent }, ref) => {
     const { prices, isLoading, error, refetch } = usePrices({ 
-      symbol: agent.symbol,
       agentId: agent.id
     });
     const theme = useAgentTheme();
@@ -58,3 +57,5 @@ export const PriceActionCard = forwardRef<{ refetch?: () => void }, PriceActionC
     );
   }
 );
+
+PriceActionCard.displayName = 'PriceActionCard';
