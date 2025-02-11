@@ -1,4 +1,18 @@
-import { ApiErrorType, ValidationError } from './types';
+// API Error Types
+export enum ApiErrorType {
+  CONFIGURATION = 'Missing API configuration',
+  UNAUTHORIZED = 'Invalid API key',
+  NOT_FOUND = 'Resource not found',
+  SERVER_ERROR = 'Server error - please try again later',
+  VALIDATION = 'Validation error',
+  UNKNOWN = 'An unexpected error occurred',
+}
+
+// Validation Types
+export interface ValidationError {
+  field: string;
+  message: string;
+}
 
 /**
  * Validates API configuration

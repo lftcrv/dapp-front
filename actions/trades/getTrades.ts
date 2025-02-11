@@ -1,28 +1,8 @@
 'use server';
 
-import { Trade, TradeType } from '@/lib/types';
+import { Trade, TradeType, ApiTrade } from '@/lib/types';
 
-interface ApiTrade {
-  id: string;
-  createdAt: string;
-  information: {
-    trade: {
-      buyAmount: string;
-      sellAmount: string;
-      explanation: string;
-      buyTokenName: string;
-      sellTokenName: string;
-      tradePriceUSD: number;
-      buyTokenAddress: string;
-      sellTokenAddress: string;
-    };
-    tradeId: string;
-    containerId: string;
-  };
-  elizaAgentId: string;
-}
-
-interface ApiResponse {
+interface GetTradesResponse {
   status: 'success' | 'error';
   data: {
     trades: ApiTrade[];
@@ -62,18 +42,18 @@ export async function getTrades(agentId?: string) {
       throw new Error('Failed to fetch trades');
     }
 
-    const result = await response.json() as ApiResponse;
+    const result = await response.json() as GetTradesResponse;
     const trades = result.data.trades || [];
 
     return {
       success: true,
-      data: trades.map((trade) => ({
+      data: trades.map((trade: ApiTrade) => ({
         id: trade.id,
         agentId: trade.elizaAgentId,
         type: trade.information.trade.sellTokenName === 'USDT' ? 'sell' : 'buy' as TradeType,
         amount: parseFloat(trade.information.trade.buyAmount),
         price: trade.information.trade.tradePriceUSD,
-        time: trade.createdAt,
+        time: trade.time,
         summary: trade.information.trade.explanation,
         txHash: trade.information.tradeId,
         success: true,

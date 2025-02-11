@@ -1,4 +1,4 @@
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, AlertCircle } from 'lucide-react';
 import { Agent } from '@/lib/types';
 import { AgentCard } from '@/components/ui/agent-card';
 import { PriceChart } from '@/components/price-chart';
@@ -6,13 +6,17 @@ import { isInBondingPhase } from '@/lib/utils';
 import { useAgentTheme } from '@/lib/agent-theme-context';
 import { usePrices } from '@/hooks/use-prices';
 import { Loading } from '@/components/ui/loading';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface PriceActionCardProps {
   agent: Agent;
 }
 
 export function PriceActionCard({ agent }: PriceActionCardProps) {
-  const { prices, isLoading, error } = usePrices({ symbol: agent.symbol });
+  const { prices, isLoading, error } = usePrices({ 
+    symbol: agent.symbol,
+    agentId: agent.id
+  });
   const theme = useAgentTheme();
 
   if (isLoading) {
@@ -24,7 +28,16 @@ export function PriceActionCard({ agent }: PriceActionCardProps) {
   }
 
   if (error) {
-    return <div>Error loading price data</div>;
+    return (
+      <AgentCard title="Price Action" icon={TrendingUp} badge={theme.mode}>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {error.message || 'Failed to load price data'}
+          </AlertDescription>
+        </Alert>
+      </AgentCard>
+    );
   }
 
   return (
@@ -34,7 +47,6 @@ export function PriceActionCard({ agent }: PriceActionCardProps) {
         symbol={agent.symbol}
         baseToken={agent.symbol}
         inBondingCurve={isInBondingPhase(agent.price, agent.holders)}
-        agentId={agent.id}
       />
     </AgentCard>
   );

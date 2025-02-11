@@ -37,7 +37,7 @@ export interface OnChainPrice {
 // API Types
 export interface ApiResponse<T> {
   success: boolean;
-  data: T;
+  data?: T;
   error?: {
     code: string;
     message: string;
@@ -65,6 +65,28 @@ export interface Agent {
 }
 
 // Trade Types
+export interface TradeInfo {
+  buyAmount: string;
+  sellAmount: string;
+  explanation: string;
+  buyTokenName: string;
+  sellTokenName: string;
+  tradePriceUSD: number;
+  buyTokenAddress: string;
+  sellTokenAddress: string;
+}
+
+export interface ApiTrade {
+  id: string;
+  time: string;
+  information: {
+    trade: TradeInfo;
+    tradeId: string;
+    containerId: string;
+  };
+  elizaAgentId: string;
+}
+
 export interface Trade {
   id: string;
   agentId: string;
@@ -75,6 +97,7 @@ export interface Trade {
   summary: string;
   txHash: string;
   success: boolean;
+  information?: ApiTrade['information'];
 }
 
 // Performance Types
@@ -165,4 +188,24 @@ export interface ProtocolFeesData {
     };
   };
   userShares: Record<string, string>;
+}
+
+export interface User {
+  id: string;
+  evmAddress?: string;
+  starknetAddress?: string;
+  name?: string;
+  twitter?: string;
+  lastConnection: string;
+  createdAt: string;
+  updatedAt: string;
+  type: 'derived' | 'starknet_native';
+}
+
+export interface TokenMarketData {
+  price: string | null;
+  priceChange24h: number | null;
+  marketCap: number | null;
+  bondingStatus: 'BONDING' | 'LIVE';
+  holders: number | null;
 }

@@ -19,6 +19,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
 import { PriceChange } from '@/components/price-change';
 import { memo } from 'react';
+import { useTokenMarketData } from '@/hooks/use-token-market-data';
 
 interface TableHeaderProps {
   label: string;
@@ -71,8 +72,40 @@ interface AgentRowProps {
 }
 
 const AgentRow = memo(({ agent, index }: AgentRowProps) => {
-  const isBonding = isInBondingPhase(agent.price, agent.holders);
+  const { data: marketData } = useTokenMarketData(agent.id);
+  const isBonding = marketData?.bondingStatus === 'BONDING' || isInBondingPhase(agent.price, agent.holders);
   const isLeftCurve = agent.type === 'leftcurve';
+
+  // Helper function to safely format ETH values from Wei with bold non-zero digits
+  const formatEthValue = (value: string | number | undefined | null) => {
+    if (value === undefined || value === null) return '0';
+    
+    // Convert to number and then to ETH (1 ETH = 10^18 Wei)
+    const weiValue = typeof value === 'string' ? parseFloat(value) : value;
+    const ethValue = weiValue / 1e18;
+    
+    // Format with exactly 14 decimal places
+    const rawValue = ethValue.toLocaleString('en-US', {
+      minimumFractionDigits: 14,
+      maximumFractionDigits: 14,
+      useGrouping: true, // This ensures we get commas for thousands
+    });
+
+    // Split the string into characters and wrap non-zero digits in strong tags
+    return rawValue.split('').map((char, i) => {
+      if (char >= '1' && char <= '9') {
+        return `<strong>${char}</strong>`;
+      }
+      return char;
+    }).join('');
+  };
+
+  // Helper function to safely format regular numbers (like holders count)
+  const formatNumber = (value: string | number | undefined | null) => {
+    if (value === undefined || value === null) return '0';
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    return num.toLocaleString();
+  };
 
   return (
     <TableRow className="group hover:bg-white/5">
@@ -109,13 +142,25 @@ const AgentRow = memo(({ agent, index }: AgentRowProps) => {
         </span>
       </TableCell>
       <TableCell className="text-right font-mono text-xs py-2">
-        ${agent.price.toLocaleString()}
+        <span className="font-medium">Ξ</span>
+        <span 
+          className="tabular-nums" 
+          dangerouslySetInnerHTML={{ __html: formatEthValue(marketData?.price || agent.price) }}
+        />
       </TableCell>
       <TableCell className="text-right py-2">
-        <PriceChange />
+        {marketData?.priceChange24h !== undefined && marketData?.priceChange24h !== null ? (
+          <PriceChange initialValue={marketData.priceChange24h} />
+        ) : (
+          <span className="text-xs text-muted-foreground font-mono">N/A</span>
+        )}
       </TableCell>
       <TableCell className="text-right font-mono text-xs py-2">
-        ${agent.marketCap.toLocaleString()}
+        <span className="font-medium">Ξ</span>
+        <span 
+          className="tabular-nums"
+          dangerouslySetInnerHTML={{ __html: formatEthValue(marketData?.marketCap || agent.marketCap) }}
+        />
       </TableCell>
       <TableCell className="text-right font-mono text-[10px] py-2">
         <div
@@ -126,7 +171,10 @@ const AgentRow = memo(({ agent, index }: AgentRowProps) => {
           )}
         >
           <Users className="w-2.5 h-2.5" />
-          {agent.holders.toLocaleString()}
+          {(marketData?.holders || agent.holders) > 0 ? 
+            formatNumber(marketData?.holders || agent.holders) : 
+            'N/A'
+          }
         </div>
       </TableCell>
       <TableCell className="text-right py-2">

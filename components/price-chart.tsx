@@ -136,7 +136,9 @@ const formatLegend = (
         ? `$${(value / 1000000).toFixed(2)}M`
         : `$${value.toFixed(2)}`;
     }
-    return `$${value.toFixed(6)}`;
+    // Convert back to ETH value for display
+    const ethValue = value / 1e18;
+    return `Ξ${ethValue.toFixed(13)}`;
   };
 
   const date = new Date((price.time as number) * 1000);
@@ -171,7 +173,7 @@ export const PriceChart = memo(
     const chartContainerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<IChartApi | null>(null);
     const legendRef = useRef<HTMLDivElement>(null);
-    const [interval, setInterval] = useState<Interval>('15m');
+    const [interval, setInterval] = useState<Interval>('1h');
     const [showMarketCap, setShowMarketCap] = useState(false);
     const tradingPair = `${baseToken}/${quoteToken}`;
 
@@ -281,6 +283,13 @@ export const PriceChart = memo(
           secondsVisible: false,
           borderVisible: false,
         },
+        rightPriceScale: {
+          borderVisible: false,
+          scaleMargins: {
+            top: 0.3,
+            bottom: 0.25,
+          },
+        },
         width: chartContainerRef.current.clientWidth,
         height: 400,
       });
@@ -291,6 +300,14 @@ export const PriceChart = memo(
         borderVisible: false,
         wickUpColor: '#22c55e',
         wickDownColor: '#ef4444',
+        priceFormat: {
+          type: 'custom',
+          minMove: 1,
+          formatter: (price: number) => {
+            const ethValue = price / 1e18;
+            return `Ξ${ethValue.toFixed(13)}`;
+          },
+        },
       });
 
       const volumeSeries = chart.addHistogramSeries({
@@ -302,7 +319,8 @@ export const PriceChart = memo(
       });
 
       const formattedData = chartData.map((d) => {
-        const multiplier = showMarketCap ? 1000 : 1;
+        // Scale up the values by 1e18 to avoid floating point precision issues
+        const multiplier = showMarketCap ? 1000 : 1e18;
         return {
           time: d.time as UTCTimestamp,
           open: d.open * multiplier,

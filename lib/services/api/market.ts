@@ -1,5 +1,5 @@
-import { BondingMetric, OnChainPrice } from '@/lib/types';
-import { ApiResponse, PriceHistoryParams, TimeRangeParams } from './types';
+import { BondingMetric, OnChainPrice, ApiResponse } from '@/lib/types';
+import { PriceHistoryParams, TimeRangeParams } from '@/lib/services/api/params';
 
 const API_BASE = '/api/market';
 

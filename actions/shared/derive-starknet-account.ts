@@ -1,4 +1,4 @@
-import { type User } from '@/types/user';
+import { type User } from '@/lib/types';
 
 // DEBUG LOGS: Prefix for easy removal
 // const DEBUG = {

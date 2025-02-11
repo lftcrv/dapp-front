@@ -1,6 +1,7 @@
 'use server';
 
 import { unstable_cache } from 'next/cache';
+import { TokenMarketData } from '@/lib/types';
 
 interface TokenSimulationResponse {
   status: string;
@@ -30,6 +31,24 @@ interface MarketCapResponse {
   };
 }
 
+interface PriceHistoryResponse {
+  status: string;
+  data: {
+    prices: {
+      id: string;
+      price: string;
+      timestamp: string;
+    }[];
+    tokenSymbol: string;
+    tokenAddress: string;
+  };
+}
+
+interface TokenMarketDataResponse {
+  status: string;
+  data: TokenMarketData;
+}
+
 // Cache simulation results for 5 seconds
 const getCachedSimulation = unstable_cache(
   async (agentId: string, tokenAmount: string, type: 'buy' | 'sell') => {
@@ -40,10 +59,7 @@ const getCachedSimulation = unstable_cache(
       throw new Error('Missing API configuration');
     }
 
-    // Only log in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[Server] 🔄 Simulating ${type} for agent ${agentId} with amount ${tokenAmount}`);
-    }
+
     const startTime = Date.now();
 
     const response = await fetch(
@@ -57,20 +73,11 @@ const getCachedSimulation = unstable_cache(
     );
 
     if (!response.ok) {
-      // Only log in development
-      if (process.env.NODE_ENV === 'development') {
-        console.error(`[Server] ❌ Simulation failed with status ${response.status}`);
-      }
       throw new Error(`Failed to simulate ${type}`);
     }
 
     const data = (await response.json()) as TokenSimulationResponse;
     
-    // Only log in development
-    if (process.env.NODE_ENV === 'development') {
-      const duration = Date.now() - startTime;
-      console.log(`[Server] ✅ Simulation completed in ${duration}ms`);
-    }
 
     // Convert BigInt to string for serialization
     return data.data.amount;
@@ -87,10 +94,6 @@ export async function simulateBuyTokens(agentId: string, tokenAmount: string) {
       data: BigInt(result), // Convert back to BigInt after cache retrieval
     };
   } catch (error) {
-    // Only log in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error(`[Server] ❌ Buy simulation error:`, error);
-    }
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unexpected error occurred',
@@ -106,10 +109,7 @@ export async function simulateSellTokens(agentId: string, tokenAmount: string) {
       data: BigInt(result), // Convert back to BigInt after cache retrieval
     };
   } catch (error) {
-    // Only log in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error(`[Server] ❌ Sell simulation error:`, error);
-    }
+   
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unexpected error occurred',
@@ -174,10 +174,13 @@ export async function getTokenPriceHistory(agentId: string) {
     );
 
     if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error(`Token not found for agent ${agentId}`);
+      }
       throw new Error('Failed to fetch price history');
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as PriceHistoryResponse;
     return {
       success: true,
       data: data.data,
@@ -185,8 +188,7 @@ export async function getTokenPriceHistory(agentId: string) {
   } catch (error) {
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'An unexpected error occurred',
+      error: error instanceof Error ? error.message : 'An unexpected error occurred',
     };
   }
 }
@@ -248,6 +250,42 @@ export async function getMarketCap(agentId: string) {
 
     
     return { success: true, data: data.data.marketCap };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unexpected error occurred',
+    };
+  }
+}
+
+export async function getTokenMarketData(agentId: string) {
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL;
+    const apiKey = process.env.API_KEY;
+
+    if (!apiUrl || !apiKey) throw new Error('Missing API configuration');
+
+    const response = await fetch(
+      `${apiUrl}/api/agent-token/${agentId}/current-price`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+        },
+        next: { revalidate: 60 }, // Cache for 1 minute since data updates every minute
+      },
+    );
+
+    if (!response.ok) {
+      console.error(`[getTokenMarketData] Error response:`, {
+        status: response.status,
+        statusText: response.statusText,
+      });
+      throw new Error('Failed to get token market data');
+    }
+
+    const data = (await response.json()) as TokenMarketDataResponse;
+    return { success: true, data: data.data };
   } catch (error) {
     return {
       success: false,

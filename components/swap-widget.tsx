@@ -328,7 +328,6 @@ export const SwapWidget = memo(({ agent, className }: SwapWidgetProps) => {
         setConvertedTokenAmount('');
       }
     } catch (error) {
-      
       const errorMessage =
         error instanceof Error ? error.message : 'Transaction failed';
 

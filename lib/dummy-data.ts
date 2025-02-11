@@ -1,6 +1,24 @@
-import { Agent } from './types';
+import type { AgentType, AgentStatus } from '@/lib/types';
 
-export const dummyAgents: Agent[] = [
+// Type for UI preview data only
+type AgentPreview = {
+  id: string;
+  name: string;
+  avatar: string;
+  type: AgentType;
+  status: AgentStatus;
+  price: number;
+  holders: number;
+  creativityIndex: number;
+  performanceIndex: number;
+  createdAt: string;
+  creator: string;
+  symbol: string;
+  marketCap: number;
+};
+
+// Note: This dummy data is only used for UI/avatar previews
+export const dummyAgents: readonly AgentPreview[] = [
   // LeftCurve Agents - Live
   {
     id: 'LC001',
@@ -9,28 +27,28 @@ export const dummyAgents: Agent[] = [
     type: 'leftcurve',
     status: 'live',
     price: 0.15,
-    holders: 850, // High holders count for live status
+    holders: 850,
     creativityIndex: 9.8,
     performanceIndex: 0.78,
     createdAt: '2024-01-15',
     creator: '0x1234567890abcdef1234567890abcdef12345678',
     symbol: 'DAPE',
-    marketCap: 127500, // price * holders * 1000
+    marketCap: 127500
   },
   {
     id: 'LC002',
-    name: 'Moon Boy',
-    avatar: '/avatars/degen-2.png',
+    name: 'Moon Rocket',
+    avatar: '/avatars/moon-1.png',
     type: 'leftcurve',
-    status: 'live',
+    status: 'bonding',
     price: 0.08,
-    holders: 1250, // Very high holders, well past bonding
-    creativityIndex: 9.5,
-    performanceIndex: 0.82,
-    createdAt: '2024-01-18',
-    creator: '0x2345678901abcdef2345678901abcdef23456789',
+    holders: 250,
+    creativityIndex: 8.5,
+    performanceIndex: 0.65,
+    createdAt: '2024-02-01',
+    creator: '0xabcdef1234567890abcdef1234567890abcdef12',
     symbol: 'MOON',
-    marketCap: 100000, // price * holders * 1000
+    marketCap: 20000
   },
   // LeftCurve Agents - Bonding
   {
@@ -114,18 +132,18 @@ export const dummyAgents: Agent[] = [
   // Special Cases
   {
     id: 'RC004',
-    name: 'Data Wizard',
-    avatar: '/avatars/brain-4.png',
+    name: 'Quantum Bot',
+    avatar: '/avatars/quantum-1.png',
     type: 'rightcurve',
-    status: 'ended', // Example of ended agent
-    price: 0.28,
-    holders: 390,
-    performanceIndex: 0.79,
-    creativityIndex: 7.1,
-    createdAt: '2024-01-23',
-    creator: '0x9012345678abcdef9012345678abcdef90123456',
-    symbol: 'WIZARD',
-    marketCap: 109200,
+    status: 'bonding',
+    price: 0.12,
+    holders: 180,
+    performanceIndex: 0.72,
+    creativityIndex: 8.9,
+    createdAt: '2024-02-28',
+    creator: '0x9012345678901234567890123456789012345678',
+    symbol: 'QBOT',
+    marketCap: 21600,
   },
   {
     id: 'RC005',
@@ -142,4 +160,4 @@ export const dummyAgents: Agent[] = [
     symbol: 'BRAIN',
     marketCap: 5250, // Just started bonding
   },
-];
+] as const; // Using const assertion to make it readonly

@@ -42,15 +42,15 @@ const navigation = [
   },
 ] as const;
 
-// Development-only performance tracking
-const usePerformanceTracking = (name: string) => {
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      startTiming(`${name} Render`);
-      return () => endTiming(`${name} Render`);
-    }
-  }, [name]);
-};
+// // Development-only performance tracking
+// const usePerformanceTracking = (name: string) => {
+//   useEffect(() => {
+//     if (process.env.NODE_ENV === 'development') {
+//       startTiming(`${name} Render`);
+//       return () => endTiming(`${name} Render`);
+//     }
+//   }, [name]);
+// };
 
 // Optimized dynamic import with better error boundary
 const WalletButtonContainer = dynamic(
@@ -187,7 +187,7 @@ export const NavigationMenu = memo(() => {
   const pathname = usePathname();
 
   // Development-only performance tracking
-  usePerformanceTracking('NavigationMenu');
+  // usePerformanceTracking('NavigationMenu');
 
   // Track navigation changes with segment info (development only)
   useEffect(() => {

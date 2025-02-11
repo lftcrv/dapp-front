@@ -3,13 +3,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Agent } from '@/lib/types';
 
-interface DockerMessageCardProps {
-  agent: Agent;
-}
-
-const DockerMessageCard = ({ agent }: DockerMessageCardProps) => {
+const DockerMessageCard: React.FC = () => {
   const [port, setPort] = useState('');
   const [runtimeAgentId, setRuntimeAgentId] = useState('');
 
