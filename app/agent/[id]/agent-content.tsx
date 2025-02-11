@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useRef, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { AgentHeader } from '@/components/agent-header';
@@ -48,6 +48,23 @@ interface AgentContentProps {
 }
 
 export function AgentContent({ agent, initialTrades = [] }: AgentContentProps) {
+  // Add refs to components that need refreshing
+  const priceActionRef = useRef<{ refetch?: () => void }>({}); 
+  const bondingCurveRef = useRef<{ refetch?: () => void }>({});
+  const agentStatsRef = useRef<{ refetch?: () => void }>({});
+
+  // Callback to refresh all components
+  const handleTransactionSuccess = useCallback(() => {
+    // Refresh price chart
+    priceActionRef.current?.refetch?.();
+    
+    // Refresh bonding curve
+    bondingCurveRef.current?.refetch?.();
+    
+    // Refresh agent stats
+    agentStatsRef.current?.refetch?.();
+  }, []);
+
   return (
     <AgentThemeProvider agentId={agent.id}>
       <BondingCurveProvider agentId={agent.id} enabled={agent.status === 'bonding'}>
@@ -60,7 +77,7 @@ export function AgentContent({ agent, initialTrades = [] }: AgentContentProps) {
             delay={0.3}
           >
             <Suspense fallback={<Loading variant={agent.type} />}>
-              <PriceActionCard agent={agent} />
+              <PriceActionCard ref={priceActionRef} agent={agent} />
             </Suspense>
 
             <Suspense fallback={<Loading variant={agent.type} />}>
@@ -75,16 +92,19 @@ export function AgentContent({ agent, initialTrades = [] }: AgentContentProps) {
           <AnimatedSection className="space-y-6" direction="right" delay={0.4}>
             <Suspense fallback={<Loading variant={agent.type} />}>
               <Card className={cn('border-2')}>
-                <SwapWidget agent={agent} />
+                <SwapWidget 
+                  agent={agent} 
+                  onTransactionSuccess={handleTransactionSuccess}
+                />
               </Card>
             </Suspense>
 
             <Suspense fallback={<Loading variant={agent.type} />}>
-              <BondingCurveChart agent={agent} />
+              <BondingCurveChart ref={bondingCurveRef} agent={agent} />
             </Suspense>
 
             <Suspense fallback={<Loading variant={agent.type} />}>
-              <AgentStatsCard agent={agent} />
+              <AgentStatsCard ref={agentStatsRef} agent={agent} />
             </Suspense>
           </AnimatedSection>
         </div>

@@ -1,3 +1,4 @@
+import { forwardRef, useImperativeHandle } from 'react';
 import { TrendingUp, AlertCircle } from 'lucide-react';
 import { Agent } from '@/lib/types';
 import { AgentCard } from '@/components/ui/agent-card';
@@ -12,42 +13,48 @@ interface PriceActionCardProps {
   agent: Agent;
 }
 
-export function PriceActionCard({ agent }: PriceActionCardProps) {
-  const { prices, isLoading, error } = usePrices({ 
-    symbol: agent.symbol,
-    agentId: agent.id
-  });
-  const theme = useAgentTheme();
+export const PriceActionCard = forwardRef<{ refetch?: () => void }, PriceActionCardProps>(
+  ({ agent }, ref) => {
+    const { prices, isLoading, error, refetch } = usePrices({ 
+      symbol: agent.symbol,
+      agentId: agent.id
+    });
+    const theme = useAgentTheme();
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-[300px]">
-        <Loading variant={theme.mode as 'leftcurve' | 'rightcurve'} />
-      </div>
-    );
-  }
+    useImperativeHandle(ref, () => ({
+      refetch
+    }), [refetch]);
 
-  if (error) {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center h-[300px]">
+          <Loading variant={theme.mode as 'leftcurve' | 'rightcurve'} />
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <AgentCard title="Price Action" icon={TrendingUp} badge={theme.mode}>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {error.message || 'Failed to load price data'}
+            </AlertDescription>
+          </Alert>
+        </AgentCard>
+      );
+    }
+
     return (
       <AgentCard title="Price Action" icon={TrendingUp} badge={theme.mode}>
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {error.message || 'Failed to load price data'}
-          </AlertDescription>
-        </Alert>
+        <PriceChart
+          data={prices}
+          symbol={agent.symbol}
+          baseToken={agent.symbol}
+          inBondingCurve={isInBondingPhase(agent.price, agent.holders)}
+        />
       </AgentCard>
     );
   }
-
-  return (
-    <AgentCard title="Price Action" icon={TrendingUp} badge={theme.mode}>
-      <PriceChart
-        data={prices}
-        symbol={agent.symbol}
-        baseToken={agent.symbol}
-        inBondingCurve={isInBondingPhase(agent.price, agent.holders)}
-      />
-    </AgentCard>
-  );
-}
+);
