@@ -2,6 +2,9 @@
 
 import { CharacterConfig } from '@/lib/types';
 
+// Helper to wait for a specified time
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export async function createAgent(
   name: string,
   characterConfig: CharacterConfig,
@@ -24,7 +27,6 @@ export async function createAgent(
 
     const headers = {
       'Content-Type': 'application/json',
-
       'x-api-key': apiKey
     }
 
@@ -43,10 +45,7 @@ export async function createAgent(
       body: JSON.stringify(requestBody),
     });
 
-
     const data = await response.json()
-    // console.log('Response Data:', data)
-
 
     if (!response.ok) {
       // Handle specific error cases
@@ -62,6 +61,11 @@ export async function createAgent(
       throw new Error(data.message || 'Failed to create agent');
     }
 
+    // Wait for 5 seconds after successful creation
+    console.log('Agent created successfully, waiting for backend processing...');
+    await wait(5000);
+    console.log('Redirecting to home page...');
+
     return {
       success: true,
       data,
@@ -70,8 +74,7 @@ export async function createAgent(
     console.error('Error creating agent:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'An unexpected error occurred',
+      error: error instanceof Error ? error.message : 'An unexpected error occurred',
     };
   }
 }
