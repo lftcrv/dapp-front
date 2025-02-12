@@ -337,7 +337,6 @@ export default function CreateAgentPage() {
     }
   
     setIsSubmitting(true);
-    showToast('AGENT_CREATING', 'loading');
   
     try {
       const curveSide = agentType === 'leftcurve' ? 'LEFT' : 'RIGHT';
@@ -388,7 +387,7 @@ export default function CreateAgentPage() {
       if (response?.transaction_hash) {
         console.log('🔵 Transaction Hash:', response.transaction_hash);
         setTransactionHash(response.transaction_hash);
-        showToast('TX_SUCCESS', 'success');
+        showToast('TX_SUCCESS', 'success', response.transaction_hash);
       }
     } catch (error) {
       console.error('❌ Transaction Error:', error);
@@ -415,7 +414,7 @@ export default function CreateAgentPage() {
         status: 'success',
         receipt: receiptData,
       });
-      showToast('TX_SUCCESS', 'success');
+      showToast('TX_SUCCESS', 'success', transactionHash);
       setIsTransactionConfirmed(true);
     }
   }, [receiptData, receiptError, isLoading, transactionHash]);
@@ -430,6 +429,9 @@ export default function CreateAgentPage() {
           userAddress: currentAddress,
           agentType,
         });
+
+        // Show the creating toast when we start the agent creation
+        showToast('AGENT_CREATING', 'loading');
 
         const result = await createAgent(
           formData.name,
@@ -459,14 +461,17 @@ export default function CreateAgentPage() {
   
         if (result.success) {
           console.log('🔵 Agent Created Successfully:', result);
+          // This will automatically dismiss the AGENT_CREATING toast
           showToast('AGENT_SUCCESS', 'success');
           router.push('/');
         } else {
           console.error('❌ Agent Creation Failed:', result.error);
+          // This will automatically dismiss the AGENT_CREATING toast
           showToast('AGENT_ERROR', 'error');
         }
       } catch (error) {
         console.error('❌ Agent Creation Error:', error);
+        // This will automatically dismiss the AGENT_CREATING toast
         showToast('AGENT_ERROR', 'error');
       } finally {
         setIsSubmitting(false);
