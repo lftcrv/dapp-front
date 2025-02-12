@@ -21,9 +21,10 @@ import {
   Wallet,
 } from 'lucide-react';
 import { createAgent } from '@/actions/agents/create/createAgent';
-import type { CharacterConfig } from '@/lib/types';
 import { showToast } from '@/lib/toast';
 import { useWallet } from '@/app/context/wallet-context';
+import { useAccount, useContract, useNetwork, useSendTransaction, useTransactionReceipt } from '@starknet-react/core';
+import { type Abi } from 'starknet';
 
 type TabType = 'basic' | 'personality' | 'examples';
 const TABS: TabType[] = ['basic', 'personality', 'examples'];
@@ -92,11 +93,38 @@ export default function CreateAgentPage() {
     currentAddress,
   } = useWallet();
 
+  // Move hooks to component level
+  const { address } = useAccount();
+  const { chain } = useNetwork();
+  const { contract } = useContract({
+    abi: [
+      {
+        type: "function",
+        name: "transfer",
+        state_mutability: "external",
+        inputs: [
+          { name: "recipient", type: "core::starknet::contract_address::ContractAddress" },
+          { name: "amount", type: "core::integer::u256" },
+        ],
+        outputs: [],
+      },
+    ] as Abi,
+    address: process.env.NEXT_PUBLIC_ETH_TOKEN_ADDRESS as `0x${string}`,
+  });
+
+  // Transaction hooks
+  const { sendAsync } = useSendTransaction({
+    calls: undefined,
+  });
+
   // Compute wallet connection state
   const isWalletConnected = React.useMemo(() => {
     if (isLoading || !privyReady) return false;
     return starknetWallet.isConnected || privyAuthenticated;
   }, [isLoading, privyReady, starknetWallet.isConnected, privyAuthenticated]);
+
+  const [transactionHash, setTransactionHash] = useState<string | undefined>(undefined);
+  const [isTransactionConfirmed, setIsTransactionConfirmed] = useState(false);
 
   // Debug logging
   React.useEffect(() => {
@@ -283,90 +311,171 @@ export default function CreateAgentPage() {
 
   const handleDeploy = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Get wallet address
+  
     if (!currentAddress) {
       showToast('CONNECTION_ERROR', 'error');
       return;
     }
-
-    // Validate required fields
+  
     if (!formData.name.trim()) {
       showToast('AGENT_ERROR', 'error');
       setCurrentTab('basic');
       return;
     }
-
+  
     if (!formData.bio.some((b) => b.trim())) {
       showToast('AGENT_ERROR', 'error');
       setCurrentTab('personality');
       return;
     }
-
-    if (
-      !formData.messageExamples[0][0].content.text.trim() ||
-      !formData.messageExamples[0][1].content.text.trim()
-    ) {
+  
+    if (!formData.messageExamples[0][0].content.text.trim() ||
+        !formData.messageExamples[0][1].content.text.trim()) {
       showToast('AGENT_ERROR', 'error');
       setCurrentTab('examples');
       return;
     }
-
+  
     setIsSubmitting(true);
     showToast('AGENT_CREATING', 'loading');
-
+  
     try {
-      const characterConfig: CharacterConfig = {
-        name: formData.name,
-        clients: [],
-        modelProvider: 'anthropic',
-        settings: {
-          secrets: {},
-          voice: {
-            model: 'en_US-male-medium',
-          },
-        },
-        plugins: [],
-        bio: formData.bio.filter(Boolean),
-        lore: formData.lore.filter(Boolean),
-        knowledge: formData.knowledge.filter(Boolean),
-        messageExamples: formData.messageExamples.filter(
-          (msg) => msg[0].content.text && msg[1].content.text,
-        ),
-        postExamples: formData.postExamples.filter(Boolean),
-        topics: formData.topics.filter(Boolean),
-        style: {
-          all: formData.style.all.filter(Boolean),
-          chat: formData.style.chat.filter(Boolean),
-          post: formData.style.post.filter(Boolean),
-        },
-        adjectives: formData.adjectives.filter(Boolean),
-      };
-
-      // Convert agentType to curveSide
       const curveSide = agentType === 'leftcurve' ? 'LEFT' : 'RIGHT';
+      const recipientAddress = process.env.NEXT_PUBLIC_DEPLOYMENT_FEES_RECIPIENT;
+      const amountToSend = process.env.NEXT_PUBLIC_DEPLOYMENT_FEES;
 
-      const result = await createAgent(
-        formData.name,
-        characterConfig,
+      if (!recipientAddress || !amountToSend) {
+        throw new Error("Deployment fees not configured");
+      }
+
+      console.log('🔵 Payment Debug:', {
+        recipientAddress,
+        amountToSend,
         curveSide,
-        currentAddress,
-      );
+      });
 
-      if (result.success) {
-        showToast('AGENT_SUCCESS', 'success');
-        router.push('/');
-      } else {
-        console.error('Agent creation failed:', result.error);
-        showToast('AGENT_ERROR', 'error');
+      console.log('🔵 Contract Debug:', {
+        userAddress: address,
+        chainId: chain?.id,
+        contractAddress: contract?.address,
+      });
+  
+      if (!contract || !address) {
+        throw new Error("Contract or address not available");
+      }
+
+      // Call transfer directly
+      const transferCall = {
+        contractAddress: contract.address,
+        entrypoint: "transfer",
+        calldata: [
+          recipientAddress,
+          BigInt(amountToSend).toString(),
+          "0" // For uint256, we need low and high parts
+        ]
+      };
+      
+      console.log('🔵 Transaction Debug:', {
+        method: 'transfer',
+        params: [recipientAddress, BigInt(amountToSend).toString()],
+        calldata: [recipientAddress, BigInt(amountToSend).toString(), "0"]
+      });
+  
+      showToast('TX_PENDING', 'loading');
+  
+      const response = await sendAsync([transferCall]);
+
+      if (response?.transaction_hash) {
+        console.log('🔵 Transaction Hash:', response.transaction_hash);
+        setTransactionHash(response.transaction_hash);
+        showToast('TX_SUCCESS', 'success');
       }
     } catch (error) {
-      console.error('Agent creation error:', error);
-      showToast('AGENT_ERROR', 'error');
-    } finally {
+      console.error('❌ Transaction Error:', error);
+      showToast('TX_ERROR', 'error');
       setIsSubmitting(false);
     }
   };
+
+  const { data: receiptData, error: receiptError } = useTransactionReceipt({
+    hash: transactionHash,
+    watch: true,
+  });
+
+  React.useEffect(() => {
+    if (isLoading || !transactionHash) return;
+  
+    if (receiptError) {
+      console.error("❌ Transaction Receipt Error:", receiptError);
+      showToast('TX_ERROR', 'error');
+    }
+  
+    if (receiptData && receiptData.isSuccess()) {
+      console.log('🔵 Transaction Receipt:', {
+        status: 'success',
+        receipt: receiptData,
+      });
+      showToast('TX_SUCCESS', 'success');
+      setIsTransactionConfirmed(true);
+    }
+  }, [receiptData, receiptError, isLoading, transactionHash]);
+
+  React.useEffect(() => {
+    if (!isTransactionConfirmed || !transactionHash || !currentAddress) return;
+  
+    const createAgentAfterTx = async () => {
+      try {
+        console.log('🔵 Creating Agent:', {
+          transactionHash,
+          userAddress: currentAddress,
+          agentType,
+        });
+
+        const result = await createAgent(
+          formData.name,
+          {
+            name: formData.name,
+            clients: [],
+            modelProvider: 'anthropic',
+            settings: { secrets: {}, voice: { model: 'en_US-male-medium' } },
+            plugins: [],
+            bio: formData.bio.filter(Boolean),
+            lore: formData.lore.filter(Boolean),
+            knowledge: formData.knowledge.filter(Boolean),
+            messageExamples: formData.messageExamples.filter(msg => msg[0].content.text && msg[1].content.text),
+            postExamples: formData.postExamples.filter(Boolean),
+            topics: formData.topics.filter(Boolean),
+            style: {
+              all: formData.style.all.filter(Boolean),
+              chat: formData.style.chat.filter(Boolean),
+              post: formData.style.post.filter(Boolean),
+            },
+            adjectives: formData.adjectives.filter(Boolean),
+          },
+          agentType === 'leftcurve' ? 'LEFT' : 'RIGHT',
+          currentAddress,
+          transactionHash
+        );
+  
+        if (result.success) {
+          console.log('🔵 Agent Created Successfully:', result);
+          showToast('AGENT_SUCCESS', 'success');
+          router.push('/');
+        } else {
+          console.error('❌ Agent Creation Failed:', result.error);
+          showToast('AGENT_ERROR', 'error');
+        }
+      } catch (error) {
+        console.error('❌ Agent Creation Error:', error);
+        showToast('AGENT_ERROR', 'error');
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+  
+    createAgentAfterTx();
+  }, [isTransactionConfirmed, transactionHash]);
+  
 
   const getPlaceholder = (field: FormField | 'style') => {
     const isLeft = agentType === 'leftcurve';

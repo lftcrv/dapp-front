@@ -7,6 +7,7 @@ export async function createAgent(
   characterConfig: CharacterConfig,
   curveSide: 'LEFT' | 'RIGHT',
   creatorAddress: string,
+  transactionHash: string,
   symbol?: string, // Optional, will be generated on backend if not provided
 ) {
   try {
@@ -32,8 +33,8 @@ export async function createAgent(
       symbol: symbol || name.slice(0, 5).toUpperCase(), // Generate symbol if not provided
       characterConfig,
       curveSide,
-
-      creatorWallet: creatorAddress
+      creatorWallet: creatorAddress,
+      transactionHash,
     }
 
     const response = await fetch(`${apiUrl}/api/eliza-agent`, {
