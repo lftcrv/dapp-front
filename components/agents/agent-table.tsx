@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ArrowUpDown, Search, Users } from 'lucide-react';
+import { ArrowUpDown, Search, Users, UserCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
@@ -117,7 +117,22 @@ const AgentRow = memo(({ agent, index }: AgentRowProps) => {
           className="flex items-center gap-2 hover:opacity-80"
         >
           <div className="w-7 h-7 relative rounded-lg overflow-hidden bg-white/5 flex items-center justify-center">
-            <AgentAvatar src={agent.avatar} alt={agent.name} />
+            {agent.profilePictureUrl ? (
+              <img
+                src={`${process.env.NEXT_PUBLIC_ELIZA_API_URL}${agent.profilePictureUrl}`}
+                alt={agent.name}
+                className="w-full h-full object-cover [image-rendering:crisp-edges]"
+                onError={(e) => {
+                  console.error('❌ Image Load Error:', {
+                    src: e.currentTarget.src,
+                    name: agent.name,
+                  });
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            ) : (
+              <UserCircle className="w-5 h-5 text-gray-400" />
+            )}
           </div>
           <div>
             <div className="font-medium text-sm group-hover:text-primary transition-colors flex items-center gap-1.5">

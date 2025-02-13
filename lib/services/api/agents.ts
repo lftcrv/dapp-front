@@ -1,5 +1,6 @@
 import { Agent, AgentType, AgentStatus } from '@/lib/types';
-import { getAgents, getAgentById } from '@/actions/agents/query/getAgents';
+import { getAgentById } from '@/actions/agents/query/getAgents';
+import { getLatestAgents } from '@/actions/agents/query/getLatestAgents';
 import { BaseService, IServiceConfig } from '@/lib/core/service';
 import { withErrorHandling, Result } from '@/lib/core/error-handler';
 
@@ -10,7 +11,7 @@ export class AgentService extends BaseService<Agent> {
 
   async getAll(): Promise<Result<Agent[]>> {
     return withErrorHandling(async () => {
-      const result = await getAgents();
+      const result = await getLatestAgents();
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to fetch agents');

@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { AgentAvatar } from '@/components/ui/agent-avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAgentsData } from '@/hooks/use-agents-data';
+import React from 'react';
 
 interface AgentListProps {
   title: string;
@@ -26,91 +27,113 @@ const AgentItem = memo(
     agent: Agent;
     type: 'leftcurve' | 'rightcurve';
     index: number;
-  }) => (
-    <Link href={`/agent/${agent.id}`}>
-      <motion.div
-        className={cn(
-          'group rounded-lg p-2 transition-all duration-200 cursor-pointer',
-          type === 'leftcurve'
-            ? 'hover:bg-orange-500/10 hover:border-orange-500/30'
-            : 'hover:bg-purple-500/10 hover:border-purple-500/30',
-          index % 5 === 0 && 'bg-white/5',
-        )}
-        initial={{ opacity: 0, x: type === 'leftcurve' ? -20 : 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.3, delay: 0.1 * (index % 5) }}
-      >
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <div className="w-8 h-8 relative rounded-lg overflow-hidden flex-shrink-0 bg-white/5 flex items-center justify-center">
-              {agent.avatar ? (
-                <AgentAvatar src={agent.avatar} alt={agent.name} />
-              ) : (
-                <UserCircle className="w-5 h-5 text-gray-400" />
+  }) => {
+    // Debug log agent data
+    React.useEffect(() => {
+      console.log('🔍 Agent Data:', {
+        id: agent.id,
+        name: agent.name,
+        profilePictureUrl: agent.profilePictureUrl,
+      });
+    }, [agent]);
+
+    return (
+      <Link href={`/agent/${agent.id}`}>
+        <motion.div
+          className={cn(
+            'group rounded-lg p-2 transition-all duration-200 cursor-pointer',
+            type === 'leftcurve'
+              ? 'hover:bg-orange-500/10 hover:border-orange-500/30'
+              : 'hover:bg-purple-500/10 hover:border-purple-500/30',
+            index % 5 === 0 && 'bg-white/5',
+          )}
+          initial={{ opacity: 0, x: type === 'leftcurve' ? -20 : 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 * (index % 5) }}
+        >
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <div className="w-8 h-8 relative rounded-lg overflow-hidden flex-shrink-0 bg-white/5 flex items-center justify-center">
+                {agent.profilePictureUrl ? (
+                  <img
+                    src={`${process.env.NEXT_PUBLIC_ELIZA_API_URL}${agent.profilePictureUrl}`}
+                    alt={agent.name}
+                    className="w-full h-full object-cover [image-rendering:crisp-edges]"
+                    onError={(e) => {
+                      console.error('❌ Image Load Error:', {
+                        src: e.currentTarget.src,
+                        name: agent.name,
+                      });
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <UserCircle className="w-5 h-5 text-gray-400" />
+                )}
+              </div>
+              {index % 5 === 0 && (
+                <div
+                  className={cn(
+                    'absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-[10px]',
+                    type === 'leftcurve' ? 'bg-orange-500' : 'bg-purple-500',
+                  )}
+                >
+                  👑
+                </div>
               )}
             </div>
-            {index % 5 === 0 && (
-              <div
-                className={cn(
-                  'absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-[10px]',
-                  type === 'leftcurve' ? 'bg-orange-500' : 'bg-purple-500',
-                )}
-              >
-                👑
-              </div>
-            )}
-          </div>
 
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between">
-              <div>
-                <div
-                  className={cn(
-                    'font-medium text-xs transition-colors truncate flex items-center gap-1.5',
-                    type === 'leftcurve'
-                      ? 'group-hover:text-orange-500'
-                      : 'group-hover:text-purple-500',
-                  )}
-                >
-                  {agent.name}
-                  <span className="text-[10px] text-muted-foreground font-mono">
-                    ${agent.symbol}
-                  </span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div
+                    className={cn(
+                      'font-medium text-xs transition-colors truncate flex items-center gap-1.5',
+                      type === 'leftcurve'
+                        ? 'group-hover:text-orange-500'
+                        : 'group-hover:text-purple-500',
+                    )}
+                  >
+                    {agent.name}
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      ${agent.symbol}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground font-mono">
+                    {agent.holders.toLocaleString()} holders
+                  </div>
                 </div>
-                <div className="text-[10px] text-muted-foreground font-mono">
-                  {agent.holders.toLocaleString()} holders
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="font-mono text-[10px]">
-                  {agent.contractAddress ? (
-                    `Ξ${(agent.price / 1e18).toFixed(14).replace(/\.?0+$/, '')}`
-                  ) : (
-                    'Initializing...'
-                  )}
-                </div>
-                <div
-                  className={cn(
-                    'font-mono text-[10px] font-bold',
-                    type === 'leftcurve'
-                      ? 'text-orange-500'
-                      : 'text-purple-500',
-                  )}
-                >
-                  {(
-                    (type === 'leftcurve'
-                      ? agent.creativityIndex
-                      : agent.performanceIndex) * 100
-                  ).toFixed(0)}
-                  %
+                <div className="text-right">
+                  <div className="font-mono text-[10px]">
+                    {agent.contractAddress ? (
+                      `Ξ${(agent.price / 1e18).toFixed(14).replace(/\.?0+$/, '')}`
+                    ) : (
+                      'Initializing...'
+                    )}
+                  </div>
+                  <div
+                    className={cn(
+                      'font-mono text-[10px] font-bold',
+                      type === 'leftcurve'
+                        ? 'text-orange-500'
+                        : 'text-purple-500',
+                    )}
+                  >
+                    {(
+                      (type === 'leftcurve'
+                        ? agent.creativityIndex
+                        : agent.performanceIndex) * 100
+                    ).toFixed(0)}
+                    %
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </motion.div>
-    </Link>
-  ),
+        </motion.div>
+      </Link>
+    );
+  },
 );
 AgentItem.displayName = 'AgentItem';
 

@@ -1,18 +1,24 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // ... existing config
+  reactStrictMode: true,
   env: {
     PORT: '3000',
   },
   images: {
     remotePatterns: [
       {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8080',
+        pathname: '/uploads/profile-pictures/**',
+      },
+      {
         protocol: 'https',
-        hostname: '**',
+        hostname: process.env.NEXT_PUBLIC_ELIZA_API_URL?.replace(/^https?:\/\//, '') || 'api.eliza.xyz',
+        pathname: '/uploads/profile-pictures/**',
       },
     ],
   },
-  // ... rest of existing config
 };
 
 module.exports = nextConfig;

@@ -197,6 +197,7 @@ export interface ApiAgent {
   createdAt: string;
   degenScore: number;
   winScore: number;
+  profilePicture: string | null;
   Token: {  // Note: Capital T to match Prisma model
     contractAddress: string;
     elizaAgentId: string;
@@ -222,7 +223,6 @@ export interface Agent {
   symbol: string;
   type: AgentType;
   status: AgentStatus;
-  avatar?: string;
   price: number;
   marketCap: number;
   holders: number;
@@ -233,6 +233,8 @@ export interface Agent {
   performanceIndex: number;
   contractAddress: `0x${string}`;
   abi: Abi;
+  profilePicture?: string;
+  profilePictureUrl?: string;
 }
 
 // Trade Types

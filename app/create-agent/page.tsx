@@ -25,6 +25,7 @@ import { showToast } from '@/lib/toast';
 import { useWallet } from '@/app/context/wallet-context';
 import { useAccount, useContract, useNetwork, useSendTransaction, useTransactionReceipt } from '@starknet-react/core';
 import { type Abi } from 'starknet';
+import { ProfilePictureUpload } from '@/components/profile-picture-upload';
 
 type TabType = 'basic' | 'personality' | 'examples';
 const TABS: TabType[] = ['basic', 'personality', 'examples'];
@@ -143,6 +144,7 @@ export default function CreateAgentPage() {
   );
   const [currentTab, setCurrentTab] = useState<TabType>('basic');
   const [formData, setFormData] = useState(initialFormData);
+  const [profilePicture, setProfilePicture] = useState<File | null>(null);
 
   const handleArrayInput = (
     field: ArrayFormField,
@@ -313,25 +315,25 @@ export default function CreateAgentPage() {
     e.preventDefault();
   
     if (!currentAddress) {
-      showToast('CONNECTION_ERROR', 'error');
+      showToast('CONNECTION_ERROR');
       return;
     }
   
     if (!formData.name.trim()) {
-      showToast('AGENT_ERROR', 'error');
+      showToast('AGENT_ERROR');
       setCurrentTab('basic');
       return;
     }
   
     if (!formData.bio.some((b) => b.trim())) {
-      showToast('AGENT_ERROR', 'error');
+      showToast('AGENT_ERROR');
       setCurrentTab('personality');
       return;
     }
   
     if (!formData.messageExamples[0][0].content.text.trim() ||
         !formData.messageExamples[0][1].content.text.trim()) {
-      showToast('AGENT_ERROR', 'error');
+      showToast('AGENT_ERROR');
       setCurrentTab('examples');
       return;
     }
@@ -409,13 +411,18 @@ export default function CreateAgentPage() {
       showToast('TX_ERROR', 'error');
     }
   
-    if (receiptData && receiptData.isSuccess()) {
-      console.log('🔵 Transaction Receipt:', {
-        status: 'success',
-        receipt: receiptData,
-      });
-      showToast('TX_SUCCESS', 'success', transactionHash);
-      setIsTransactionConfirmed(true);
+    if (receiptData) {
+      console.log('🔵 Transaction Receipt:', receiptData);
+
+      // Check if it's an invoke transaction
+      if ('finality_status' in receiptData && 'execution_status' in receiptData) {
+        const { finality_status, execution_status } = receiptData;
+        
+        if (finality_status === 'ACCEPTED_ON_L2' && execution_status === 'SUCCEEDED') {
+          showToast('TX_SUCCESS', 'success', transactionHash);
+          setIsTransactionConfirmed(true);
+        }
+      }
     }
   }, [receiptData, receiptError, isLoading, transactionHash]);
 
@@ -430,7 +437,6 @@ export default function CreateAgentPage() {
           agentType,
         });
 
-        // Show the creating toast when we start the agent creation
         showToast('AGENT_CREATING', 'loading');
 
         const result = await createAgent(
@@ -456,22 +462,20 @@ export default function CreateAgentPage() {
           },
           agentType === 'leftcurve' ? 'LEFT' : 'RIGHT',
           currentAddress,
-          transactionHash
+          transactionHash,
+          profilePicture || undefined
         );
   
         if (result.success) {
           console.log('🔵 Agent Created Successfully:', result);
-          // This will automatically dismiss the AGENT_CREATING toast
           showToast('AGENT_SUCCESS', 'success');
           router.push('/');
         } else {
           console.error('❌ Agent Creation Failed:', result.error);
-          // This will automatically dismiss the AGENT_CREATING toast
           showToast('AGENT_ERROR', 'error');
         }
       } catch (error) {
         console.error('❌ Agent Creation Error:', error);
-        // This will automatically dismiss the AGENT_CREATING toast
         showToast('AGENT_ERROR', 'error');
       } finally {
         setIsSubmitting(false);
@@ -731,6 +735,11 @@ export default function CreateAgentPage() {
                           }`}
                         />
                       </div>
+
+                      <ProfilePictureUpload
+                        onFileSelect={setProfilePicture}
+                        agentType={agentType}
+                      />
 
                       {renderArrayField(
                         'topics',

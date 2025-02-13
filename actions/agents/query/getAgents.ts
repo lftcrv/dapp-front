@@ -9,7 +9,7 @@ const provider = new RpcProvider({
   nodeUrl: process.env.NEXT_PUBLIC_NODE_URL 
 });
 
-async function mapApiAgentToAgent(apiAgent: ApiAgent): Promise<Agent> {
+export async function mapApiAgentToAgent(apiAgent: ApiAgent): Promise<Agent> {
   // Format token contract address - ensure it starts with 0x but avoid double prefix
   const tokenAddress = apiAgent.Token?.contractAddress 
     ? apiAgent.Token.contractAddress.startsWith('0x') 
@@ -21,23 +21,35 @@ async function mapApiAgentToAgent(apiAgent: ApiAgent): Promise<Agent> {
   const holders = apiAgent.LatestMarketData?.holders || 0;
   const isBonding = apiAgent.status !== 'RUNNING' || isInBondingPhase(price, holders);
 
+  // Log the incoming API agent data
+  console.log('🔄 Mapping API agent:', {
+    id: apiAgent.id,
+    name: apiAgent.name,
+    profilePictureUrl: (apiAgent as any).profilePictureUrl,
+    rawAgent: apiAgent
+  });
+
+  // Create base agent with explicit type
+  const baseAgent: Omit<Agent, 'abi'> & { abi: any[] } = {
+    id: apiAgent.id,
+    name: apiAgent.name,
+    symbol: apiAgent.name.substring(0, 4).toUpperCase(),
+    type: apiAgent.curveSide === 'LEFT' ? 'leftcurve' : 'rightcurve',
+    status: isBonding ? 'bonding' : 'live',
+    price,
+    marketCap: apiAgent.LatestMarketData?.marketCap || 0,
+    holders,
+    creator: apiAgent.Wallet?.deployedAddress ? `0x${apiAgent.Wallet.deployedAddress}` : 'unknown',
+    createdAt: apiAgent.createdAt,
+    creativityIndex: apiAgent.degenScore || 0,
+    performanceIndex: apiAgent.winScore || 0,
+    profilePictureUrl: (apiAgent as any).profilePictureUrl,
+    contractAddress: (tokenAddress || '0x0') as `0x${string}`,
+    abi: []
+  };
+
   if (!tokenAddress) {
-    return {
-      id: apiAgent.id,
-      name: apiAgent.name,
-      symbol: apiAgent.name.substring(0, 4).toUpperCase(),
-      type: apiAgent.curveSide === 'LEFT' ? 'leftcurve' : 'rightcurve',
-      status: isBonding ? 'bonding' : 'live',
-      price,
-      marketCap: apiAgent.LatestMarketData?.marketCap || 0,
-      holders,
-      creator: apiAgent.Wallet?.deployedAddress ? `0x${apiAgent.Wallet.deployedAddress}` : 'unknown',
-      createdAt: apiAgent.createdAt,
-      creativityIndex: apiAgent.degenScore || 0,
-      performanceIndex: apiAgent.winScore || 0,
-      contractAddress: '0x0' as `0x${string}`,
-      abi: []
-    };
+    return baseAgent as Agent;
   }
 
   try {
@@ -48,39 +60,12 @@ async function mapApiAgentToAgent(apiAgent: ApiAgent): Promise<Agent> {
     }
 
     return {
-      id: apiAgent.id,
-      name: apiAgent.name,
-      symbol: apiAgent.name.substring(0, 4).toUpperCase(),
-      type: apiAgent.curveSide === 'LEFT' ? 'leftcurve' : 'rightcurve',
-      status: isBonding ? 'bonding' : 'live',
-      price,
-      marketCap: apiAgent.LatestMarketData?.marketCap || 0,
-      holders,
-      creator: apiAgent.Wallet?.deployedAddress ? `0x${apiAgent.Wallet.deployedAddress}` : 'unknown',
-      createdAt: apiAgent.createdAt,
-      creativityIndex: apiAgent.degenScore || 0,
-      performanceIndex: apiAgent.winScore || 0,
-      contractAddress: tokenAddress as `0x${string}`,
+      ...baseAgent,
       abi
-    };
+    } as Agent;
   } catch (error) {
     console.error('Error fetching ABI for agent:', apiAgent.id, error);
-    return {
-      id: apiAgent.id,
-      name: apiAgent.name,
-      symbol: apiAgent.name.substring(0, 4).toUpperCase(),
-      type: apiAgent.curveSide === 'LEFT' ? 'leftcurve' : 'rightcurve',
-      status: isBonding ? 'bonding' : 'live',
-      price,
-      marketCap: apiAgent.LatestMarketData?.marketCap || 0,
-      holders,
-      creator: apiAgent.Wallet?.deployedAddress ? `0x${apiAgent.Wallet.deployedAddress}` : 'unknown',
-      createdAt: apiAgent.createdAt,
-      creativityIndex: apiAgent.degenScore || 0,
-      performanceIndex: apiAgent.winScore || 0,
-      contractAddress: tokenAddress as `0x${string}`,
-      abi: []
-    };
+    return baseAgent as Agent;
   }
 }
 
@@ -102,7 +87,14 @@ export async function getAgents() {
       next: { revalidate: 10 },
     });
 
+    console.log('🔍 Get agents API response:', {
+      status: response.status,
+      ok: response.ok,
+      url: `${apiUrl}/api/eliza-agent`
+    });
+
     const responseData = await response.json();
+    console.log('📦 Response data:', responseData);
 
     if (!response.ok) {
       // Handle specific error cases
@@ -113,9 +105,6 @@ export async function getAgents() {
       }
       throw new Error(responseData.message || 'Failed to fetch agents');
     }
-
-    // Log the response to debug
-    
 
     // Check if we have the expected data structure
     if (!responseData.data?.agents) {
@@ -169,9 +158,6 @@ export async function getAgentById(id: string) {
       }
       throw new Error(responseData.message || 'Failed to fetch agent');
     }
-
-    // Log the response to debug
-    // console.log('API Response for agent:', id, JSON.stringify(responseData, null, 2));
 
     // Check if we have the expected data structure
     if (!responseData.data?.agent) {
