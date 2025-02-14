@@ -1,12 +1,12 @@
 'use server';
 
 import { Agent, ApiAgent } from '@/lib/types';
-import { RpcProvider } from 'starknet';
+import { RpcProvider, Abi } from 'starknet';
 import { isInBondingPhase } from '@/lib/utils';
 
 // Initialize provider
 const provider = new RpcProvider({ 
-  nodeUrl: process.env.NEXT_PUBLIC_NODE_URL 
+  nodeUrl: process.env.NODE_URL || 'https://starknet-sepolia.public.blastapi.io'
 });
 
 export async function mapApiAgentToAgent(apiAgent: ApiAgent): Promise<Agent> {
@@ -25,12 +25,12 @@ export async function mapApiAgentToAgent(apiAgent: ApiAgent): Promise<Agent> {
   console.log('🔄 Mapping API agent:', {
     id: apiAgent.id,
     name: apiAgent.name,
-    profilePictureUrl: (apiAgent as any).profilePictureUrl,
+    profilePictureUrl: apiAgent.profilePictureUrl || undefined,
     rawAgent: apiAgent
   });
 
   // Create base agent with explicit type
-  const baseAgent: Omit<Agent, 'abi'> & { abi: any[] } = {
+  const baseAgent: Omit<Agent, 'abi'> & { abi: Abi } = {
     id: apiAgent.id,
     name: apiAgent.name,
     symbol: apiAgent.name.substring(0, 4).toUpperCase(),
@@ -43,7 +43,7 @@ export async function mapApiAgentToAgent(apiAgent: ApiAgent): Promise<Agent> {
     createdAt: apiAgent.createdAt,
     creativityIndex: apiAgent.degenScore || 0,
     performanceIndex: apiAgent.winScore || 0,
-    profilePictureUrl: (apiAgent as any).profilePictureUrl,
+    profilePictureUrl: apiAgent.profilePictureUrl || undefined,
     contractAddress: (tokenAddress || '0x0') as `0x${string}`,
     abi: []
   };
