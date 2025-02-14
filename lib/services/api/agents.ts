@@ -37,6 +37,11 @@ export class AgentService extends BaseService<Agent> {
         throw new Error('Agent not found');
       }
 
+      // Force revalidation for deployment status checks
+      if (!result.data.contractAddress || result.data.contractAddress === '0x0') {
+        result.data.status = 'bonding';
+      }
+
       return result.data;
     }, 'Failed to fetch agent');
   }
