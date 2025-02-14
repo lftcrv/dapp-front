@@ -10,42 +10,49 @@ import {
   ReactNode,
 } from 'react';
 import {
+  getCompleteAgentData,
   getBondingCurvePercentage,
-  getCurrentPrice,
-  getMarketCap,
 } from '@/actions/agents/token/getTokenInfo';
 // import { Rocket } from 'lucide-react';
 // import { cn } from '@/lib/utils';
 
+interface MarketData {
+  price: number;
+  priceChange24h: number;
+  holders: number;
+  marketCap: number;
+  bondingStatus: 'BONDING' | 'LIVE';
+}
+
 interface BondingCurveData {
-  percentage: number;
   currentPrice: string;
   marketCap: string;
+  priceChange24h: number;
+  holders: number;
+  bondingStatus: 'BONDING' | 'LIVE';
+  progress: number;
   isLoading: boolean;
   error: string | null;
 }
 
-interface BondingCurveContextType {
-  data: BondingCurveData;
-  refresh: () => Promise<void>;
-}
-
-const BondingCurveContext = createContext<BondingCurveContextType | null>(null);
-
-const INITIAL_STATE = {
-  percentage: 0,
+const INITIAL_STATE: BondingCurveData = {
   currentPrice: '0',
   marketCap: '0',
+  priceChange24h: 0,
+  holders: 0,
+  bondingStatus: 'BONDING',
+  progress: 0,
   isLoading: true,
   error: null,
 };
 
-// Cache for bonding curve data
-const dataCache = new Map<
-  string,
-  { data: BondingCurveData; timestamp: number }
->();
-const CACHE_DURATION = 5000; // 5 seconds
+const BondingCurveContext = createContext<{
+  data: BondingCurveData;
+  refresh: () => Promise<void>;
+}>({
+  data: INITIAL_STATE,
+  refresh: async () => {},
+});
 
 // function BondingIcon({ percentage }: { percentage: number }) {
 //   if (percentage <= 0 || percentage >= 100) return null;
@@ -70,104 +77,99 @@ const CACHE_DURATION = 5000; // 5 seconds
 //   );
 // }
 
+// Add bonding progress calculation
+function calculateBondingProgress(price: number, holders: number): number {
+  if (!price || !holders) return 0;
+  const targetLiquidity = 10000;
+  const currentLiquidity = holders * Number(price) * 1000;
+  return Math.min(100, (currentLiquidity / targetLiquidity) * 100);
+}
+
 export function BondingCurveProvider({
   children,
   agentId,
-  enabled = true,
 }: {
   children: ReactNode;
   agentId: string;
-  enabled?: boolean;
 }) {
   const [data, setData] = useState<BondingCurveData>(INITIAL_STATE);
   const isFetching = useRef(false);
-  const hasInitialFetch = useRef(false);
 
-  const fetchPercentage = useCallback(async () => {
-    if (!agentId || isFetching.current || !enabled) return;
-
-    // Check cache first
-    const cached = dataCache.get(agentId);
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      setData(cached.data);
+  const fetchData = useCallback(async () => {
+    if (!agentId || isFetching.current) {
       return;
     }
 
-    isFetching.current = true;
-
     try {
-      const [percentageResult, priceResult, marketCapResult] =
-        await Promise.all([
-          getBondingCurvePercentage(agentId),
-          getCurrentPrice(agentId),
-          getMarketCap(agentId),
-        ]);
+      // Fetch agent data and bonding percentage in parallel
+      const [agentResult, bondingResult] = await Promise.all([
+        getCompleteAgentData(agentId),
+        getBondingCurvePercentage(agentId),
+      ]);
 
-      // Handle each result independently, keeping previous values if there's an error
+      if (!agentResult.success || !agentResult.data) {
+        throw new Error(agentResult.error || 'Failed to fetch agent data');
+      }
+
+      if (!bondingResult.success) {
+        console.warn(
+          'Failed to fetch bonding percentage:',
+          bondingResult.error,
+        );
+      }
+
+      // Extract market data from the agent response
+      const marketData: MarketData = {
+        price: agentResult.data.price || 0,
+        priceChange24h: agentResult.data.priceChange24h || 0,
+        holders: agentResult.data.holders || 0,
+        marketCap: agentResult.data.marketCap || 0,
+        bondingStatus:
+          agentResult.data.status === 'bonding' ? 'BONDING' : 'LIVE',
+      };
+
+      // Use raw percentage from blockchain (already x100) or calculate locally
+      const bondingProgress =
+        bondingResult.success && bondingResult.data !== undefined
+          ? bondingResult.data // Keep raw percentage from blockchain
+          : calculateBondingProgress(marketData.price, marketData.holders);
+
       const newData: BondingCurveData = {
-        percentage: percentageResult.success
-          ? (percentageResult.data ?? 0) / 100
-          : data.percentage,
-        currentPrice:
-          priceResult.success && priceResult.data
-            ? priceResult.data
-            : data.currentPrice || '0',
-        marketCap:
-          marketCapResult.success && marketCapResult.data
-            ? marketCapResult.data
-            : data.marketCap || '0',
+        currentPrice: marketData.price.toString(),
+        marketCap: marketData.marketCap.toString(),
+        priceChange24h: marketData.priceChange24h,
+        holders: marketData.holders,
+        bondingStatus: marketData.bondingStatus,
+        progress: bondingProgress, // Keep raw percentage (x100)
         isLoading: false,
         error: null,
       };
 
-      // Collect any errors but don't reset the data
-      const errors: string[] = [];
-      if (!percentageResult.success)
-        errors.push(`Percentage: ${percentageResult.error}`);
-      if (!priceResult.success) errors.push(`Price: ${priceResult.error}`);
-      if (!marketCapResult.success)
-        errors.push(`Market Cap: ${marketCapResult.error}`);
-
-      if (errors.length > 0) {
-        const errorMessage = errors.join(', ');
-
-        newData.error = errorMessage;
-      }
-
-      dataCache.set(agentId, {
-        data: newData,
-        timestamp: Date.now(),
-      });
-
       setData(newData);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-
+      console.error('❌ Error fetching bonding curve data:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       setData((prev) => ({
         ...prev,
         isLoading: false,
-        error: errorMessage,
+        error: error instanceof Error ? error.message : 'Failed to fetch data',
       }));
     } finally {
       isFetching.current = false;
     }
-  }, [agentId, enabled, data.percentage, data.currentPrice, data.marketCap]);
+  }, [agentId]);
 
   // Initial fetch only
   useEffect(() => {
-    if (!hasInitialFetch.current && enabled) {
-      hasInitialFetch.current = true;
-      fetchPercentage();
-    }
-
-    return () => {
-      hasInitialFetch.current = false;
-    };
-  }, [fetchPercentage, enabled]);
+    console.log('🎬 Initial bonding curve fetch triggered:', { agentId });
+    fetchData();
+  }, [agentId, fetchData]);
 
   return (
-    <BondingCurveContext.Provider value={{ data, refresh: fetchPercentage }}>
+    <BondingCurveContext.Provider value={{ data, refresh: fetchData }}>
       {children}
       {/* <BondingIcon percentage={data.percentage} /> */}
     </BondingCurveContext.Provider>

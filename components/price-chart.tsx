@@ -179,7 +179,7 @@ export const PriceChart = memo(
 
     const { data: bondingCurveData } = useBondingCurve();
     const bondingPercentage = !bondingCurveData.isLoading
-      ? bondingCurveData.percentage
+      ? bondingCurveData.progress
       : null;
 
     const aggregateData = useCallback(

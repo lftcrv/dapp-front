@@ -15,7 +15,6 @@ import {
 import { useWalletStatus } from '@/hooks/use-wallet-status';
 import { useContractAbi } from '@/utils/abi';
 import { useBuyTokens, useSellTokens } from '@/hooks/use-token-transactions';
-import { useProvider } from '@starknet-react/core';
 import { useContract } from '@starknet-react/core';
 
 interface SwapWidgetProps {
@@ -53,10 +52,7 @@ const SwapInput = memo(
       )}
     >
       <div className="flex items-center justify-between text-sm">
-        <label className="text-muted-foreground">{label}</label>
-        <span className="font-mono text-xs">
-          {estimate ? `≈ $${estimate}` : `Balance: ${balance}`}
-        </span>
+        <label className="text-xs text-muted-foreground">{label}</label>
       </div>
       <Input
         type="number"
@@ -64,8 +60,13 @@ const SwapInput = memo(
         value={value}
         onChange={onChange && ((e) => onChange(e.target.value))}
         readOnly={readOnly}
-        className="border-0 bg-transparent text-lg font-mono"
+        className="border-0 bg-transparent text-lg font-mono p-0"
       />
+      <div className="flex justify-end">
+        <span className="font-mono text-[10px] text-right text-muted-foreground">
+          {estimate ? `≈ $${estimate}` : `${balance}`}
+        </span>
+      </div>
     </div>
   ),
 );
@@ -130,442 +131,457 @@ const SwapDivider = memo(({ isLeftCurve }: { isLeftCurve: boolean }) => (
 ));
 SwapDivider.displayName = 'SwapDivider';
 
-export const SwapWidget = memo(({ agent, className, onTransactionSuccess }: SwapWidgetProps) => {
-  const [amount, setAmount] = useState('');
-  const [simulatedEthAmount, setSimulatedEthAmount] = useState('');
-  const [convertedTokenAmount, setConvertedTokenAmount] = useState('');
-  const [activeTab, setActiveTab] = useState('buy');
-  const [error, setError] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [balance, setBalance] = useState('0');
+export const SwapWidget = memo(
+  ({ agent, className, onTransactionSuccess }: SwapWidgetProps) => {
+    const [amount, setAmount] = useState('');
+    const [simulatedEthAmount, setSimulatedEthAmount] = useState('');
+    const [convertedTokenAmount, setConvertedTokenAmount] = useState('');
+    const [activeTab, setActiveTab] = useState('buy');
+    const [error, setError] = useState<string | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [ethBalance, setEthBalance] = useState('0');
+    const [tokenBalance, setTokenBalance] = useState('0');
 
-  const { address, isContractReady } = useWalletStatus(agent.contractAddress);
-  const { toast } = useToast();
-  const { provider } = useProvider();
+    const { address, isContractReady } = useWalletStatus(agent.contractAddress);
+    const { toast } = useToast();
 
-  // Use our custom ABI hook to handle proxy contracts
-  const {
-    abi,
-    error: abiError,
-    isLoading: isAbiLoading,
-  } = useContractAbi(agent.contractAddress);
+    // Use our custom ABI hook to handle proxy contracts
+    const {
+      abi,
+      error: abiError,
+      isLoading: isAbiLoading,
+    } = useContractAbi(agent.contractAddress);
 
-  // Get contract instance
-  const { contract } = useContract({
-    abi: abi || agent.abi,
-    address: agent.contractAddress as `0x0${string}`,
-  });
+    // Get contract instance
+    const { contract } = useContract({
+      abi: abi || agent.abi,
+      address: agent.contractAddress as `0x0${string}`,
+    });
 
-  // Use transaction hooks
-  const { buyTokens } = useBuyTokens({
-    address: agent.contractAddress,
-    abi: abi || agent.abi,
-  });
+    // Add ETH contract hook at the top with other hooks
+    const { contract: ethContract } = useContract({
+      address:
+        '0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7',
+      abi: [
+        {
+          type: 'function',
+          name: 'balanceOf',
+          inputs: [{ name: 'account', type: 'felt' }],
+          outputs: [{ type: 'Uint256' }],
+          state_mutability: 'view',
+        },
+      ],
+    });
 
-  const { sellTokens } = useSellTokens({
-    address: agent.contractAddress,
-    abi: abi || agent.abi,
-  });
+    // Use transaction hooks
+    const { buyTokens } = useBuyTokens({
+      address: agent.contractAddress,
+      abi: abi || agent.abi,
+    });
 
-  const isInitializing = isAbiLoading || !buyTokens || !sellTokens;
+    const { sellTokens } = useSellTokens({
+      address: agent.contractAddress,
+      abi: abi || agent.abi,
+    });
 
-  // 3. All derived values
-  const isLeftCurve = agent.type === 'leftcurve';
+    const isInitializing = isAbiLoading || !buyTokens || !sellTokens;
 
-  // 4. All useEffect hooks
-  useEffect(() => {
-    const simulateSwap = async () => {
-      if (!amount || !agent.id || !address || isInitializing) {
-        setSimulatedEthAmount('');
-        setConvertedTokenAmount('');
-        setError(null);
-        return;
-      }
+    // 3. All derived values
+    const isLeftCurve = agent.type === 'leftcurve';
 
-      setIsLoading(true);
-      try {
-        const inputAmount = parseFloat(amount);
-        if (isNaN(inputAmount) || inputAmount <= 0) {
+    // 4. All useEffect hooks
+    useEffect(() => {
+      const simulateSwap = async () => {
+        if (!amount || !agent.id || !address || isInitializing) {
           setSimulatedEthAmount('');
           setConvertedTokenAmount('');
           setError(null);
           return;
         }
 
-        // Convert input amount to token decimals (6) once
-        const tokenAmount = BigInt(Math.floor(inputAmount * 1e6)).toString();
-        setConvertedTokenAmount(tokenAmount);
+        setIsLoading(true);
+        try {
+          const inputAmount = parseFloat(amount);
+          if (isNaN(inputAmount) || inputAmount <= 0) {
+            setSimulatedEthAmount('');
+            setConvertedTokenAmount('');
+            setError(null);
+            return;
+          }
 
-        const result = await (activeTab === 'buy'
-          ? simulateBuyTokens(agent.id, tokenAmount)
-          : simulateSellTokens(agent.id, tokenAmount));
+          // Convert input amount to token decimals (6) once
+          const tokenAmount = BigInt(Math.floor(inputAmount * 1e6)).toString();
+          setConvertedTokenAmount(tokenAmount);
 
-        if (result.success && result.data) {
-          setSimulatedEthAmount(result.data.toString());
-          setError(null);
-        } else {
+          const result = await (activeTab === 'buy'
+            ? simulateBuyTokens(agent.id, tokenAmount)
+            : simulateSellTokens(agent.id, tokenAmount));
+
+          if (result.success && result.data) {
+            setSimulatedEthAmount(result.data.toString());
+            setError(null);
+          } else {
+            setSimulatedEthAmount('');
+            if (result.error?.includes('Option::unwrap failed')) {
+              setError('Insufficient liquidity in the bonding curve');
+            } else {
+              setError(result.error || 'Failed to simulate swap');
+            }
+          }
+        } catch (error) {
+          // Only log in development
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Failed to simulate swap:', error);
+          }
           setSimulatedEthAmount('');
-          if (result.error?.includes('Option::unwrap failed')) {
+          if (
+            error instanceof Error &&
+            error.message.includes('Option::unwrap failed')
+          ) {
             setError('Insufficient liquidity in the bonding curve');
           } else {
-            setError(result.error || 'Failed to simulate swap');
+            setError('Failed to simulate swap');
+          }
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      const timer = setTimeout(simulateSwap, 10000);
+      return () => clearTimeout(timer);
+    }, [amount, agent.id, activeTab, address, isInitializing]);
+
+    const fetchBalances = useCallback(async () => {
+      try {
+        if (!address || !ethContract || !contract) {
+          setEthBalance('0');
+          setTokenBalance('0');
+          return;
+        }
+
+        // Fetch ETH balance using ETH contract
+        const ethBalanceResult = await ethContract.balanceOf(address);
+        setEthBalance(ethBalanceResult.toString());
+
+        // Fetch token balance
+        const tokenBalanceResult = await contract.balanceOf(address);
+        setTokenBalance(tokenBalanceResult.toString());
+      } catch (error) {
+        console.error('Failed to fetch balances:', error);
+        setEthBalance('0');
+        setTokenBalance('0');
+      }
+    }, [address, ethContract, contract]);
+
+    // Fetch balances only when dependencies change
+    useEffect(() => {
+      if (!isInitializing && address && ethContract && contract) {
+        fetchBalances();
+      }
+    }, [address, ethContract, contract, isInitializing, fetchBalances]);
+
+    // Handle swap
+    const handleSwap = useCallback(async () => {
+      if (!address) {
+        setError('Please connect your wallet');
+        return;
+      }
+
+      if (!isContractReady || isInitializing) {
+        setError('Contract not ready');
+        return;
+      }
+
+      if (!amount || !simulatedEthAmount || !convertedTokenAmount) {
+        setError('Please enter an amount');
+        return;
+      }
+
+      try {
+        setIsProcessing(true);
+        setError(null);
+
+        // Additional validation for sell transactions
+        if (activeTab === 'sell') {
+          const tokenBalance = await contract?.balanceOf(address);
+          if (!tokenBalance) {
+            throw new Error('Failed to fetch token balance');
+          }
+
+          const sellAmount = BigInt(convertedTokenAmount);
+          if (tokenBalance < sellAmount) {
+            throw new Error(
+              `Insufficient token balance. You have ${
+                Number(tokenBalance) / 1e6
+              } tokens`,
+            );
           }
         }
-      } catch (error) {
-        // Only log in development
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Failed to simulate swap:', error);
-        }
-        setSimulatedEthAmount('');
-        if (
-          error instanceof Error &&
-          error.message.includes('Option::unwrap failed')
-        ) {
-          setError('Insufficient liquidity in the bonding curve');
-        } else {
-          setError('Failed to simulate swap');
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
 
-    const timer = setTimeout(simulateSwap, 500);
-    return () => clearTimeout(timer);
-  }, [amount, agent.id, activeTab, address, isInitializing]);
+        // Execute the appropriate transaction based on active tab
+        const result = await (activeTab === 'buy'
+          ? buyTokens(convertedTokenAmount, simulatedEthAmount)
+          : sellTokens(convertedTokenAmount));
 
-  // Fetch ETH balance
-  useEffect(() => {
-    if (!address || !provider) {
-      setBalance('0');
-      return;
-    }
-
-    const fetchBalance = async () => {
-      try {
-        const balanceResult = await provider.getStorageAt(
-          address,
-          '0x0000000000000000000000000000000000000000000000000000000000000000',
-        );
-        const balanceInEth = Number(balanceResult) / 1e18;
-        setBalance(balanceInEth.toString());
-      } catch (error) {
-        console.error('Failed to fetch balance:', error);
-        setBalance('0');
-      }
-    };
-
-    fetchBalance();
-  }, [address, provider]);
-
-  // Handle swap
-  const handleSwap = useCallback(async () => {
-    if (!address) {
-      setError('Please connect your wallet');
-      return;
-    }
-
-    if (!isContractReady || isInitializing) {
-      setError('Contract not ready');
-      return;
-    }
-
-    if (!amount || !simulatedEthAmount || !convertedTokenAmount) {
-      setError('Please enter an amount');
-      return;
-    }
-
-    try {
-      setIsProcessing(true);
-      setError(null);
-
-      // Additional validation for sell transactions
-      if (activeTab === 'sell') {
-        const tokenBalance = await contract?.balanceOf(address);
-        if (!tokenBalance) {
-          throw new Error('Failed to fetch token balance');
-        }
-
-        const sellAmount = BigInt(convertedTokenAmount);
-        if (tokenBalance < sellAmount) {
-          throw new Error(
-            `Insufficient token balance. You have ${
-              Number(tokenBalance) / 1e6
-            } tokens`,
-          );
-        }
-      }
-
-      // Execute the appropriate transaction based on active tab
-      const result = await (activeTab === 'buy'
-        ? buyTokens(convertedTokenAmount, simulatedEthAmount)
-        : sellTokens(convertedTokenAmount));
-
-      if (result?.transaction_hash) {
-        toast({
-          title: `${
-            activeTab === 'buy' ? 'Buy' : 'Sell'
-          } Transaction Submitted`,
-          description: (
-            <div className="flex flex-col gap-1">
-              <span>Transaction has been submitted.</span>
-              <a
-                href={`https://starkscan.co/tx/${result.transaction_hash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-blue-500 hover:text-blue-600 flex items-center gap-1"
-              >
-                View on Starkscan <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-          ),
-        });
-        setAmount('');
-        setSimulatedEthAmount('');
-        setConvertedTokenAmount('');
-        
-        // Trigger refresh callback after successful transaction
-        onTransactionSuccess?.();
-      }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Transaction failed';
-
-      // Format error message for display
-      let displayError = errorMessage;
-      if (errorMessage.includes('insufficient')) {
-        displayError =
-          activeTab === 'buy'
-            ? 'Insufficient ETH balance for this purchase'
-            : 'Insufficient token balance for this sale';
-      } else if (errorMessage.includes('rejected')) {
-        displayError = 'Transaction rejected by wallet';
-      }
-
-      setError(displayError);
-      toast({
-        title: 'Swap Failed',
-        description: displayError,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [
-    address,
-    isContractReady,
-    isInitializing,
-    activeTab,
-    amount,
-    simulatedEthAmount,
-    convertedTokenAmount,
-    contract,
-    buyTokens,
-    sellTokens,
-    toast,
-    onTransactionSuccess,
-  ]);
-
-  // Update button text to show ABI loading state
-  const buttonText = useMemo(() => {
-    if (isAbiLoading) return 'Loading Contract...';
-    if (isLoading) return 'Loading...';
-    if (isProcessing) return 'Processing...';
-    if (abiError) return 'Contract Error';
-    if (error) return 'Error';
-    if (!address) return 'Connect Wallet';
-    return 'Swap';
-  }, [isAbiLoading, isLoading, isProcessing, abiError, error, address]);
-
-  const buttonStyle = useMemo(
-    () =>
-      cn(
-        'w-full font-medium',
-        isLeftCurve
-          ? 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600'
-          : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600',
-      ),
-    [isLeftCurve],
-  );
-
-  // Add ABI error handling
-  useEffect(() => {
-    if (abiError) {
-      console.error('Failed to load contract ABI:', abiError);
-      toast({
-        title: 'Contract Error',
-        description:
-          'Failed to load contract interface. Please try again later.',
-        variant: 'destructive',
-      });
-    }
-  }, [abiError, toast]);
-
-  return (
-    <div className={cn('p-6 space-y-4', className)}>
-      <div className="flex items-center justify-between">
-        <h3 className="font-medium flex items-center gap-2">
-          <ArrowDownUp
-            className={cn(
-              'h-4 w-4',
-              isLeftCurve ? 'text-yellow-500' : 'text-purple-500',
-            )}
-          />
-          Trade {agent.name}
-        </h3>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5"
-          onClick={() => window.open('https://app.avnu.fi', '_blank')}
-        >
-          <LinkIcon className="h-3 w-3" />
-          Get ETH
-          <ExternalLink className="h-3 w-3 opacity-50" />
-        </Button>
-      </div>
-
-      <Tabs
-        defaultValue="buy"
-        className="w-full"
-        onValueChange={(value) => {
-          setActiveTab(value);
-          setError(null);
+        if (result?.transaction_hash) {
+          toast({
+            title: `${
+              activeTab === 'buy' ? 'Buy' : 'Sell'
+            } Transaction Submitted`,
+            description: (
+              <div className="flex flex-col gap-1">
+                <span>Transaction has been submitted.</span>
+                <a
+                  href={`https://starkscan.co/tx/${result.transaction_hash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-500 hover:text-blue-600 flex items-center gap-1"
+                >
+                  View on Starkscan <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+            ),
+          });
           setAmount('');
           setSimulatedEthAmount('');
           setConvertedTokenAmount('');
-        }}
-      >
-        <TabsList className="grid grid-cols-2 mb-4">
-          <TabsTrigger
-            value="buy"
-            className={cn(
-              'font-medium',
-              isLeftCurve
-                ? 'data-[state=active]:text-yellow-500'
-                : 'data-[state=active]:text-purple-500',
-            )}
-          >
-            Buy
-          </TabsTrigger>
-          <TabsTrigger
-            value="sell"
-            className={cn(
-              'font-medium',
-              isLeftCurve
-                ? 'data-[state=active]:text-yellow-500'
-                : 'data-[state=active]:text-purple-500',
-            )}
-          >
-            Sell
-          </TabsTrigger>
-        </TabsList>
 
-        <TabsContent value="buy" className="space-y-4">
-          <SwapInput
-            label={`Buy ${agent.name}`}
-            balance={`0.000 ${agent.name}`}
-            value={amount}
-            onChange={(value) => {
-              const num = parseFloat(value);
-              if (value === '' || (!isNaN(num) && isFinite(num))) {
-                setAmount(value);
-              }
-            }}
-            isLeftCurve={isLeftCurve}
-          />
+          // Trigger refresh callback after successful transaction
+          onTransactionSuccess?.();
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Transaction failed';
 
-          <SwapDivider isLeftCurve={isLeftCurve} />
+        // Format error message for display
+        let displayError = errorMessage;
+        if (errorMessage.includes('insufficient')) {
+          displayError =
+            activeTab === 'buy'
+              ? 'Insufficient ETH balance for this purchase'
+              : 'Insufficient token balance for this sale';
+        } else if (errorMessage.includes('rejected')) {
+          displayError = 'Transaction rejected by wallet';
+        }
 
-          <SwapInput
-            label="Required ETH"
-            balance={`${Number(balance || 0).toFixed(3)} ETH`}
-            value={
-              simulatedEthAmount
-                ? (Number(simulatedEthAmount) / 1e18).toString()
-                : ''
-            }
-            readOnly
-            isLeftCurve={isLeftCurve}
-          />
+        setError(displayError);
+        toast({
+          title: 'Swap Failed',
+          description: displayError,
+          variant: 'destructive',
+        });
+      } finally {
+        setIsProcessing(false);
+      }
+    }, []);
 
-          {error && <ErrorMessage message={error} isLeftCurve={isLeftCurve} />}
+    // Update button text to show ABI loading state
+    const buttonText = useMemo(() => {
+      if (isAbiLoading) return 'Loading Contract...';
+      if (isLoading) return 'Loading...';
+      if (isProcessing) return 'Processing...';
+      if (abiError) return 'Contract Error';
+      if (error) return 'Error';
+      if (!address) return 'Connect Wallet';
+      return 'Swap';
+    }, [isAbiLoading, isLoading, isProcessing, abiError, error, address]);
 
+    const buttonStyle = useMemo(
+      () =>
+        cn(
+          'w-full font-medium',
+          isLeftCurve
+            ? 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600'
+            : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600',
+        ),
+      [isLeftCurve],
+    );
+
+    // Add ABI error handling
+    useEffect(() => {
+      if (abiError) {
+        console.error('Failed to load contract ABI:', abiError);
+        toast({
+          title: 'Contract Error',
+          description:
+            'Failed to load contract interface. Please try again later.',
+          variant: 'destructive',
+        });
+      }
+    }, [abiError, toast]);
+
+    return (
+      <div className={cn('p-6 space-y-4', className)}>
+        <div className="flex items-center justify-between">
+          <h3 className="font-medium flex items-center gap-2">
+            <ArrowDownUp
+              className={cn(
+                'h-4 w-4',
+                isLeftCurve ? 'text-yellow-500' : 'text-purple-500',
+              )}
+            />
+            Trade ${agent.symbol}
+          </h3>
           <Button
-            className={buttonStyle}
-            size="lg"
-            onClick={handleSwap}
-            disabled={
-              !address ||
-              !amount ||
-              !simulatedEthAmount ||
-              isProcessing ||
-              isLoading ||
-              !!error
-            }
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => window.open('https://app.avnu.fi', '_blank')}
           >
-            {buttonText}
+            <LinkIcon className="h-3 w-3" />
+            Get ETH
+            <ExternalLink className="h-3 w-3 opacity-50" />
           </Button>
+        </div>
 
-          <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-            <span>Price Impact</span>
-            <span className="font-mono">~2.5%</span>
-          </div>
-        </TabsContent>
+        <Tabs
+          defaultValue="buy"
+          className="w-full"
+          onValueChange={(value) => {
+            setActiveTab(value);
+            setError(null);
+            setAmount('');
+            setSimulatedEthAmount('');
+            setConvertedTokenAmount('');
+          }}
+        >
+          <TabsList className="grid w-full grid-cols-2 bg-gray-500/5 p-1 rounded-lg">
+            <TabsTrigger
+              value="buy"
+              className={cn(
+                'rounded-md transition-all',
+                'data-[state=active]:shadow-sm',
+                isLeftCurve
+                  ? 'data-[state=active]:bg-yellow-500/20 data-[state=active]:text-yellow-500 hover:text-yellow-500/80'
+                  : 'data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-500 hover:text-purple-500/80',
+              )}
+            >
+              Buy
+            </TabsTrigger>
+            <TabsTrigger
+              value="sell"
+              className={cn(
+                'rounded-md transition-all',
+                'data-[state=active]:shadow-sm',
+                isLeftCurve
+                  ? 'data-[state=active]:bg-yellow-500/20 data-[state=active]:text-yellow-500 hover:text-yellow-500/80'
+                  : 'data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-500 hover:text-purple-500/80',
+              )}
+            >
+              Sell
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="sell" className="space-y-4">
-          <SwapInput
-            label={`Pay with ${agent.name}`}
-            balance={`0.000 ${agent.name}`}
-            value={amount}
-            onChange={(value) => {
-              const num = parseFloat(value);
-              if (value === '' || (!isNaN(num) && isFinite(num))) {
-                setAmount(value);
+          <TabsContent value="buy" className="space-y-4">
+            <SwapInput
+              label={`Purchase $${agent.symbol}`}
+              balance={`${Number(tokenBalance) / 1e6}`}
+              value={amount}
+              onChange={(value) => {
+                const num = parseFloat(value);
+                if (value === '' || (!isNaN(num) && isFinite(num))) {
+                  setAmount(value);
+                }
+              }}
+              isLeftCurve={isLeftCurve}
+            />
+
+            <SwapDivider isLeftCurve={isLeftCurve} />
+
+            <SwapInput
+              label="Required ETH"
+              balance={`${Number(ethBalance) / 1e18}`}
+              value={
+                simulatedEthAmount
+                  ? (Number(simulatedEthAmount) / 1e18).toString()
+                  : ''
               }
-            }}
-            isLeftCurve={isLeftCurve}
-          />
+              readOnly
+              isLeftCurve={isLeftCurve}
+            />
 
-          <SwapDivider isLeftCurve={isLeftCurve} />
+            {error && (
+              <ErrorMessage message={error} isLeftCurve={isLeftCurve} />
+            )}
 
-          <SwapInput
-            label="Receive ETH"
-            balance={`${Number(balance || 0).toFixed(3)} ETH`}
-            value={
-              simulatedEthAmount
-                ? (Number(simulatedEthAmount) / 1e18).toString()
-                : ''
-            }
-            readOnly
-            isLeftCurve={isLeftCurve}
-          />
+            <Button
+              className={buttonStyle}
+              size="lg"
+              onClick={handleSwap}
+              disabled={
+                !address ||
+                !amount ||
+                !simulatedEthAmount ||
+                isProcessing ||
+                isLoading ||
+                !!error
+              }
+            >
+              {buttonText}
+            </Button>
 
-          {error && <ErrorMessage message={error} isLeftCurve={isLeftCurve} />}
+            <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+              <span>Price Impact</span>
+              <span className="font-mono">~2.5%</span>
+            </div>
+          </TabsContent>
 
-          <Button
-            className={buttonStyle}
-            size="lg"
-            onClick={handleSwap}
-            disabled={
-              !address || !amount || isProcessing || isLoading || !!error
-            }
-          >
-            {buttonText}
-          </Button>
+          <TabsContent value="sell" className="space-y-4">
+            <SwapInput
+              label={`Pay with $${agent.symbol}`}
+              balance={`${Number(tokenBalance) / 1e6} `}
+              value={amount}
+              onChange={(value) => {
+                const num = parseFloat(value);
+                if (value === '' || (!isNaN(num) && isFinite(num))) {
+                  setAmount(value);
+                }
+              }}
+              isLeftCurve={isLeftCurve}
+            />
 
-          <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-            <span>Price Impact</span>
-            <span className="font-mono">~2.5%</span>
-          </div>
-        </TabsContent>
-      </Tabs>
+            <SwapDivider isLeftCurve={isLeftCurve} />
 
-      <div className="text-xs text-muted-foreground border-t border-border pt-3">
-        * Price increases with each purchase due to bonding curve
+            <SwapInput
+              label="Receive ETH"
+              balance={`${Number(ethBalance) / 1e18}`}
+              value={
+                simulatedEthAmount
+                  ? (Number(simulatedEthAmount) / 1e18).toString()
+                  : ''
+              }
+              readOnly
+              isLeftCurve={isLeftCurve}
+            />
+
+            {error && (
+              <ErrorMessage message={error} isLeftCurve={isLeftCurve} />
+            )}
+
+            <Button
+              className={buttonStyle}
+              size="lg"
+              onClick={handleSwap}
+              disabled={
+                !address || !amount || isProcessing || isLoading || !!error
+              }
+            >
+              {buttonText}
+            </Button>
+
+            <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+              <span>Price Impact</span>
+              <span className="font-mono">~2.5%</span>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        <div className="text-xs text-muted-foreground border-t border-border pt-3">
+          * Price increases with each purchase due to bonding curve
+        </div>
       </div>
-    </div>
-  );
-});
+    );
+  },
+);
 SwapWidget.displayName = 'SwapWidget';
