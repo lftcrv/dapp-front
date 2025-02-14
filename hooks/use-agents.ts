@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Agent } from '@/lib/types';
 import { agentService } from '@/lib/services/api/agents';
 import { useAsyncState } from '@/lib/core/state';
+import { getCompleteAgentData } from '@/actions/agents/token/getTokenInfo';
 
 export function useAgents() {
   const state = useAsyncState<Agent[]>();
@@ -32,18 +33,27 @@ export function useAgent({
   initialData?: Agent;
 }) {
   const state = useAsyncState<Agent>(initialData);
+  const { setLoading, handleResult } = state;
 
   useEffect(() => {
     async function fetchAgent() {
       if (initialData) return;
 
-      state.setLoading(true);
-      const result = await agentService.getById(id);
-      state.handleResult(result);
+      setLoading(true);
+      const result = await getCompleteAgentData(id);
+      if (!result.success && result.error) {
+        handleResult({ 
+          success: false, 
+          error: new Error(result.error),
+          data: undefined 
+        });
+      } else {
+        handleResult(result as { success: true; data: Agent });
+      }
     }
 
     fetchAgent();
-  }, [id, initialData]);
+  }, [id, initialData, setLoading, handleResult]);
 
   return state;
 }

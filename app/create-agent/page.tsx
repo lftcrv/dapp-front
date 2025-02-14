@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,13 @@ import {
 import { createAgent } from '@/actions/agents/create/createAgent';
 import { showToast } from '@/lib/toast';
 import { useWallet } from '@/app/context/wallet-context';
-import { useAccount, useContract, useNetwork, useSendTransaction, useTransactionReceipt } from '@starknet-react/core';
+import {
+  useAccount,
+  useContract,
+  useNetwork,
+  useSendTransaction,
+  useTransactionReceipt,
+} from '@starknet-react/core';
 import { type Abi } from 'starknet';
 import { ProfilePictureUpload } from '@/components/profile-picture-upload';
 
@@ -100,12 +106,15 @@ export default function CreateAgentPage() {
   const { contract } = useContract({
     abi: [
       {
-        type: "function",
-        name: "transfer",
-        state_mutability: "external",
+        type: 'function',
+        name: 'transfer',
+        state_mutability: 'external',
         inputs: [
-          { name: "recipient", type: "core::starknet::contract_address::ContractAddress" },
-          { name: "amount", type: "core::integer::u256" },
+          {
+            name: 'recipient',
+            type: 'core::starknet::contract_address::ContractAddress',
+          },
+          { name: 'amount', type: 'core::integer::u256' },
         ],
         outputs: [],
       },
@@ -124,12 +133,13 @@ export default function CreateAgentPage() {
     return starknetWallet.isConnected || privyAuthenticated;
   }, [isLoading, privyReady, starknetWallet.isConnected, privyAuthenticated]);
 
-  const [transactionHash, setTransactionHash] = useState<string | undefined>(undefined);
+  const [transactionHash, setTransactionHash] = useState<string | undefined>(
+    undefined,
+  );
   const [isTransactionConfirmed, setIsTransactionConfirmed] = useState(false);
 
   // Debug logging
-  React.useEffect(() => {
-  }, [
+  React.useEffect(() => {}, [
     activeWalletType,
     starknetWallet.isConnected,
     privyAuthenticated,
@@ -313,40 +323,43 @@ export default function CreateAgentPage() {
 
   const handleDeploy = async (e: React.FormEvent) => {
     e.preventDefault();
-  
+
     if (!currentAddress) {
       showToast('CONNECTION_ERROR');
       return;
     }
-  
+
     if (!formData.name.trim()) {
       showToast('AGENT_ERROR');
       setCurrentTab('basic');
       return;
     }
-  
+
     if (!formData.bio.some((b) => b.trim())) {
       showToast('AGENT_ERROR');
       setCurrentTab('personality');
       return;
     }
-  
-    if (!formData.messageExamples[0][0].content.text.trim() ||
-        !formData.messageExamples[0][1].content.text.trim()) {
+
+    if (
+      !formData.messageExamples[0][0].content.text.trim() ||
+      !formData.messageExamples[0][1].content.text.trim()
+    ) {
       showToast('AGENT_ERROR');
       setCurrentTab('examples');
       return;
     }
-  
+
     setIsSubmitting(true);
-  
+
     try {
       const curveSide = agentType === 'leftcurve' ? 'LEFT' : 'RIGHT';
-      const recipientAddress = process.env.NEXT_PUBLIC_DEPLOYMENT_FEES_RECIPIENT;
+      const recipientAddress =
+        process.env.NEXT_PUBLIC_DEPLOYMENT_FEES_RECIPIENT;
       const amountToSend = process.env.NEXT_PUBLIC_DEPLOYMENT_FEES;
 
       if (!recipientAddress || !amountToSend) {
-        throw new Error("Deployment fees not configured");
+        throw new Error('Deployment fees not configured');
       }
 
       console.log('🔵 Payment Debug:', {
@@ -360,30 +373,30 @@ export default function CreateAgentPage() {
         chainId: chain?.id,
         contractAddress: contract?.address,
       });
-  
+
       if (!contract || !address) {
-        throw new Error("Contract or address not available");
+        throw new Error('Contract or address not available');
       }
 
       // Call transfer directly
       const transferCall = {
         contractAddress: contract.address,
-        entrypoint: "transfer",
+        entrypoint: 'transfer',
         calldata: [
           recipientAddress,
           BigInt(amountToSend).toString(),
-          "0" // For uint256, we need low and high parts
-        ]
+          '0', // For uint256, we need low and high parts
+        ],
       };
-      
+
       console.log('🔵 Transaction Debug:', {
         method: 'transfer',
         params: [recipientAddress, BigInt(amountToSend).toString()],
-        calldata: [recipientAddress, BigInt(amountToSend).toString(), "0"]
+        calldata: [recipientAddress, BigInt(amountToSend).toString(), '0'],
       });
-  
+
       showToast('TX_PENDING', 'loading');
-  
+
       const response = await sendAsync([transferCall]);
 
       if (response?.transaction_hash) {
@@ -405,22 +418,35 @@ export default function CreateAgentPage() {
 
   React.useEffect(() => {
     if (isLoading || !transactionHash) return;
-  
+
     if (receiptError) {
-      console.error("❌ Transaction Receipt Error:", receiptError);
+      console.error('❌ Transaction Receipt Error:', receiptError);
       showToast('TX_ERROR', 'error');
     }
-  
+
     if (receiptData) {
       console.log('🔵 Transaction Receipt:', receiptData);
 
       // Check if it's an invoke transaction
-      if ('finality_status' in receiptData && 'execution_status' in receiptData) {
+      if (
+        'finality_status' in receiptData &&
+        'execution_status' in receiptData
+      ) {
         const { finality_status, execution_status } = receiptData;
-        
-        if (finality_status === 'ACCEPTED_ON_L2' && execution_status === 'SUCCEEDED') {
+
+        if (
+          finality_status === 'ACCEPTED_ON_L2' &&
+          execution_status === 'SUCCEEDED'
+        ) {
           showToast('TX_SUCCESS', 'success', transactionHash);
           setIsTransactionConfirmed(true);
+
+          // Set up redirection after 5 seconds
+          setTimeout(() => {
+            console.log('🔄 Redirecting to home after 5s delay...');
+            showToast('AGENT_CREATING', 'loading');
+            router.push('/');
+          }, 5000);
         }
       }
     }
@@ -428,7 +454,7 @@ export default function CreateAgentPage() {
 
   React.useEffect(() => {
     if (!isTransactionConfirmed || !transactionHash || !currentAddress) return;
-  
+
     const createAgentAfterTx = async () => {
       try {
         console.log('🔵 Creating Agent:', {
@@ -436,8 +462,6 @@ export default function CreateAgentPage() {
           userAddress: currentAddress,
           agentType,
         });
-
-        showToast('AGENT_CREATING', 'loading');
 
         const result = await createAgent(
           formData.name,
@@ -450,7 +474,9 @@ export default function CreateAgentPage() {
             bio: formData.bio.filter(Boolean),
             lore: formData.lore.filter(Boolean),
             knowledge: formData.knowledge.filter(Boolean),
-            messageExamples: formData.messageExamples.filter(msg => msg[0].content.text && msg[1].content.text),
+            messageExamples: formData.messageExamples.filter(
+              (msg) => msg[0].content.text && msg[1].content.text,
+            ),
             postExamples: formData.postExamples.filter(Boolean),
             topics: formData.topics.filter(Boolean),
             style: {
@@ -463,13 +489,12 @@ export default function CreateAgentPage() {
           agentType === 'leftcurve' ? 'LEFT' : 'RIGHT',
           currentAddress,
           transactionHash,
-          profilePicture || undefined
+          profilePicture || undefined,
         );
-  
+
         if (result.success) {
           console.log('🔵 Agent Created Successfully:', result);
           showToast('AGENT_SUCCESS', 'success');
-          router.push('/');
         } else {
           console.error('❌ Agent Creation Failed:', result.error);
           showToast('AGENT_ERROR', 'error');
@@ -481,10 +506,9 @@ export default function CreateAgentPage() {
         setIsSubmitting(false);
       }
     };
-  
+
     createAgentAfterTx();
   }, [isTransactionConfirmed, transactionHash]);
-  
 
   const getPlaceholder = (field: FormField | 'style') => {
     const isLeft = agentType === 'leftcurve';
@@ -561,6 +585,75 @@ export default function CreateAgentPage() {
       ))}
     </div>
   );
+
+  React.useEffect(() => {
+    if (!currentAddress) {
+      router.push('/');
+    }
+  }, [currentAddress, router]);
+
+  React.useEffect(() => {
+    const generatePrompt = async () => {
+      // ... existing code ...
+    };
+
+    generatePrompt();
+  }, [
+    agentType,
+    currentAddress,
+    formData.adjectives,
+    formData.bio,
+    formData.knowledge,
+    formData.lore,
+    formData.messageExamples,
+    formData.name,
+    formData.postExamples,
+    formData.style.all,
+    formData.style.chat,
+    formData.style.post,
+    formData.topics,
+    profilePicture,
+  ]);
+
+  const [isFormValid, setIsFormValid] = useState(false);
+
+  useEffect(() => {
+    if (
+      formData.name &&
+      formData.bio &&
+      formData.lore &&
+      formData.knowledge &&
+      formData.topics &&
+      formData.adjectives &&
+      formData.messageExamples &&
+      formData.postExamples &&
+      formData.style.all &&
+      formData.style.chat &&
+      formData.style.post &&
+      agentType &&
+      currentAddress &&
+      profilePicture
+    ) {
+      setIsFormValid(true);
+    } else {
+      setIsFormValid(false);
+    }
+  }, [
+    formData.name,
+    formData.bio,
+    formData.lore,
+    formData.knowledge,
+    formData.topics,
+    formData.adjectives,
+    formData.messageExamples,
+    formData.postExamples,
+    formData.style.all,
+    formData.style.chat,
+    formData.style.post,
+    agentType,
+    currentAddress,
+    profilePicture,
+  ]);
 
   return (
     <>
@@ -680,7 +773,9 @@ export default function CreateAgentPage() {
                   agentType === 'leftcurve' ? 'bg-yellow-500' : 'bg-purple-500'
                 }`}
                 style={{
-                  width: `${((TABS.indexOf(currentTab) + 1) / TABS.length) * 100}%`,
+                  width: `${
+                    ((TABS.indexOf(currentTab) + 1) / TABS.length) * 100
+                  }%`,
                 }}
               />
             </div>
@@ -952,7 +1047,7 @@ export default function CreateAgentPage() {
                           ? 'bg-gradient-to-r from-yellow-500 to-red-500 hover:opacity-90'
                           : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:opacity-90'
                       }`}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || !isFormValid}
                       onClick={handleDeploy}
                     >
                       {isSubmitting ? (

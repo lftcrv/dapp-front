@@ -56,24 +56,7 @@ const AgentsContainer = dynamic(
   },
 );
 
-const DockerMessageCard = dynamic(
-  () => {
-    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-      window.requestIdleCallback(() => {
-        import('@/components/trade-call');
-      });
-    }
-    return import('@/components/trade-call').then((mod) => {
-      const Component = mod.default as FC<{ agent: Agent }>;
-      Component.displayName = 'DockerMessageCard';
-      return Component;
-    });
-  },
-  {
-    loading: () => <div className="h-[400px] bg-white/5 rounded animate-pulse" />,
-    ssr: false,
-  }
-);
+// const DockerMessageCard = dynamic(() => import('./docker-message-card'));
 
 interface HomeContentProps {
   agents: Agent[];
@@ -95,13 +78,13 @@ export const HomeContent = memo(
             error={error}
           />
         </Suspense>
-        <Suspense fallback={<div className="h-[400px] bg-white/5 rounded animate-pulse" />}>
+        {/* <Suspense fallback={<div className="h-[400px] bg-white/5 rounded animate-pulse" />}>
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {agents.map((agent) => (
               <DockerMessageCard key={agent.id} agent={agent} />
             ))}
           </div>
-        </Suspense>
+        </Suspense> */}
       </>
     );
   }

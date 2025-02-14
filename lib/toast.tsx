@@ -50,7 +50,7 @@ const dismissRelatedToasts = (messageType: string) => {
   };
 
   // Find which group the message belongs to
-  const group = Object.entries(relatedGroups).find(([_, messages]) =>
+  const group = Object.entries(relatedGroups).find(([, messages]) =>
     messages.some(msg => messageType.includes(msg))
   );
 
@@ -64,6 +64,12 @@ const dismissRelatedToasts = (messageType: string) => {
       }
     });
   }
+};
+
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return 'An unexpected error occurred';
 };
 
 export function showToast(
@@ -150,3 +156,12 @@ export function showToast(
 
   return id;
 }
+
+export const showErrorToast = (error: unknown) => {
+  const message = getErrorMessage(error);
+  toast.error(message);
+};
+
+export const showSuccessToast = (message: string) => {
+  toast.success(message);
+};
