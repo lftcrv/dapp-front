@@ -4,22 +4,23 @@ import { Agent, ApiAgent } from '@/lib/types';
 import { RpcProvider } from 'starknet';
 import { isInBondingPhase } from '@/lib/utils';
 
-// Initialize provider
-const provider = new RpcProvider({ 
-  nodeUrl: process.env.NEXT_PUBLIC_NODE_URL 
-});
-
 async function mapApiAgentToAgent(apiAgent: ApiAgent): Promise<Agent> {
+  // Initialize provider
+  const provider = new RpcProvider({
+    nodeUrl: process.env.NEXT_PUBLIC_NODE_URL,
+  });
+
   // Format token contract address - ensure it starts with 0x but avoid double prefix
-  const tokenAddress = apiAgent.Token?.contractAddress 
-    ? apiAgent.Token.contractAddress.startsWith('0x') 
-      ? apiAgent.Token.contractAddress 
+  const tokenAddress = apiAgent.Token?.contractAddress
+    ? apiAgent.Token.contractAddress.startsWith('0x')
+      ? apiAgent.Token.contractAddress
       : `0x${apiAgent.Token.contractAddress}`
     : undefined;
 
   const price = apiAgent.LatestMarketData?.price || 0;
   const holders = apiAgent.LatestMarketData?.holders || 0;
-  const isBonding = apiAgent.status !== 'RUNNING' || isInBondingPhase(price, holders);
+  const isBonding =
+    apiAgent.status !== 'RUNNING' || isInBondingPhase(price, holders);
 
   if (!tokenAddress) {
     return {
@@ -31,12 +32,14 @@ async function mapApiAgentToAgent(apiAgent: ApiAgent): Promise<Agent> {
       price,
       marketCap: apiAgent.LatestMarketData?.marketCap || 0,
       holders,
-      creator: apiAgent.Wallet?.deployedAddress ? `0x${apiAgent.Wallet.deployedAddress}` : 'unknown',
+      creator: apiAgent.Wallet?.deployedAddress
+        ? `0x${apiAgent.Wallet.deployedAddress}`
+        : 'unknown',
       createdAt: apiAgent.createdAt,
       creativityIndex: apiAgent.degenScore || 0,
       performanceIndex: apiAgent.winScore || 0,
       contractAddress: '0x0' as `0x${string}`,
-      abi: []
+      abi: [],
     };
   }
 
@@ -56,12 +59,14 @@ async function mapApiAgentToAgent(apiAgent: ApiAgent): Promise<Agent> {
       price,
       marketCap: apiAgent.LatestMarketData?.marketCap || 0,
       holders,
-      creator: apiAgent.Wallet?.deployedAddress ? `0x${apiAgent.Wallet.deployedAddress}` : 'unknown',
+      creator: apiAgent.Wallet?.deployedAddress
+        ? `0x${apiAgent.Wallet.deployedAddress}`
+        : 'unknown',
       createdAt: apiAgent.createdAt,
       creativityIndex: apiAgent.degenScore || 0,
       performanceIndex: apiAgent.winScore || 0,
       contractAddress: tokenAddress as `0x${string}`,
-      abi
+      abi,
     };
   } catch (error) {
     console.error('Error fetching ABI for agent:', apiAgent.id, error);
@@ -74,12 +79,14 @@ async function mapApiAgentToAgent(apiAgent: ApiAgent): Promise<Agent> {
       price,
       marketCap: apiAgent.LatestMarketData?.marketCap || 0,
       holders,
-      creator: apiAgent.Wallet?.deployedAddress ? `0x${apiAgent.Wallet.deployedAddress}` : 'unknown',
+      creator: apiAgent.Wallet?.deployedAddress
+        ? `0x${apiAgent.Wallet.deployedAddress}`
+        : 'unknown',
       createdAt: apiAgent.createdAt,
       creativityIndex: apiAgent.degenScore || 0,
       performanceIndex: apiAgent.winScore || 0,
       contractAddress: tokenAddress as `0x${string}`,
-      abi: []
+      abi: [],
     };
   }
 }
@@ -115,7 +122,6 @@ export async function getAgents() {
     }
 
     // Log the response to debug
-    
 
     // Check if we have the expected data structure
     if (!responseData.data?.agents) {
@@ -124,7 +130,9 @@ export async function getAgents() {
     }
 
     // Map agents and wait for all promises to resolve
-    const mappedAgents = await Promise.all(responseData.data.agents.map(mapApiAgentToAgent));
+    const mappedAgents = await Promise.all(
+      responseData.data.agents.map(mapApiAgentToAgent),
+    );
 
     return {
       success: true,

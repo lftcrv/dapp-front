@@ -7,28 +7,19 @@ import { WagmiProvider } from '@privy-io/wagmi';
 import { mainnet, sepolia } from 'viem/chains';
 import { wagmiConfig } from './wagmiConfig';
 
-// Ensure PRIVY_APP_ID is defined
-if (!process.env.NEXT_PUBLIC_PRIVY_APP_ID) {
-  throw new Error('NEXT_PUBLIC_PRIVY_APP_ID is not defined');
-}
-
-// After the check above, we can safely assert this is defined
-const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
-
-// Create a client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 60 * 1000, // 1 minute
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
-});
-
 export default function Providers({ children }: { children: React.ReactNode }) {
+  const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID || '';
+
+  React.useEffect(() => {
+    if (!PRIVY_APP_ID) {
+      console.error(
+        "⚠️ NEXT_PUBLIC_PRIVY_APP_ID is not defined! Make sure it's set in your environment.",
+      );
+    }
+  }, []);
+
   return (
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={new QueryClient()}>
       <PrivyProvider
         appId={PRIVY_APP_ID}
         config={{
@@ -52,12 +43,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           },
           defaultChain: mainnet,
           walletConnectCloudProjectId:
-            process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
+            process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '',
         }}
       >
-        <WagmiProvider config={wagmiConfig}>
-          {children}
-        </WagmiProvider>
+        <WagmiProvider config={wagmiConfig}>{children}</WagmiProvider>
       </PrivyProvider>
     </QueryClientProvider>
   );
