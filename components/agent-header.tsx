@@ -8,8 +8,10 @@ import { motion } from 'framer-motion';
 import { Agent } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { memo, useState } from 'react';
+import { memo, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import React from 'react';
+import { getAgentInfo } from '@/actions/agents/token/getTokenInfo';
 
 interface AgentHeaderProps {
   agent?: Agent;
@@ -54,7 +56,34 @@ const AgentAvatar = memo(
     isLeftCurve: boolean;
     priceChange: number;
   }) => {
-    const isPriceUp = priceChange > 0;
+    const [isImageLoaded, setIsImageLoaded] = useState(false);
+    const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(
+      null,
+    );
+
+    // Fetch agent info including profile picture URL
+    useEffect(() => {
+      const fetchAgentInfo = async () => {
+        try {
+          const result = await getAgentInfo(agent.id);
+          if (result.success && result.data) {
+            setProfilePictureUrl(result.data.profilePictureUrl);
+          }
+        } catch (error) {
+          console.error('Failed to fetch agent info:', error);
+        }
+      };
+
+      fetchAgentInfo();
+    }, [agent.id]);
+
+    // Debug logs
+    useEffect(() => {}, [
+      agent.id,
+      profilePictureUrl,
+      isImageLoaded,
+      priceChange,
+    ]);
 
     return (
       <motion.div
@@ -66,28 +95,36 @@ const AgentAvatar = memo(
         animate={{ scale: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
-        {agent.avatar ? (
+        {profilePictureUrl && (
           <Image
-            src={agent.avatar}
+            src={profilePictureUrl}
             alt={agent.name}
             fill
-            className="object-cover"
+            className={cn(
+              'object-cover transition-opacity duration-300',
+              isImageLoaded ? 'opacity-100' : 'opacity-0',
+            )}
+            onLoad={() => {
+              setIsImageLoaded(true);
+            }}
             onError={(e) => {
+              console.error('❌ Image load error:', {
+                agentId: agent.id,
+                url: profilePictureUrl,
+                error: e,
+              });
+              setIsImageLoaded(false);
               const target = e.currentTarget;
-              const fallback = target.parentElement?.querySelector('div');
-              if (fallback) {
-                target.style.display = 'none';
-                fallback.style.display = 'flex';
-              }
+              target.style.display = 'none';
             }}
           />
-        ) : null}
+        )}
         <div
           className={cn(
-            'w-full h-full items-center justify-center',
+            'w-full h-full items-center justify-center flex',
             isLeftCurve ? 'bg-yellow-500/10' : 'bg-purple-500/10',
+            profilePictureUrl && isImageLoaded && 'hidden',
           )}
-          style={{ display: agent.avatar ? 'none' : 'flex' }}
         >
           {isLeftCurve ? (
             <span className="text-4xl">🦧</span>
@@ -95,24 +132,26 @@ const AgentAvatar = memo(
             <span className="text-4xl">🐙</span>
           )}
         </div>
-        <motion.div
-          className={cn(
-            'absolute bottom-0 left-0 right-0 px-2 py-1 text-xs font-bold font-mono flex items-center justify-center gap-1',
-            isPriceUp
-              ? 'bg-green-500/90 text-white'
-              : 'bg-red-500/90 text-white',
-          )}
-          initial={{ y: 20 }}
-          animate={{ y: 0 }}
-          transition={{ duration: 0.3, delay: 0.4 }}
-        >
-          {isPriceUp ? (
-            <ChevronUp className="h-3 w-3" />
-          ) : (
-            <ChevronDown className="h-3 w-3" />
-          )}
-          {Math.abs(priceChange).toFixed(2)}%
-        </motion.div>
+        {priceChange !== 0 && (
+          <motion.div
+            className={cn(
+              'absolute bottom-0 left-0 right-0 px-2 py-1 text-xs font-bold font-mono flex items-center justify-center gap-1',
+              priceChange > 0
+                ? 'bg-green-500/90 text-white'
+                : 'bg-red-500/90 text-white',
+            )}
+            initial={{ y: 20 }}
+            animate={{ y: 0 }}
+            transition={{ duration: 0.3, delay: 0.4 }}
+          >
+            {priceChange > 0 ? (
+              <ChevronUp className="h-3 w-3" />
+            ) : (
+              <ChevronDown className="h-3 w-3" />
+            )}
+            {priceChange === 0 ? 'n/a' : `${priceChange.toFixed(2)}%`}
+          </motion.div>
+        )}
       </motion.div>
     );
   },
@@ -194,7 +233,8 @@ const AgentInfo = memo(
               )}
               onClick={handleCopyAddress}
             >
-              {agent.contractAddress.slice(0, 6)}...{agent.contractAddress.slice(-4)}
+              {agent.contractAddress.slice(0, 6)}...
+              {agent.contractAddress.slice(-4)}
             </div>
             <Button
               variant="ghost"
@@ -205,7 +245,7 @@ const AgentInfo = memo(
               <Copy className="h-3 w-3" />
             </Button>
             {showCopied && (
-              <motion.div 
+              <motion.div
                 className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs text-muted-foreground"
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -262,7 +302,8 @@ export const AgentHeader = memo(
       ? 'from-yellow-500 via-orange-500 to-pink-500'
       : 'from-purple-500 via-indigo-500 to-blue-500';
 
-    const priceChange = ((agent.price - 1) / 1) * 100;
+    // Use priceChange24h from the API, default to 0 if not available
+    const priceChange = agent.priceChange24h || 0;
 
     return (
       <motion.div

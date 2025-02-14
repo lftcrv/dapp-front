@@ -6,9 +6,8 @@ import { motion } from 'framer-motion';
 import { UserCircle, Sparkles, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { AgentAvatar } from '@/components/ui/agent-avatar';
+import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAgentsData } from '@/hooks/use-agents-data';
 import React from 'react';
 
 interface AgentListProps {
@@ -29,13 +28,7 @@ const AgentItem = memo(
     index: number;
   }) => {
     // Debug log agent data
-    React.useEffect(() => {
-      console.log('🔍 Agent Data:', {
-        id: agent.id,
-        name: agent.name,
-        profilePictureUrl: agent.profilePictureUrl,
-      });
-    }, [agent]);
+    React.useEffect(() => {}, [agent]);
 
     return (
       <Link href={`/agent/${agent.id}`}>
@@ -55,16 +48,25 @@ const AgentItem = memo(
             <div className="relative">
               <div className="w-8 h-8 relative rounded-lg overflow-hidden flex-shrink-0 bg-white/5 flex items-center justify-center">
                 {agent.profilePictureUrl ? (
-                  <img
+                  <Image
                     src={`${process.env.NEXT_PUBLIC_ELIZA_API_URL}${agent.profilePictureUrl}`}
                     alt={agent.name}
-                    className="w-full h-full object-cover [image-rendering:crisp-edges]"
+                    width={32}
+                    height={32}
+                    className="object-cover [image-rendering:crisp-edges]"
+                    onLoad={() => {}}
                     onError={(e) => {
-                      console.error('❌ Image Load Error:', {
+                      console.error('❌ Image Error:', {
                         src: e.currentTarget.src,
                         name: agent.name,
+                        url: `${process.env.NEXT_PUBLIC_ELIZA_API_URL}${agent.profilePictureUrl}`,
                       });
                       e.currentTarget.style.display = 'none';
+                      const parent = e.currentTarget.parentElement;
+                      if (parent) {
+                        parent.innerHTML =
+                          '<div class="w-full h-full flex items-center justify-center"><svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></div>';
+                      }
                     }}
                   />
                 ) : (
@@ -105,11 +107,11 @@ const AgentItem = memo(
                 </div>
                 <div className="text-right">
                   <div className="font-mono text-[10px]">
-                    {agent.contractAddress ? (
-                      `Ξ${(agent.price / 1e18).toFixed(14).replace(/\.?0+$/, '')}`
-                    ) : (
-                      'Initializing...'
-                    )}
+                    {agent.contractAddress
+                      ? `Ξ${(agent.price / 1e18)
+                          .toFixed(14)
+                          .replace(/\.?0+$/, '')}`
+                      : 'Initializing...'}
                   </div>
                   <div
                     className={cn(
@@ -155,6 +157,9 @@ const AgentList = memo(({ title, subtitle, agents, type }: AgentListProps) => {
         .slice(0, 5),
     [agents, type],
   );
+
+  // Debug log filtered agents
+  React.useEffect(() => {}, [sortedAgents, type]);
 
   const loopedAgents = useMemo(() => {
     // Only create a loop if we have at least 3 agents
@@ -268,12 +273,18 @@ const LoadingState = () => (
   </div>
 );
 
-export const TopAgents = memo(() => {
-    const { 
-      data,
-      isLoading, 
-      error 
-    } = useAgentsData();
+export const TopAgents = memo(
+  ({
+    agents,
+    isLoading = false,
+    error = null,
+  }: {
+    agents: Agent[];
+    isLoading?: boolean;
+    error?: Error | null;
+  }) => {
+    // Debug log incoming props
+    React.useEffect(() => {}, [agents, isLoading, error]);
 
     if (isLoading) {
       return <LoadingState />;
@@ -287,7 +298,7 @@ export const TopAgents = memo(() => {
       );
     }
 
-    if (!data) {
+    if (!agents) {
       return null;
     }
 
@@ -297,13 +308,13 @@ export const TopAgents = memo(() => {
           <AgentList
             title="DEGEN KINGS"
             subtitle="yolo masters farming midcurver rekt posts"
-            agents={data.leftLeaderboard}
+            agents={agents}
             type="leftcurve"
           />
           <AgentList
             title="SIGMA LORDS"
             subtitle="gigabrain quants making midcurvers ngmi"
-            agents={data.rightLeaderboard}
+            agents={agents}
             type="rightcurve"
           />
         </div>
