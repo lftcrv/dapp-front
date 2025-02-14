@@ -17,9 +17,7 @@ export default function StarknetProvider({ children }: { children: ReactNode }) 
     new WebWalletConnector({ url: "https://web.argent.xyz" }),
   ];
 
-  const provider = nethermindApiKey ? 
-    nethermindProvider({ apiKey: nethermindApiKey }) : 
-    publicProvider();
+  const provider = publicProvider();
 
   return (
     <StarknetConfig
