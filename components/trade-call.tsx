@@ -15,23 +15,32 @@ const DockerMessageCard: React.FC = () => {
         return;
       }
 
-      const url = `http://localhost:${port}/${runtimeAgentId}/message`;
-      console.log('url:', url);
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: 'execute SIMULATE_STARKNET_TRADE',
-          userId: 'user1234',
-          userName: 'dzk',
-          roomId: 'room456',
-          name: 'Basic Interaction',
-          agentId: runtimeAgentId,
-        }),
+      const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL;
+      const apiKey = process.env.API_KEY;
+
+      if (!apiUrl || !apiKey) {
+        throw new Error('Missing API configuration');
+      }
+
+      const headers = {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+      };
+
+      const requestBody = JSON.stringify({
+        text: 'execute SIMULATE_STARKNET_TRADE',
+        userId: 'user1234',
+        userName: 'dzk',
+        roomId: 'room456',
+        name: 'Basic Interaction',
+        agentId: runtimeAgentId,
       });
 
+      const response = await fetch(`${apiUrl}/${runtimeAgentId}/message`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody),
+      });
       if (!response.ok) {
         console.error('Failed to send message');
       }
