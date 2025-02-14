@@ -10,7 +10,6 @@ import {
   type ReactNode,
 } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
-import { type StarknetWindowObject } from 'get-starknet-core';
 import { StarknetAccountDerivation } from '@/components/starknet-account-derivation';
 import { handleStarknetConnection } from '@/actions/shared/handle-starknet-connection';
 import { signatureStorage } from '@/actions/shared/derive-starknet-account';
@@ -18,7 +17,7 @@ import { useConnect, useAccount, useDisconnect } from "@starknet-react/core";
 import { useStarknetkitConnectModal, type StarknetkitConnector } from "starknetkit";
 
 interface StarknetWalletState {
-  wallet: StarknetWindowObject | null;
+  wallet: any | null;
   address?: string;
   isConnected: boolean;
   chainId?: string;
@@ -167,7 +166,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           name: activeConnector.name,
           icon: activeConnector.icon,
           version: '1.0.0',
-        } as StarknetWindowObject : null,
+        } as any : null,
       }));
 
       // Cache the connection
