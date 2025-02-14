@@ -17,6 +17,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       );
     }
   }, []);
+  console.log("PRIVY_APP_ID", PRIVY_APP_ID)
 
   return (
     <QueryClientProvider client={new QueryClient()}>
