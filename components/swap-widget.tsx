@@ -8,10 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowDownUp, ExternalLink, Link as LinkIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import {
-  simulateBuyTokens,
-  simulateSellTokens,
-} from '@/actions/agents/token/getTokenInfo';
 import { useWalletStatus } from '@/hooks/use-wallet-status';
 import { useContractAbi } from '@/utils/abi';
 import { useBuyTokens, useSellTokens } from '@/hooks/use-token-transactions';
@@ -134,6 +130,7 @@ SwapDivider.displayName = 'SwapDivider';
 export const SwapWidget = memo(
   ({ agent, className, onTransactionSuccess }: SwapWidgetProps) => {
     const [amount, setAmount] = useState('');
+    const [debouncedAmount, setDebouncedAmount] = useState('');
     const [simulatedEthAmount, setSimulatedEthAmount] = useState('');
     const [convertedTokenAmount, setConvertedTokenAmount] = useState('');
     const [activeTab, setActiveTab] = useState('buy');
@@ -159,7 +156,7 @@ export const SwapWidget = memo(
       address: agent.contractAddress as `0x0${string}`,
     });
 
-    // Add ETH contract hook at the top with other hooks
+    // Add ETH contract hook
     const { contract: ethContract } = useContract({
       address:
         '0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7',
@@ -192,8 +189,21 @@ export const SwapWidget = memo(
 
     // 4. All useEffect hooks
     useEffect(() => {
+      const timer = setTimeout(() => {
+        setDebouncedAmount(amount);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }, [amount]);
+
+    useEffect(() => {
       const simulateSwap = async () => {
-        if (!amount || !agent.id || !address || isInitializing) {
+        if (
+          !debouncedAmount ||
+          !agent.id ||
+          !address ||
+          isInitializing ||
+          !contract
+        ) {
           setSimulatedEthAmount('');
           setConvertedTokenAmount('');
           setError(null);
@@ -201,8 +211,10 @@ export const SwapWidget = memo(
         }
 
         setIsLoading(true);
+        const startTime = performance.now();
+
         try {
-          const inputAmount = parseFloat(amount);
+          const inputAmount = parseFloat(debouncedAmount);
           if (isNaN(inputAmount) || inputAmount <= 0) {
             setSimulatedEthAmount('');
             setConvertedTokenAmount('');
@@ -210,36 +222,58 @@ export const SwapWidget = memo(
             return;
           }
 
-          // Convert input amount to token decimals (6) once
-          const tokenAmount = BigInt(Math.floor(inputAmount * 1e6)).toString();
+          // Convert input amount to token decimals (6)
+          const tokenAmount =
+            activeTab === 'buy'
+              ? BigInt(Math.floor(inputAmount * 1e6)).toString()
+              : BigInt(Math.floor(inputAmount * 1e6)).toString();
+
           setConvertedTokenAmount(tokenAmount);
 
-          const result = await (activeTab === 'buy'
-            ? simulateBuyTokens(agent.id, tokenAmount)
-            : simulateSellTokens(agent.id, tokenAmount));
+          // Direct contract call for simulation
+          const result = await contract.call(
+            activeTab === 'buy' ? 'simulate_buy' : 'simulate_sell',
+            [tokenAmount],
+          );
 
-          if (result.success && result.data) {
-            setSimulatedEthAmount(result.data.toString());
-            setError(null);
+          if (result) {
+            // Extract the first value from the result array
+            const simulatedAmount =
+              Array.isArray(result) && result.length > 0
+                ? result[0].toString()
+                : typeof result === 'object' && result !== null
+                ? Object.values(result)[0]?.toString() || ''
+                : result?.toString() || '';
+
+            if (simulatedAmount && !isNaN(Number(simulatedAmount))) {
+              setSimulatedEthAmount(simulatedAmount);
+              setError(null);
+            } else {
+              setSimulatedEthAmount('');
+              setError('Invalid simulation result format');
+              console.error('❌ Invalid simulation amount:', simulatedAmount);
+            }
           } else {
             setSimulatedEthAmount('');
-            if (result.error?.includes('Option::unwrap failed')) {
-              setError('Insufficient liquidity in the bonding curve');
-            } else {
-              setError(result.error || 'Failed to simulate swap');
-            }
+            setError('Failed to simulate swap');
           }
-        } catch (error) {
-          // Only log in development
-          if (process.env.NODE_ENV === 'development') {
-            console.error('Failed to simulate swap:', error);
-          }
+        } catch (error: unknown) {
+          console.error('❌ Simulation error:', {
+            error,
+            message: error instanceof Error ? error.message : String(error),
+            elapsed: `${(performance.now() - startTime).toFixed(2)}ms`,
+          });
+
           setSimulatedEthAmount('');
-          if (
-            error instanceof Error &&
-            error.message.includes('Option::unwrap failed')
-          ) {
+
+          // Handle specific contract errors
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (errorMessage.includes('insufficient')) {
             setError('Insufficient liquidity in the bonding curve');
+          } else if (errorMessage.includes('exceeds_balance')) {
+            setError('Amount exceeds available balance');
+          } else if (errorMessage.includes('reverted')) {
+            setError('Transaction would revert - check your input amount');
           } else {
             setError('Failed to simulate swap');
           }
@@ -248,9 +282,17 @@ export const SwapWidget = memo(
         }
       };
 
-      const timer = setTimeout(simulateSwap, 10000);
+      // Debounce the simulation to avoid too many calls
+      const timer = setTimeout(simulateSwap, 1000);
       return () => clearTimeout(timer);
-    }, [amount, agent.id, activeTab, address, isInitializing]);
+    }, [
+      debouncedAmount,
+      agent.id,
+      activeTab,
+      address,
+      isInitializing,
+      contract,
+    ]);
 
     const fetchBalances = useCallback(async () => {
       try {
@@ -283,6 +325,9 @@ export const SwapWidget = memo(
 
     // Handle swap
     const handleSwap = useCallback(async () => {
+      // Clear any existing errors first
+      setError(null);
+
       if (!address) {
         setError('Please connect your wallet');
         return;
@@ -300,7 +345,6 @@ export const SwapWidget = memo(
 
       try {
         setIsProcessing(true);
-        setError(null);
 
         // Additional validation for sell transactions
         if (activeTab === 'sell') {
@@ -350,7 +394,7 @@ export const SwapWidget = memo(
           // Trigger refresh callback after successful transaction
           onTransactionSuccess?.();
         }
-      } catch (error) {
+      } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : 'Transaction failed';
 
@@ -374,18 +418,60 @@ export const SwapWidget = memo(
       } finally {
         setIsProcessing(false);
       }
-    }, []);
+    }, [
+      activeTab,
+      address,
+      amount,
+      buyTokens,
+      contract,
+      convertedTokenAmount,
+      isContractReady,
+      isInitializing,
+      onTransactionSuccess,
+      sellTokens,
+      simulatedEthAmount,
+      toast,
+    ]);
+
+    // Update button disabled check with logging
+    const isButtonDisabled = useMemo(() => {
+      const disabled =
+        !address ||
+        !debouncedAmount ||
+        !simulatedEthAmount ||
+        isProcessing ||
+        isLoading ||
+        !!error;
+
+      return disabled;
+    }, [
+      address,
+      debouncedAmount,
+      simulatedEthAmount,
+      isProcessing,
+      isLoading,
+      error,
+    ]);
 
     // Update button text to show ABI loading state
     const buttonText = useMemo(() => {
       if (isAbiLoading) return 'Loading Contract...';
-      if (isLoading) return 'Loading...';
+      if (isLoading) return 'Simulating...';
       if (isProcessing) return 'Processing...';
       if (abiError) return 'Contract Error';
       if (error) return 'Error';
       if (!address) return 'Connect Wallet';
+      if (!debouncedAmount) return 'Enter Amount';
       return 'Swap';
-    }, [isAbiLoading, isLoading, isProcessing, abiError, error, address]);
+    }, [
+      isAbiLoading,
+      isLoading,
+      isProcessing,
+      abiError,
+      error,
+      address,
+      debouncedAmount,
+    ]);
 
     const buttonStyle = useMemo(
       () =>
@@ -482,6 +568,7 @@ export const SwapWidget = memo(
                 const num = parseFloat(value);
                 if (value === '' || (!isNaN(num) && isFinite(num))) {
                   setAmount(value);
+                  setError(null);
                 }
               }}
               isLeftCurve={isLeftCurve}
@@ -509,14 +596,7 @@ export const SwapWidget = memo(
               className={buttonStyle}
               size="lg"
               onClick={handleSwap}
-              disabled={
-                !address ||
-                !amount ||
-                !simulatedEthAmount ||
-                isProcessing ||
-                isLoading ||
-                !!error
-              }
+              disabled={isButtonDisabled}
             >
               {buttonText}
             </Button>
@@ -536,6 +616,7 @@ export const SwapWidget = memo(
                 const num = parseFloat(value);
                 if (value === '' || (!isNaN(num) && isFinite(num))) {
                   setAmount(value);
+                  setError(null);
                 }
               }}
               isLeftCurve={isLeftCurve}
@@ -563,9 +644,7 @@ export const SwapWidget = memo(
               className={buttonStyle}
               size="lg"
               onClick={handleSwap}
-              disabled={
-                !address || !amount || isProcessing || isLoading || !!error
-              }
+              disabled={isButtonDisabled}
             >
               {buttonText}
             </Button>

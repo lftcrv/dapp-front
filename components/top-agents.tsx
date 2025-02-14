@@ -54,6 +54,7 @@ const AgentItem = memo(
                     width={32}
                     height={32}
                     className="object-cover [image-rendering:crisp-edges]"
+                    sizes="32px"
                     onLoad={() => {}}
                     onError={(e) => {
                       console.error('❌ Image Error:', {

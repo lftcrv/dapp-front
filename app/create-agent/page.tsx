@@ -592,27 +592,45 @@ export default function CreateAgentPage() {
     }
   }, [currentAddress, router]);
 
-  React.useEffect(() => {
+  // Effect for generating prompt
+  useEffect(() => {
     const generatePrompt = async () => {
       // ... existing code ...
     };
 
-    generatePrompt();
+    if (
+      formData.name &&
+      formData.bio.length > 0 &&
+      formData.lore.length > 0 &&
+      formData.knowledge.length > 0 &&
+      formData.topics.length > 0 &&
+      formData.adjectives.length > 0 &&
+      formData.messageExamples.length > 0 &&
+      formData.postExamples.length > 0 &&
+      formData.style.all.length > 0 &&
+      formData.style.chat.length > 0 &&
+      formData.style.post.length > 0 &&
+      currentAddress &&
+      agentType &&
+      profilePicture
+    ) {
+      generatePrompt();
+    }
   }, [
-    agentType,
-    currentAddress,
-    formData.adjectives,
-    formData.bio,
-    formData.knowledge,
-    formData.lore,
-    formData.messageExamples,
     formData.name,
+    formData.bio,
+    formData.lore,
+    formData.knowledge,
+    formData.topics,
+    formData.adjectives,
+    formData.messageExamples,
     formData.postExamples,
     formData.style.all,
     formData.style.chat,
     formData.style.post,
-    formData.topics,
-    profilePicture,
+    currentAddress,
+    agentType,
+    profilePicture
   ]);
 
   const [isFormValid, setIsFormValid] = useState(false);

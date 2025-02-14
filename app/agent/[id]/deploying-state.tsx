@@ -155,7 +155,7 @@ export function DeployingState({ agent }: DeployingStateProps) {
         }`,
       );
     };
-  }, [agent.id, agent.name]);
+  }, [agent.id, agent.name, agent.contractAddress, checkContractStatus]);
 
   useEffect(() => {
     const interval = setInterval(async () => {

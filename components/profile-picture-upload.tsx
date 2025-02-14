@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Upload, X, CropIcon, Save, RotateCcw, AlertCircle } from 'lucide-react';
+import { RotateCcw, Save, UserCircle } from 'lucide-react';
 import Image from 'next/image';
 import { showToast } from '@/lib/toast';
 import ReactCrop, { type PixelCrop } from 'react-image-crop';
@@ -290,70 +290,33 @@ export function ProfilePictureUpload({ onFileSelect, agentType }: ProfilePicture
                 : 'hover:border-purple-500 hover:bg-purple-500/5'
               } ${previewUrl ? 'border-none' : ''}`}
           >
-            {previewUrl ? (
-              <div className="relative w-full h-full group">
-                <Image
-                  src={previewUrl}
-                  alt="Profile preview"
-                  fill
-                  className="object-cover rounded-lg"
-                />
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setIsCropDialogOpen(true);
-                    }}
-                    className={`${
-                      agentType === 'leftcurve'
-                        ? 'bg-yellow-500 hover:bg-yellow-600'
-                        : 'bg-purple-500 hover:bg-purple-600'
-                    } text-white`}
-                  >
-                    <CropIcon className="h-4 w-4 mr-1" />
-                    Edit
-                  </Button>
+            <div className="relative w-full h-full flex items-center justify-center">
+              {previewUrl ? (
+                <>
+                  <Image
+                    src={previewUrl}
+                    alt="Profile picture preview"
+                    width={96}
+                    height={96}
+                    className="w-full h-full object-cover"
+                  />
                   <Button
                     type="button"
                     variant="destructive"
                     size="sm"
+                    className="absolute top-2 right-2 opacity-0 hover:opacity-100 transition-opacity"
                     onClick={(e) => {
                       e.preventDefault();
                       handleRemove();
                     }}
                   >
-                    <X className="h-4 w-4 mr-1" />
                     Remove
                   </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                {isProcessing ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-current" />
-                    <p className="text-sm text-muted-foreground">Processing...</p>
-                  </div>
-                ) : (
-                  <>
-                    <Upload className={`w-8 h-8 mb-4 ${agentType === 'leftcurve' ? 'text-yellow-500' : 'text-purple-500'}`} />
-                    <p className="mb-2 text-sm text-muted-foreground">
-                      <span className="font-semibold">Click to upload</span> or drag and drop
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      JPG, PNG or GIF (MAX. 20MB)
-                    </p>
-                    <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-                      <AlertCircle className="h-3 w-3" />
-                      <span>Will be compressed to {COMPRESSION_OPTIONS.maxSizeMB}MB</span>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+                </>
+              ) : (
+                <UserCircle className="w-8 h-8 text-gray-400" />
+              )}
+            </div>
             <input
               id="profile-picture"
               type="file"
@@ -384,11 +347,14 @@ export function ProfilePictureUpload({ onFileSelect, agentType }: ProfilePicture
                   aspect={1}
                   className="max-w-full"
                 >
-                  <img
+                  <Image
                     src={previewUrl}
                     alt="Crop preview"
+                    width={800}
+                    height={800}
                     onLoad={(e) => onImageLoad(e.currentTarget)}
                     className="max-w-full"
+                    unoptimized
                   />
                 </ReactCrop>
               </div>

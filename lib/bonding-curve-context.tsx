@@ -5,7 +5,6 @@ import {
   useContext,
   useCallback,
   useState,
-  useEffect,
   useRef,
   ReactNode,
 } from 'react';
@@ -162,11 +161,7 @@ export function BondingCurveProvider({
     }
   }, [agentId]);
 
-  // Initial fetch only
-  useEffect(() => {
-    console.log('🎬 Initial bonding curve fetch triggered:', { agentId });
-    fetchData();
-  }, [agentId, fetchData]);
+
 
   return (
     <BondingCurveContext.Provider value={{ data, refresh: fetchData }}>

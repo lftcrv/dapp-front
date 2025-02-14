@@ -12,7 +12,6 @@ export async function fetchAbi(provider: ProviderInterface, address: string) {
 
   let result;
   try {
-    console.log('Attempting to fetch class at address:', address);
     result = await provider.getClassAt(address);
   } catch (e) {
     console.error('Failed to fetch contract class:', e);
@@ -37,7 +36,7 @@ export async function fetchAbi(provider: ProviderInterface, address: string) {
     return abiResult;
   }
   
-  console.log('Detected proxy contract, fetching implementation');
+
   const proxyContract = new Contract(abiResult, address, provider);
   const possibleImplementationFunctionNames = ["implementation", "getImplementation", "get_implementation"];
   const matchingFunctionName = possibleImplementationFunctionNames.find(
@@ -50,9 +49,9 @@ export async function fetchAbi(provider: ProviderInterface, address: string) {
   }
 
   try {
-    console.log('Calling implementation function:', matchingFunctionName);
+
     const implementationResult = await proxyContract[matchingFunctionName]();
-    console.log('Implementation result:', implementationResult);
+
 
     if (!implementationResult) {
       console.error('No implementation result');
@@ -70,7 +69,7 @@ export async function fetchAbi(provider: ProviderInterface, address: string) {
     }
 
     const implementationAddress = num.toHex(hasImplementation);
-    console.log('Fetching implementation ABI from address:', implementationAddress);
+
     
     try {
       const compiledContract = await provider.getClassByHash(implementationAddress);

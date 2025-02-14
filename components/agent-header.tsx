@@ -104,6 +104,7 @@ const AgentAvatar = memo(
               'object-cover transition-opacity duration-300',
               isImageLoaded ? 'opacity-100' : 'opacity-0',
             )}
+            sizes="(max-width: 96px) 96px"
             onLoad={() => {
               setIsImageLoaded(true);
             }}
