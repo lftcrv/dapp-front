@@ -586,91 +586,30 @@ export default function CreateAgentPage() {
     </div>
   );
 
-  React.useEffect(() => {
+  // Effect to redirect if no address
+  useEffect(() => {
     if (!currentAddress) {
       router.push('/');
     }
   }, [currentAddress, router]);
 
-  // Effect for generating prompt
-  useEffect(() => {
-    const generatePrompt = async () => {
-      // ... existing code ...
-    };
-
-    if (
-      formData.name &&
-      formData.bio.length > 0 &&
-      formData.lore.length > 0 &&
-      formData.knowledge.length > 0 &&
-      formData.topics.length > 0 &&
-      formData.adjectives.length > 0 &&
-      formData.messageExamples.length > 0 &&
-      formData.postExamples.length > 0 &&
-      formData.style.all.length > 0 &&
-      formData.style.chat.length > 0 &&
-      formData.style.post.length > 0 &&
-      currentAddress &&
-      agentType &&
-      profilePicture
-    ) {
-      generatePrompt();
-    }
-  }, [
-    formData.name,
-    formData.bio,
-    formData.lore,
-    formData.knowledge,
-    formData.topics,
-    formData.adjectives,
-    formData.messageExamples,
-    formData.postExamples,
-    formData.style.all,
-    formData.style.chat,
-    formData.style.post,
-    currentAddress,
-    agentType,
-    profilePicture
-  ]);
-
   const [isFormValid, setIsFormValid] = useState(false);
 
   useEffect(() => {
-    if (
+    const hasRequiredFields = Boolean(
       formData.name &&
-      formData.bio &&
-      formData.lore &&
-      formData.knowledge &&
-      formData.topics &&
-      formData.adjectives &&
-      formData.messageExamples &&
-      formData.postExamples &&
-      formData.style.all &&
-      formData.style.chat &&
-      formData.style.post &&
-      agentType &&
-      currentAddress &&
-      profilePicture
-    ) {
-      setIsFormValid(true);
-    } else {
-      setIsFormValid(false);
-    }
+      formData.bio.some(b => b.trim()) &&
+      formData.messageExamples.some(m => 
+        m[0].content.text.trim() && // User message
+        m[1].content.text.trim()    // Agent response
+      )
+    );
+
+    setIsFormValid(hasRequiredFields);
   }, [
     formData.name,
     formData.bio,
-    formData.lore,
-    formData.knowledge,
-    formData.topics,
-    formData.adjectives,
-    formData.messageExamples,
-    formData.postExamples,
-    formData.style.all,
-    formData.style.chat,
-    formData.style.post,
-    agentType,
-    currentAddress,
-    profilePicture,
+    formData.messageExamples
   ]);
 
   return (
