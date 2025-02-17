@@ -4,13 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-const DockerMessageCard: React.FC = () => {
+const DockerMessageCard = () => {
   const [port, setPort] = useState('');
   const [runtimeAgentId, setRuntimeAgentId] = useState('');
+  const [message, setMessage] = useState('execute SIMULATE_STARKNET_TRADE');
 
   const sendMessage = async () => {
     try {
-      if (!port || !runtimeAgentId) {
+      if (!port || !runtimeAgentId || !message) {
         console.error('Please fill all fields');
         return;
       }
@@ -28,7 +29,7 @@ const DockerMessageCard: React.FC = () => {
       };
 
       const requestBody = JSON.stringify({
-        text: 'execute SIMULATE_STARKNET_TRADE',
+        text: message,
         userId: 'user1234',
         userName: 'dzk',
         roomId: 'room456',
@@ -41,6 +42,7 @@ const DockerMessageCard: React.FC = () => {
         headers,
         body: JSON.stringify(requestBody),
       });
+
       if (!response.ok) {
         console.error('Failed to send message');
       }
@@ -75,12 +77,22 @@ const DockerMessageCard: React.FC = () => {
             placeholder="Enter runtime agent ID"
           />
         </div>
+        <div className="space-y-2">
+          <Label htmlFor="message">Message</Label>
+          <Input
+            id="message"
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Enter your message"
+          />
+        </div>
         <Button
           onClick={sendMessage}
           className="w-full"
-          disabled={!port || !runtimeAgentId}
+          disabled={!port || !runtimeAgentId || !message}
         >
-          Call SimulateTrade
+          Send Message
         </Button>
       </CardContent>
     </Card>

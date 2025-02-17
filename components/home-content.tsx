@@ -58,10 +58,10 @@ const DockerMessageCard = dynamic(
   () => {
     if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
       window.requestIdleCallback(() => {
-        import('@/components/trade-call');
+        import('@/components/send-agent-message');
       });
     }
-    return import('@/components/trade-call').then((mod) => {
+    return import('@/components/send-agent-message').then((mod) => {
       const Component = mod.default as FC; // Removed agent prop type
       Component.displayName = 'DockerMessageCard';
       return Component;
@@ -95,7 +95,7 @@ export const HomeContent = memo(
             error={error}
           />
         </Suspense>
-        {/* <Suspense
+        <Suspense
           fallback={
             <div className="h-[400px] bg-white/5 rounded animate-pulse" />
           }
@@ -103,7 +103,7 @@ export const HomeContent = memo(
           <div className="mt-8">
             <DockerMessageCard />
           </div>
-        </Suspense> */}
+        </Suspense>
       </>
     );
   },
