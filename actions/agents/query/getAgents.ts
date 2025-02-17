@@ -7,7 +7,7 @@ import { isInBondingPhase } from '@/lib/utils';
 async function mapApiAgentToAgent(apiAgent: ApiAgent): Promise<Agent> {
   // Initialize provider
   const provider = new RpcProvider({
-    nodeUrl: process.env.NEXT_PUBLIC_NODE_URL,
+    nodeUrl: process.env.STARKNET_RPC_URL,
   });
 
   // Format token contract address - ensure it starts with 0x but avoid double prefix

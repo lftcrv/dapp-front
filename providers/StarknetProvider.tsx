@@ -9,7 +9,6 @@ import { ReactNode } from "react";
 export default function StarknetProvider({ children }: { children: ReactNode }) {
   const defaultChain = process.env.NEXT_PUBLIC_DEFAULT_CHAIN;
   const chains = defaultChain === sepolia.network ? [sepolia, mainnet] : [mainnet, sepolia];
-  const nethermindApiKey = process.env.NEXT_PUBLIC_NETHERMIND_API_KEY;
 
   const connectors = [
     new InjectedConnector({ options: { id: "braavos", name: "Braavos" }}),

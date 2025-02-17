@@ -8,10 +8,10 @@ import { mainnet, sepolia } from 'viem/chains';
 import { wagmiConfig } from './wagmiConfig';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
-  const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID || '';
+  const NEXT_PUBLIC_PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID || '';
 
   React.useEffect(() => {
-    if (!PRIVY_APP_ID) {
+    if (!NEXT_PUBLIC_PRIVY_APP_ID) {
       console.error(
         "⚠️ NEXT_PUBLIC_PRIVY_APP_ID is not defined! Make sure it's set in your environment.",
       );
@@ -21,7 +21,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={new QueryClient()}>
       <PrivyProvider
-        appId={PRIVY_APP_ID}
+        appId={NEXT_PUBLIC_PRIVY_APP_ID}
         config={{
           appearance: {
             theme: 'dark',
