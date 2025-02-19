@@ -1,5 +1,4 @@
 'use client';
-
 import dynamic from 'next/dynamic';
 import { Suspense, memo } from 'react';
 import {
@@ -9,7 +8,6 @@ import {
 import { Agent } from '@/lib/types';
 import type { FC } from 'react';
 
-// Preload components during idle time
 const TopAgents = dynamic(
   () => {
     if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
@@ -56,7 +54,26 @@ const AgentsContainer = dynamic(
   },
 );
 
-// const DockerMessageCard = dynamic(() => import('./docker-message-card'));
+const DockerMessageCard = dynamic(
+  () => {
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      window.requestIdleCallback(() => {
+        import('@/components/send-agent-message');
+      });
+    }
+    return import('@/components/send-agent-message').then((mod) => {
+      const Component = mod.default as FC; // Removed agent prop type
+      Component.displayName = 'DockerMessageCard';
+      return Component;
+    });
+  },
+  {
+    loading: () => (
+      <div className="h-[400px] bg-white/5 rounded animate-pulse" />
+    ),
+    ssr: false,
+  },
+);
 
 interface HomeContentProps {
   agents: Agent[];
@@ -78,15 +95,18 @@ export const HomeContent = memo(
             error={error}
           />
         </Suspense>
-        {/* <Suspense fallback={<div className="h-[400px] bg-white/5 rounded animate-pulse" />}>
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {agents.map((agent) => (
-              <DockerMessageCard key={agent.id} agent={agent} />
-            ))}
+        <Suspense
+          fallback={
+            <div className="h-[400px] bg-white/5 rounded animate-pulse" />
+          }
+        >
+          <div className="mt-8">
+            <DockerMessageCard />
           </div>
-        </Suspense> */}
+        </Suspense>
       </>
     );
-  }
+  },
 );
+
 HomeContent.displayName = 'HomeContent';

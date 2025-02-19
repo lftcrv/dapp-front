@@ -6,20 +6,21 @@ import { isInBondingPhase } from '@/lib/utils';
 
 // Initialize provider
 const provider = new RpcProvider({ 
-  nodeUrl: process.env.NODE_URL || 'https://starknet-sepolia.public.blastapi.io'
+  nodeUrl: process.env.STARKNET_RPC_URL || 'https://starknet-sepolia.public.blastapi.io'
 });
 
 export async function mapApiAgentToAgent(apiAgent: ApiAgent): Promise<Agent> {
   // Format token contract address - ensure it starts with 0x but avoid double prefix
-  const tokenAddress = apiAgent.Token?.contractAddress 
-    ? apiAgent.Token.contractAddress.startsWith('0x') 
-      ? apiAgent.Token.contractAddress 
+  const tokenAddress = apiAgent.Token?.contractAddress
+    ? apiAgent.Token.contractAddress.startsWith('0x')
+      ? apiAgent.Token.contractAddress
       : `0x${apiAgent.Token.contractAddress}`
     : undefined;
 
   const price = apiAgent.LatestMarketData?.price || 0;
   const holders = apiAgent.LatestMarketData?.holders || 0;
-  const isBonding = apiAgent.status !== 'RUNNING' || isInBondingPhase(price, holders);
+  const isBonding =
+    apiAgent.status !== 'RUNNING' || isInBondingPhase(price, holders);
 
   // Log the incoming API agent data
   console.log('🔄 Mapping API agent:', {
@@ -113,7 +114,9 @@ export async function getAgents() {
     }
 
     // Map agents and wait for all promises to resolve
-    const mappedAgents = await Promise.all(responseData.data.agents.map(mapApiAgentToAgent));
+    const mappedAgents = await Promise.all(
+      responseData.data.agents.map(mapApiAgentToAgent),
+    );
 
     return {
       success: true,

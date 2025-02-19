@@ -6,8 +6,6 @@ export const APP_DESCRIPTION =
 // Wallet configuration
 export const WALLET_CONFIG = {
   dappName: APP_NAME,
-  mainnetRPC: process.env.NEXT_PUBLIC_MAINNET_RPC,
-  testnetRPC: process.env.NEXT_PUBLIC_TESTNET_RPC,
 };
 
 // Theme configuration

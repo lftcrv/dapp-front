@@ -4,32 +4,44 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-const DockerMessageCard: React.FC = () => {
+const DockerMessageCard = () => {
   const [port, setPort] = useState('');
   const [runtimeAgentId, setRuntimeAgentId] = useState('');
+  const [message, setMessage] = useState('execute SIMULATE_STARKNET_TRADE');
+  const [apiKey, setApiKey] = useState('');
 
   const sendMessage = async () => {
     try {
-      if (!port || !runtimeAgentId) {
+      if (!port || !runtimeAgentId || !message || !apiKey) {
         console.error('Please fill all fields');
         return;
       }
 
-      const url = `http://localhost:${port}/${runtimeAgentId}/message`;
-      console.log('url:', url);
-      const response = await fetch(url, {
+      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_RADICAL_URL;
+      if (!baseUrl) {
+        throw new Error('Missing API base URL configuration');
+      }
+
+      const apiUrl = `${baseUrl}:${port}`;
+
+      const headers = {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+      };
+
+      const requestBody = JSON.stringify({
+        text: message,
+        userId: 'user1234',
+        userName: 'dzk',
+        roomId: 'room456',
+        name: 'Basic Interaction',
+        agentId: runtimeAgentId,
+      });
+      console.log("sending to:", `${apiUrl}/${runtimeAgentId}/message`)
+      const response = await fetch(`${apiUrl}/${runtimeAgentId}/message`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: 'execute SIMULATE_STARKNET_TRADE',
-          userId: 'user1234',
-          userName: 'dzk',
-          roomId: 'room456',
-          name: 'Basic Interaction',
-          agentId: runtimeAgentId,
-        }),
+        headers,
+        body: requestBody,
       });
 
       if (!response.ok) {
@@ -46,6 +58,16 @@ const DockerMessageCard: React.FC = () => {
         <CardTitle>Actions Docker</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="apiKey">API Key</Label>
+          <Input
+            id="apiKey"
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="Enter API Key"
+          />
+        </div>
         <div className="space-y-2">
           <Label htmlFor="port">Port</Label>
           <Input
@@ -66,12 +88,22 @@ const DockerMessageCard: React.FC = () => {
             placeholder="Enter runtime agent ID"
           />
         </div>
+        <div className="space-y-2">
+          <Label htmlFor="message">Message</Label>
+          <Input
+            id="message"
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Enter your message"
+          />
+        </div>
         <Button
           onClick={sendMessage}
           className="w-full"
-          disabled={!port || !runtimeAgentId}
+          disabled={!port || !runtimeAgentId || !message || !apiKey}
         >
-          Call SimulateTrade
+          Send Message
         </Button>
       </CardContent>
     </Card>
