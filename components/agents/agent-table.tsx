@@ -3,7 +3,6 @@
 import { memo } from 'react';
 import { Agent } from '@/lib/types';
 import { cn, isInBondingPhase } from '@/lib/utils';
-import { AgentAvatar } from '@/components/ui/agent-avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,12 +13,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ArrowUpDown, Search, Users } from 'lucide-react';
+import { ArrowUpDown, Search, Users, UserCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
 import { PriceChange } from '@/components/price-change';
 import { useAgentsData } from '@/hooks/use-agents-data';
+import Image from 'next/image';
 
 interface TableHeaderProps {
   label: string;
@@ -85,15 +85,21 @@ const AgentRow = memo(({ agent, index }: AgentRowProps) => {
     const weiValue = typeof value === 'string' ? parseFloat(value) : value;
     const ethValue = weiValue / 1e18;
     
-    // Format with exactly 14 decimal places
-    const rawValue = ethValue.toLocaleString('en-US', {
-      minimumFractionDigits: 14,
-      maximumFractionDigits: 14,
-      useGrouping: true, // This ensures we get commas for thousands
-    });
+    // Format with scientific notation for small numbers
+    let formattedValue;
+    if (ethValue < 0.000001) {
+      formattedValue = ethValue.toExponential(2);
+    } else {
+      // Format with exactly 6 decimal places for larger numbers
+      formattedValue = ethValue.toLocaleString('en-US', {
+        minimumFractionDigits: 6,
+        maximumFractionDigits: 6,
+        useGrouping: true,
+      });
+    }
 
     // Split the string into characters and wrap non-zero digits in strong tags
-    return rawValue.split('').map((char) => {
+    return formattedValue.split('').map((char) => {
       if (char >= '1' && char <= '9') {
         return `<strong>${char}</strong>`;
       }
@@ -117,7 +123,24 @@ const AgentRow = memo(({ agent, index }: AgentRowProps) => {
           className="flex items-center gap-2 hover:opacity-80"
         >
           <div className="w-7 h-7 relative rounded-lg overflow-hidden bg-white/5 flex items-center justify-center">
-            <AgentAvatar src={agent.avatar} alt={agent.name} />
+            {agent.profilePictureUrl ? (
+              <Image
+                src={`${process.env.NEXT_PUBLIC_ELIZA_API_URL}${agent.profilePictureUrl}`}
+                alt={agent.name}
+                width={28}
+                height={28}
+                className="w-full h-full object-cover [image-rendering:crisp-edges]"
+                onError={(e) => {
+                  console.error('❌ Image Load Error:', {
+                    src: e.currentTarget.src,
+                    name: agent.name,
+                  });
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            ) : (
+              <UserCircle className="w-5 h-5 text-gray-400" />
+            )}
           </div>
           <div>
             <div className="font-medium text-sm group-hover:text-primary transition-colors flex items-center gap-1.5">

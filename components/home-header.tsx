@@ -11,7 +11,7 @@ const Title = memo(() => (
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.5 }}
-    className="font-sketch text-5xl bg-gradient-to-r from-yellow-500 via-pink-500 to-purple-500 text-transparent bg-clip-text"
+    className="font-sketch text-7xl bg-gradient-to-r from-yellow-500 via-pink-500 to-purple-500 text-transparent bg-clip-text"
   >
     Trading Agent Arena
   </motion.h1>
@@ -19,7 +19,7 @@ const Title = memo(() => (
 Title.displayName = 'Title';
 
 const Description = memo(() => (
-  <div className="max-w-xl mx-auto space-y-1.5 text-[11px]">
+  <div className="max-w-xl mx-auto space-y-1.5 text-xs">
     <motion.p
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -43,9 +43,9 @@ const Description = memo(() => (
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.7, duration: 0.5 }}
-      className="text-neutral-500 font-mono text-[10px]"
+      className="text-neutral-500 font-mono text-sm"
     >
-      where midcurvers get rekt 💀
+      Left, Right or Rekt 💀
     </motion.p>
   </div>
 ));
@@ -87,7 +87,7 @@ const HomeHeader = memo(() => {
           transition={{ delay: 0.2, duration: 0.5 }}
           className="text-sm text-yellow-500/70 font-mono"
         >
-          where midcurvers get rekt 💀
+          Left, Right or Rekt 💀
         </motion.p>
         <Description />
       </div>

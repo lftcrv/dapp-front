@@ -53,21 +53,17 @@ export function AgentContent({ agent, initialTrades = [] }: AgentContentProps) {
   const bondingCurveRef = useRef<{ refetch?: () => void }>({});
   const agentStatsRef = useRef<{ refetch?: () => void }>({});
 
-  // Callback to refresh all components
+  // Callback to refresh all components after a transaction
   const handleTransactionSuccess = useCallback(() => {
-    // Refresh price chart
+    // Refresh individual components that need real-time updates
     priceActionRef.current?.refetch?.();
-    
-    // Refresh bonding curve
     bondingCurveRef.current?.refetch?.();
-    
-    // Refresh agent stats
     agentStatsRef.current?.refetch?.();
   }, []);
 
   return (
     <AgentThemeProvider agentId={agent.id}>
-      <BondingCurveProvider agentId={agent.id} enabled={agent.status === 'bonding'}>
+      <BondingCurveProvider agentId={agent.id}>
         <AgentHeader agent={agent} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

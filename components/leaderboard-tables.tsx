@@ -1,7 +1,7 @@
 'use client';
 
 import { Agent } from '@/lib/types';
-import { AgentAvatar } from '@/components/ui/agent-avatar';
+import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import {
   Table,
@@ -22,8 +22,10 @@ interface AgentCellProps {
 const AgentCell = memo(({ agent }: AgentCellProps) => (
   <div className="flex items-center gap-2">
     <div className="w-8 h-8 relative rounded-lg overflow-hidden bg-white/5 flex items-center justify-center">
-      {agent.avatar ? (
-        <AgentAvatar src={agent.avatar} alt={agent.name} />
+      {agent.profilePicture ? (
+        <Avatar className="w-full h-full rounded-lg">
+          <AvatarImage src={agent.profilePicture} alt={agent.name} />
+        </Avatar>
       ) : (
         <UserCircle className="w-5 h-5 text-gray-400" />
       )}

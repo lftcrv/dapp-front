@@ -28,7 +28,7 @@ export function useTokenMarketData(agentId: string) {
       }
 
       // Fetch latest agents data
-      const response = await getLatestAgents(50); // Fetch enough agents to likely include the one we need
+      const response = await getLatestAgents(); // Fetch enough agents to likely include the one we need
 
       if (!response.success || !response.data) {
         throw new Error(response.error || 'Failed to fetch market data');

@@ -17,7 +17,7 @@ export function useAgentsData() {
     queryFn: async () => {
       // Fetch all data in parallel
       const [latestResponse, leftResponse, rightResponse] = await Promise.all([
-        getLatestAgents(50),
+        getLatestAgents(),
         getLeaderboardLeft(5),
         getLeaderboardRight(5)
       ]);

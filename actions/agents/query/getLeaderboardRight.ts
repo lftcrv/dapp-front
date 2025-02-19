@@ -1,6 +1,7 @@
 'use server';
 
-import { Agent } from '@/lib/types';
+import { Agent, ApiAgent } from '@/lib/types';
+import { Abi } from 'starknet';
 
 export async function getLeaderboardRight(limit: number = 10) {
   try {
@@ -21,7 +22,12 @@ export async function getLeaderboardRight(limit: number = 10) {
       },
     );
 
+  
+
     const data = await response.json();
+
+    // Log the response data structure
+  
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -32,9 +38,36 @@ export async function getLeaderboardRight(limit: number = 10) {
       throw new Error(data.message || 'Failed to fetch right leaderboard');
     }
 
+    // Map the response data to include profile picture URL
+    const mappedData = data.data.map(
+      (agent: ApiAgent): Omit<Agent, 'abi'> & { abi: Abi } => ({
+        id: agent.id,
+        name: agent.name,
+        symbol: agent.name.substring(0, 4).toUpperCase(),
+        type: agent.curveSide === 'LEFT' ? 'leftcurve' : 'rightcurve',
+        status: agent.status === 'RUNNING' ? 'live' : 'bonding',
+        price: agent.LatestMarketData?.price || 0,
+        marketCap: agent.LatestMarketData?.marketCap || 0,
+        holders: agent.LatestMarketData?.holders || 0,
+        creator: agent.Wallet?.deployedAddress
+          ? `0x${agent.Wallet.deployedAddress}`
+          : 'unknown',
+        createdAt: agent.createdAt,
+        creativityIndex: agent.degenScore || 0,
+        performanceIndex: agent.winScore || 0,
+        profilePicture: agent.profilePicture || undefined,
+        profilePictureUrl: agent.profilePicture
+          ? `/uploads/profile-pictures/${agent.profilePicture}`
+          : undefined,
+        contractAddress: (agent.Token?.contractAddress ||
+          '0x0') as `0x${string}`,
+        abi: [],
+      }),
+    );
+
     return {
       success: true,
-      data: data.data as Agent[],
+      data: mappedData as Agent[],
     };
   } catch (error) {
     console.error('Error fetching right leaderboard:', error);

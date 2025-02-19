@@ -5,7 +5,7 @@ import { Agent } from '@/lib/types';
 import { AgentTable } from './agent-table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, ArrowUpDown, Skull } from 'lucide-react';
+import { Search, ArrowUpDown } from 'lucide-react';
 
 interface AgentsContainerProps {
   agents: Agent[];
@@ -58,9 +58,9 @@ export function AgentsContainer({
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
         <div>
           <h2 className="font-sketch text-2xl flex items-center gap-2">
-            <span className="text-orange-500">DEGEN</span>
-            <Skull className="w-5 h-5" />
-            <span className="text-purple-500">SIGMA</span>
+            <span className="text-orange-500">DEGENS  ⚔️</span>
+            
+            <span className="text-purple-500">BRAINS</span>
           </h2>
           <div className="flex items-center gap-2 mt-1">
             <p className="text-xs text-gray-400">default:</p>

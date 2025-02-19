@@ -13,24 +13,26 @@ const ICONS = {
 } as const;
 
 const MESSAGES = {
-  CONNECTING: { text: '🦧 Aping into Starknet ser...', icon: 'wallet' },
-  CONNECTED: { text: '🐋 Based! Wallet connected!', icon: 'wallet' },
-  CONNECTION_ERROR: { text: '😭 Ngmi... Connection failed', icon: 'error' },
-  EVM_CONNECTING: { text: '🦍 Summoning EVM wallet...', icon: 'wallet' },
-  EVM_CONNECTED: { text: '🚀 Sigma grindset activated!', icon: 'wallet' },
-  EVM_ERROR: { text: '💀 Down bad... EVM failed', icon: 'error' },
-  EVM_DISCONNECT: { text: '👋 Paper hands detected', icon: 'wallet' },
-  DEPLOYING: { text: '🐙 Deploying gigabrain agent...', icon: 'rocket' },
-  DEPLOYED: { text: '🧠 Agent ready to flip midcurvers!', icon: 'bot' },
-  DEPLOY_ERROR: { text: '🤡 Deployment rugged', icon: 'error' },
-  DISCONNECT: { text: '🫡 See you on the curve ser', icon: 'wallet' },
-  DEFAULT_ERROR: { text: '💩 Ngmi... Something went wrong', icon: 'error' },
-  AGENT_ERROR: { text: '🤔 Fill in all agent details ser', icon: 'error' },
-  AGENT_CREATING: { text: '🧪 Creating your 200 IQ agent...', icon: 'bot' },
-  AGENT_SUCCESS: { text: '🎯 Agent created successfully!', icon: 'bot' },
-  TX_PENDING: { text: '🚀 Transaction in flight ser...', icon: 'loader' },
-  TX_SUCCESS: { text: '💎 Transaction confirmed! LFG!', icon: 'rocket' },
-  TX_ERROR: { text: '💀 Transaction rugged ser...', icon: 'error' },
+  CONNECTING: { text: '🦧 Aping into Starknet ser...', icon: 'wallet', type: 'loading' },
+  CONNECTED: { text: '🐋 Based! Wallet connected!', icon: 'wallet', type: 'success' },
+  CONNECTION_ERROR: { text: '😭 Ngmi... Connection failed', icon: 'error', type: 'error' },
+  EVM_CONNECTING: { text: '🦍 Summoning EVM wallet...', icon: 'wallet', type: 'loading' },
+  EVM_CONNECTED: { text: '🚀 Sigma grindset activated!', icon: 'wallet', type: 'success' },
+  EVM_ERROR: { text: '💀 Down bad... EVM failed', icon: 'error', type: 'error' },
+  EVM_DISCONNECT: { text: '👋 Paper hands detected', icon: 'wallet', type: 'success' },
+  DEPLOYING: { text: '🐙 Deploying gigabrain agent...', icon: 'rocket', type: 'loading' },
+  DEPLOYED: { text: '🧠 Agent ready to flip midcurvers!', icon: 'bot', type: 'success' },
+  DEPLOY_ERROR: { text: '🤡 Deployment rugged', icon: 'error', type: 'error' },
+  DISCONNECT: { text: '🫡 See you on the curve ser', icon: 'wallet', type: 'success' },
+  TX_PENDING: { text: '🚀 Transaction in flight ser...', icon: 'loader', type: 'loading' },
+  TX_SUCCESS: { text: '💎 Transaction confirmed! LFG!', icon: 'rocket', type: 'success' },
+  TX_ERROR: { text: '💀 Transaction rugged ser...', icon: 'error', type: 'error' },
+  AGENT_CREATING: { text: '🧪 Creating your 200 IQ agent...', icon: 'bot', type: 'loading' },
+  AGENT_SUCCESS: { text: '🎯 Agent created successfully!', icon: 'bot', type: 'success' },
+  AGENT_ERROR: { text: '🤔 Fill in all agent details ser', icon: 'error', type: 'error' },
+  INVALID_FILE_TYPE: { text: '🚫 Only JPG, PNG and GIF files are allowed', icon: 'error', type: 'error' },
+  FILE_TOO_LARGE: { text: '🐋 File too large ser, max 20MB', icon: 'error', type: 'error' },
+  DEFAULT_ERROR: { text: '💩 Ngmi... Something went wrong', icon: 'error', type: 'error' }
 } as const;
 
 // Keep track of toast IDs by message type
@@ -48,7 +50,7 @@ const dismissRelatedToasts = (messageType: string) => {
   };
 
   // Find which group the message belongs to
-  const group = Object.entries(relatedGroups).find(([_, messages]) =>
+  const group = Object.entries(relatedGroups).find(([, messages]) =>
     messages.some(msg => messageType.includes(msg))
   );
 
@@ -62,6 +64,12 @@ const dismissRelatedToasts = (messageType: string) => {
       }
     });
   }
+};
+
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return 'An unexpected error occurred';
 };
 
 export function showToast(
@@ -88,11 +96,11 @@ export function showToast(
   // Determine toast duration based on type
   let duration = 5000; // Default 5 seconds
   if (toastType === 'loading') {
-    duration = message === 'AGENT_CREATING' ? 10000 : 30000; // AGENT_CREATING 10s, other loading toasts 30s
+    duration = message === 'AGENT_CREATING' ? 10000 : 30000;
   } else if (toastType === 'success') {
-    duration = message === 'TX_SUCCESS' ? 30000 : 10000; // TX_SUCCESS 30s, other success toasts 10s
+    duration = message === 'TX_SUCCESS' ? 30000 : 10000;
   } else if (toastType === 'error') {
-    duration = 15000; // Error toasts stay for 15 seconds
+    duration = 15000;
   }
 
   const id = toast[toastType](
@@ -148,3 +156,12 @@ export function showToast(
 
   return id;
 }
+
+export const showErrorToast = (error: unknown) => {
+  const message = getErrorMessage(error);
+  toast.error(message);
+};
+
+export const showSuccessToast = (message: string) => {
+  toast.success(message);
+};

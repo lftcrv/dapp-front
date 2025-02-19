@@ -8,7 +8,15 @@ import {
   MarketCapResponse,
   PriceHistoryResponse,
   TokenMarketDataResponse,
+  Agent,
 } from '@/lib/types';
+import { RpcProvider, Abi } from 'starknet';
+
+// Initialize provider
+const provider = new RpcProvider({
+  nodeUrl:
+    process.env.NODE_URL || 'https://starknet-sepolia.public.blastapi.io',
+});
 
 // Cache simulation results for 5 seconds
 const getCachedSimulation = unstable_cache(
@@ -167,10 +175,6 @@ export async function getCurrentPrice(agentId: string) {
     );
 
     if (!response.ok) {
-      console.error(`[getCurrentPrice] Error response:`, {
-        status: response.status,
-        statusText: response.statusText,
-      });
       throw new Error('Failed to get current price');
     }
 
@@ -201,10 +205,6 @@ export async function getMarketCap(agentId: string) {
     );
 
     if (!response.ok) {
-      console.error(`[getMarketCap] Error response:`, {
-        status: response.status,
-        statusText: response.statusText,
-      });
       throw new Error('Failed to get market cap');
     }
 
@@ -239,16 +239,179 @@ export async function getTokenMarketData(agentId: string) {
     );
 
     if (!response.ok) {
-      console.error(`[getTokenMarketData] Error response:`, {
-        status: response.status,
-        statusText: response.statusText,
-      });
       throw new Error('Failed to get token market data');
     }
 
     const data = (await response.json()) as TokenMarketDataResponse;
     return { success: true, data: data.data };
   } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'An unexpected error occurred',
+    };
+  }
+}
+
+export async function getAgentAvatar(agentId: string) {
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL;
+    const apiKey = process.env.API_KEY;
+
+    if (!apiUrl || !apiKey) throw new Error('Missing API configuration');
+
+    const response = await fetch(
+      `${apiUrl}/api/eliza-agent/${agentId}/avatar`,
+      {
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+        next: { revalidate: 3600 }, // Cache for 1 hour since avatars rarely change
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to get agent avatar');
+    }
+
+    const data = await response.json();
+    return {
+      success: true,
+      data: {
+        url: data.url ? `${apiUrl}${data.url}` : null,
+        contentType: data.contentType,
+      },
+    };
+  } catch (error) {
+    console.error('❌ Error fetching agent avatar:', {
+      agentId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'An unexpected error occurred',
+    };
+  }
+}
+
+// Consolidated function to get all token and agent info
+export async function getAgentInfo(agentId: string) {
+  try {
+    const [marketData, avatar] = await Promise.all([
+      getTokenMarketData(agentId),
+      getAgentAvatar(agentId),
+    ]);
+
+    return {
+      success: true,
+      data: {
+        marketData: marketData.success ? marketData.data : null,
+        profilePictureUrl:
+          avatar.success && avatar.data?.url ? avatar.data.url : null,
+      },
+    };
+  } catch (error) {
+    console.error('❌ Error fetching agent info:', {
+      agentId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'An unexpected error occurred',
+    };
+  }
+}
+
+// Get complete agent data including token info
+export async function getCompleteAgentData(
+  agentId: string,
+): Promise<{ success: boolean; data?: Agent; error?: string }> {
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL;
+    const apiKey = process.env.API_KEY;
+
+    if (!apiUrl || !apiKey) throw new Error('Missing API configuration');
+
+    // Fetch all agent data in a single call
+    const response = await fetch(`${apiUrl}/api/eliza-agent/${agentId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+      },
+      next: { revalidate: 5 }, // Cache for 5 seconds
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to get agent data');
+    }
+
+    const {
+      data: { agent: apiAgent },
+    } = await response.json();
+
+    // Format token contract address
+    const tokenAddress = apiAgent.Token?.contractAddress
+      ? apiAgent.Token.contractAddress.startsWith('0x')
+        ? apiAgent.Token.contractAddress
+        : `0x${apiAgent.Token.contractAddress}`
+      : '0x0';
+
+    // Fetch contract ABI if we have a valid contract address
+    let contractAbi: Abi = [];
+    if (tokenAddress && tokenAddress !== '0x0') {
+      try {
+        const { abi } = await provider.getClassAt(tokenAddress);
+        if (abi) {
+          contractAbi = abi;
+        } else {
+          console.warn('⚠️ No ABI found for contract:', tokenAddress);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching ABI:', error);
+      }
+    }
+
+    // Construct complete agent data from the comprehensive response
+    const agent: Agent = {
+      id: apiAgent.id,
+      name: apiAgent.name,
+      symbol:
+        apiAgent.Token?.symbol || apiAgent.name.substring(0, 4).toUpperCase(),
+      type: apiAgent.curveSide === 'LEFT' ? 'leftcurve' : 'rightcurve',
+      status:
+        apiAgent.LatestMarketData?.bondingStatus === 'BONDING'
+          ? 'bonding'
+          : 'live',
+      price: apiAgent.LatestMarketData?.price || 0,
+      marketCap: apiAgent.LatestMarketData?.marketCap || 0,
+      holders: apiAgent.LatestMarketData?.holders || 0,
+      creator: apiAgent.Wallet?.deployedAddress
+        ? `0x${apiAgent.Wallet.deployedAddress}`
+        : 'unknown',
+      createdAt: apiAgent.createdAt,
+      creativityIndex: apiAgent.degenScore || 0,
+      performanceIndex: apiAgent.winScore || 0,
+      contractAddress: tokenAddress as `0x${string}`,
+      profilePictureUrl: apiAgent.profilePictureUrl
+        ? `${apiUrl}${apiAgent.profilePictureUrl}`
+        : undefined,
+      abi: contractAbi,
+      // Additional data that might be useful for components
+      buyTax: apiAgent.Token?.buyTax,
+      sellTax: apiAgent.Token?.sellTax,
+      priceChange24h: apiAgent.LatestMarketData?.priceChange24h || 0,
+      characterConfig: apiAgent.characterConfig,
+    };
+
+    return {
+      success: true,
+      data: agent,
+    };
+  } catch (error) {
+    console.error('❌ Error fetching complete agent data:', {
+      agentId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     return {
       success: false,
       error:

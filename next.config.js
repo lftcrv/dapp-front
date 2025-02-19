@@ -3,6 +3,19 @@ const nextConfig = {
   reactStrictMode: true,
   images: {
     unoptimized: true, // Disable image optimization for small images
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8080',
+        pathname: '/uploads/profile-pictures/**',
+      },
+      {
+        protocol: 'https',
+        hostname: process.env.NEXT_PUBLIC_ELIZA_API_URL?.replace(/^https?:\/\//, '') || 'api.eliza.xyz',
+        pathname: '/uploads/profile-pictures/**',
+      },
+    ],
   },
   webpack: (config, { dev }) => {
     if (!dev) {
@@ -34,7 +47,6 @@ const nextConfig = {
         },
       };
     }
-
     return config;
   },
   experimental: {
