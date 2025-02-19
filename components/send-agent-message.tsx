@@ -8,20 +8,21 @@ const DockerMessageCard = () => {
   const [port, setPort] = useState('');
   const [runtimeAgentId, setRuntimeAgentId] = useState('');
   const [message, setMessage] = useState('execute SIMULATE_STARKNET_TRADE');
+  const [apiKey, setApiKey] = useState('');
 
   const sendMessage = async () => {
     try {
-      if (!port || !runtimeAgentId || !message) {
+      if (!port || !runtimeAgentId || !message || !apiKey) {
         console.error('Please fill all fields');
         return;
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL;
-      const apiKey = process.env.API_KEY;
-
-      if (!apiUrl || !apiKey) {
-        throw new Error('Missing API configuration');
+      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_RADICAL_URL;
+      if (!baseUrl) {
+        throw new Error('Missing API base URL configuration');
       }
+
+      const apiUrl = `${baseUrl}:${port}`;
 
       const headers = {
         'Content-Type': 'application/json',
@@ -36,11 +37,11 @@ const DockerMessageCard = () => {
         name: 'Basic Interaction',
         agentId: runtimeAgentId,
       });
-
+      console.log("sending to:", `${apiUrl}/${runtimeAgentId}/message`)
       const response = await fetch(`${apiUrl}/${runtimeAgentId}/message`, {
         method: 'POST',
         headers,
-        body: JSON.stringify(requestBody),
+        body: requestBody,
       });
 
       if (!response.ok) {
@@ -57,6 +58,16 @@ const DockerMessageCard = () => {
         <CardTitle>Actions Docker</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="apiKey">API Key</Label>
+          <Input
+            id="apiKey"
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="Enter API Key"
+          />
+        </div>
         <div className="space-y-2">
           <Label htmlFor="port">Port</Label>
           <Input
@@ -90,7 +101,7 @@ const DockerMessageCard = () => {
         <Button
           onClick={sendMessage}
           className="w-full"
-          disabled={!port || !runtimeAgentId || !message}
+          disabled={!port || !runtimeAgentId || !message || !apiKey}
         >
           Send Message
         </Button>
