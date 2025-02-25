@@ -264,7 +264,7 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
           </TooltipProvider>
         </div>
         <div
-          className="text-xs text-muted-foreground leading-relaxed line-clamp-2"
+          className="text-xs text-muted-foreground leading-relaxed"
           title={explanation}
         >
           {explanation}
@@ -312,7 +312,7 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
           </TooltipProvider>
         </div>
         <div
-          className="text-xs text-muted-foreground leading-relaxed line-clamp-2"
+          className="text-xs text-muted-foreground leading-relaxed"
           title={explanation}
         >
           {explanation}
@@ -419,7 +419,7 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
         </TooltipProvider>
       </div>
       <div
-        className="text-xs text-muted-foreground leading-relaxed line-clamp-2"
+        className="text-xs text-muted-foreground leading-relaxed"
         title={explanation}
       >
         {explanation}
