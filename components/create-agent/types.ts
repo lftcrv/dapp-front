@@ -38,7 +38,7 @@ export const initialFormData: FormDataType = {
   objectives: [],
   knowledge: [],
   interval: 30,
-  chat_id: 'test0',
+  chat_id: '',
   external_plugins: [],
   internal_plugins: ['rpc', 'avnu', 'lftcrv', 'paradex'],
   tradingBehavior: '',
@@ -92,7 +92,7 @@ export const getPlaceholder = (
   return placeholders[field as keyof typeof placeholders] || '';
 };
 
-export const AVAILABLE_INTERNAL_PLUGINS = ['rpc', 'avnu', 'lftcrv', 'paradex'];
+export const AVAILABLE_INTERNAL_PLUGINS = ['rpc', 'lftcrv', 'paradex'];
 
 // Ancien format pour Eliza (pour référence/compatibilité)
 export interface CharacterConfig {

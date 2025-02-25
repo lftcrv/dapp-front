@@ -88,7 +88,7 @@ export const ArrayField: React.FC<ArrayFieldProps> = ({
           ))
         ) : (
           <p className="text-sm text-muted-foreground italic">
-            No items added yet. Click "Add" to get started.
+            No items added yet. Click Add to get started.
           </p>
         )}
       </div>

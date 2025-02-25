@@ -26,6 +26,10 @@ import { WalletConnectionOverlay } from '@/components/create-agent/WalletConnect
 import { AgentForm } from '@/components/create-agent/AgentForm';
 import { AgentTypeSelector } from '@/components/create-agent/AgentTypeSelector';
 
+const generateRandomChatId = () => {
+  return Math.random().toString(36).substring(2, 14);
+};
+
 const CreateAgentPageContent: React.FC = () => {
   const router = useRouter();
   const { formData, agentType, profilePicture } = useFormContext();
@@ -195,7 +199,7 @@ const CreateAgentPageContent: React.FC = () => {
           objectives: formData.objectives.filter(Boolean),
           knowledge: formData.knowledge.filter(Boolean),
           interval: formData.interval,
-          chat_id: formData.chat_id,
+          chat_id: generateRandomChatId(),
           external_plugins: formData.external_plugins.filter(Boolean),
           internal_plugins: formData.internal_plugins,
         };
