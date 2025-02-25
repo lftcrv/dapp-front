@@ -31,8 +31,9 @@ export default function StarknetProvider({
     }),
   });
 
+  console.log("rpcUrl:", PRIVATE_RPC_URL)
+
   console.log('chains:', chains);
-  console.log('provider:', provider);
 
   return (
     <StarknetConfig
