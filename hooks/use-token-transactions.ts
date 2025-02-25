@@ -4,10 +4,12 @@ import {
   useAccount,
   useProvider,
   useSendTransaction,
+  jsonRpcProvider,
 } from '@starknet-react/core';
-import type { Abi } from 'starknet';
+import { RpcProvider, type Abi } from 'starknet';
 import { showToast } from '@/lib/toast';
 import { toast } from 'sonner';
+import { Chain } from '@starknet-react/chains';
 
 // ERC20 ABI for approve function
 const ERC20_ABI = [
@@ -93,8 +95,11 @@ export function useBuyTokens({ address, abi }: UseTokenTransactionProps) {
   });
 
   const { account } = useAccount();
-  const { provider } = useProvider();
-
+  
+  const provider = new RpcProvider({ 
+    nodeUrl: process.env.STARKNET_RPC_URL || 'https://starknet-sepolia.public.blastapi.io'
+  });
+  
   // Prepare calls directly in the hook
   const calls = useCallback(
     (tokenAmount: string, requiredEthAmount: string) => {
