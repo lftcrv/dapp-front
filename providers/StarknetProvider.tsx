@@ -24,13 +24,16 @@ export default function StarknetProvider({
   ];
 
   const PRIVATE_RPC_URL =
-    process.env.NEXT_PUBLIC_STARKNET_RPC_URL;
+    process.env.NEXT_PUBLIC_STARKNET_RPC_URL; 
 
   const provider = jsonRpcProvider({
     rpc: (chain) => ({
       nodeUrl: PRIVATE_RPC_URL,
     }),
   });
+
+  console.log("chains:", chains)
+  console.log("provider:", provider)
 
   return (
     <StarknetConfig
