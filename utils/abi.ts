@@ -1,7 +1,6 @@
 import { Contract, ProviderInterface, RpcProvider, num } from 'starknet';
 import type { Abi } from 'starknet';
-import { useState, useEffect } from 'react';
-import { useProvider } from '@starknet-react/core';
+import { useState, useEffect, useMemo } from 'react';
 import { useAccount } from '@starknet-react/core';
 
 export async function fetchAbi(provider: ProviderInterface, address: string) {
@@ -98,26 +97,39 @@ export async function fetchAbi(provider: ProviderInterface, address: string) {
 }
 
 export function useContractAbi(address: string) {
-  const provider = new RpcProvider({
-    nodeUrl:
-      process.env.STARKNET_RPC_URL ||
-      'https://starknet-sepolia.public.blastapi.io',
-  });
+  // Créer le provider une seule fois avec useMemo
+  const provider = useMemo(
+    () =>
+      new RpcProvider({
+        nodeUrl:
+          process.env.STARKNET_RPC_URL ||
+          'https://starknet-sepolia.public.blastapi.io',
+      }),
+    [],
+  );
+
   const { isConnected } = useAccount();
   const [abi, setAbi] = useState<Abi | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const normalizedAddress = useMemo(() => {
+    if (!address || address === '0x' || address === '0x0') {
+      return null;
+    }
+    return address.toLowerCase();
+  }, [address]);
+
   useEffect(() => {
     // Reset state when disconnected or invalid address
-    if (!isConnected || !address || address === '0x0' || address === '0x') {
+    if (!isConnected || !normalizedAddress) {
       setAbi(null);
       setError(null);
       setIsLoading(false);
       return;
     }
 
-    // Only proceed if we have both provider and are connected
+    // Only proceed if provider is available
     if (!provider) {
       setError('Provider not available');
       setAbi(null);
@@ -128,9 +140,11 @@ export function useContractAbi(address: string) {
     let mounted = true;
 
     const load = async () => {
+      if (isLoading) return;
+
       setIsLoading(true);
       try {
-        const result = await fetchAbi(provider, address);
+        const result = await fetchAbi(provider, normalizedAddress);
         if (!mounted) return;
 
         if (!result) {
@@ -157,7 +171,7 @@ export function useContractAbi(address: string) {
     return () => {
       mounted = false;
     };
-  }, [address, provider, isConnected]);
+  }, [normalizedAddress, isConnected, provider, isLoading]);
 
   return { abi, error, isLoading };
 }
