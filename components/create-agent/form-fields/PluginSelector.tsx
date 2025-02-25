@@ -29,8 +29,6 @@ export const PluginSelector: React.FC = () => {
     switch (plugin) {
       case 'rpc':
         return 'RPC (Blockchain Data Access)';
-      case 'avnu':
-        return 'Avnu (DEX Integration)';
       case 'lftcrv':
         return 'Avnu (DEX Integration)';
       case 'paradex':
@@ -44,8 +42,6 @@ export const PluginSelector: React.FC = () => {
     switch (plugin) {
       case 'rpc':
         return 'Allows the agent to query on-chain data and blockchain state';
-      case 'avnu':
-        return 'Enables trading on Avnu DEX for spot markets';
       case 'lftcrv':
         return 'Enables trading on Avnu DEX for onchain swap';
       case 'paradex':
