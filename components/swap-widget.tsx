@@ -444,7 +444,7 @@ export const SwapWidget = memo(
       if (isAbiLoading) return 'Loading Contract...';
       if (isLoading) return 'Simulating...';
       if (isProcessing) return 'Processing...';
-      if (abiError) return 'Contract Error';
+      if (abiError) return 'Swap';  // todo Fix here
       if (error) return 'Error';
       if (!address) return 'Connect Wallet';
       if (!debouncedAmount) return 'Enter Amount';
