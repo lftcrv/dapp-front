@@ -74,7 +74,7 @@ AgentData.displayName = 'AgentData';
 
 export const HomePageContent = memo(() => {
   return (
-    <div className="container max-w-7xl mx-auto px-4 pt-24 space-y-8 pb-20">
+    <div className="container max-w-7xl mx-auto px-4 pt-2 space-y-8 pb-20">
       <HomeHeader />
       <AgentData />
     </div>

@@ -61,7 +61,18 @@ const ConnectedWallet = memo(
   ({ address, walletType, onDisconnect, onCopy }: ConnectedWalletProps) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="font-mono text-sm">
+        <Button
+          variant="outline"
+          className="
+    font-mono text-base py-5 px-5
+    relative bg-white/5 backdrop-blur-sm
+    border border-transparent
+    before:absolute before:inset-0 before:rounded-md before:p-[1px]
+    before:bg-gradient-to-r before:from-orange-500/50 before:via-purple-500/50 before:to-pink-500/50
+    before:-z-10
+    hover:shadow-lg hover:shadow-purple-500/10 transition-shadow
+  "
+        >
           {walletType === 'starknet' ? '🌟' : '⚡️'} {shortAddress(address)}
         </Button>
       </DropdownMenuTrigger>
@@ -88,9 +99,26 @@ interface DisconnectedWalletProps {
 
 const DisconnectedWallet = memo(
   ({ onClick, isLoading }: DisconnectedWalletProps) => (
-    <Button variant="outline" onClick={onClick} disabled={isLoading}>
-      {isLoading ? 'Checking...' : 'Connect Wallet'}
-    </Button>
+    <Button 
+  variant="outline" 
+  onClick={onClick} 
+  disabled={isLoading} 
+  className="
+    text-base py-5 px-5
+    relative bg-white
+    border-0
+    shadow-lg shadow-purple-500/20
+    before:absolute before:inset-0 before:rounded-md before:p-[1px]
+    before:bg-gradient-to-r before:from-orange-500 before:via-purple-500 before:to-pink-500
+    before:-z-10
+    after:absolute after:inset-[1px] after:bg-white after:rounded-[4px] after:-z-[5]
+    hover:scale-105
+    transition-all duration-200
+    disabled:opacity-50
+  "
+>
+  {isLoading ? 'Checking...' : 'Connect Wallet'}
+</Button>
   ),
 );
 DisconnectedWallet.displayName = 'DisconnectedWallet';

@@ -108,21 +108,6 @@ const SwapDivider = memo(({ isLeftCurve }: { isLeftCurve: boolean }) => (
     <div className="absolute inset-0 flex items-center">
       <div className="w-full border-t border-border" />
     </div>
-    <div className="relative flex justify-center">
-      <div
-        className={cn(
-          'rounded-full border-2 p-1.5 bg-background',
-          isLeftCurve ? 'border-yellow-500/50' : 'border-purple-500/50',
-        )}
-      >
-        <ArrowDownUp
-          className={cn(
-            'h-3 w-3',
-            isLeftCurve ? 'text-yellow-500' : 'text-purple-500',
-          )}
-        />
-      </div>
-    </div>
   </div>
 ));
 SwapDivider.displayName = 'SwapDivider';
@@ -523,42 +508,46 @@ export const SwapWidget = memo(
         </div>
 
         <Tabs
-          defaultValue="buy"
-          className="w-full"
-          onValueChange={(value) => {
-            setActiveTab(value);
-            setError(null);
-            setAmount('');
-            setSimulatedEthAmount('');
-            setConvertedTokenAmount('');
-          }}
-        >
-          <TabsList className="grid w-full grid-cols-2 bg-gray-500/5 p-1 rounded-lg">
-            <TabsTrigger
-              value="buy"
-              className={cn(
-                'rounded-md transition-all',
-                'data-[state=active]:shadow-sm',
-                isLeftCurve
-                  ? 'data-[state=active]:bg-yellow-500/20 data-[state=active]:text-yellow-500 hover:text-yellow-500/80'
-                  : 'data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-500 hover:text-purple-500/80',
-              )}
-            >
-              Buy
-            </TabsTrigger>
-            <TabsTrigger
-              value="sell"
-              className={cn(
-                'rounded-md transition-all',
-                'data-[state=active]:shadow-sm',
-                isLeftCurve
-                  ? 'data-[state=active]:bg-yellow-500/20 data-[state=active]:text-yellow-500 hover:text-yellow-500/80'
-                  : 'data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-500 hover:text-purple-500/80',
-              )}
-            >
-              Sell
-            </TabsTrigger>
-          </TabsList>
+  defaultValue="buy"
+  className="w-full"
+  onValueChange={(value) => {
+    setActiveTab(value);
+    setError(null);
+    setAmount('');
+    setSimulatedEthAmount('');
+    setConvertedTokenAmount('');
+  }}
+>
+  <TabsList className="grid w-full grid-cols-3 bg-transparent p-0 mb-8">
+    <div className="col-span-3 flex justify-center w-full h-12 bg-[#e5dcd2] dark:bg-[#e5dcd2]/30 rounded-full p-1">
+      <TabsTrigger
+        value="buy"
+        className={cn(
+          'flex-1 h-full rounded-full transition-all',
+          'data-[state=active]:shadow-sm',
+          'data-[state=active]:bg-white dark:data-[state=active]:bg-[#e8e1d9]/70',
+          isLeftCurve
+            ? 'data-[state=active]:text-yellow-500 hover:text-yellow-500/80'
+            : 'data-[state=active]:text-blue-500 hover:text-blue-500/80',
+        )}
+      >
+        Buy
+      </TabsTrigger>
+      <TabsTrigger
+        value="sell"
+        className={cn(
+          'flex-1 h-full rounded-full transition-all',
+          'data-[state=active]:shadow-sm',
+          'data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700',
+          isLeftCurve
+            ? 'data-[state=active]:text-yellow-500 hover:text-yellow-500/80'
+            : 'data-[state=active]:text-blue-500 hover:text-blue-500/80',
+        )}
+      >
+        Sell
+      </TabsTrigger>
+    </div>
+  </TabsList>
 
           <TabsContent value="buy" className="space-y-4">
             <SwapInput
