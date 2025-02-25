@@ -68,7 +68,6 @@ export function AgentContent({ agent, initialTrades = [] }: AgentContentProps) {
             <ChatCard agent={agent} />
           </Suspense>
         </AgentHeader>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <AnimatedSection
             className="lg:col-span-2 space-y-6"
@@ -79,16 +78,17 @@ export function AgentContent({ agent, initialTrades = [] }: AgentContentProps) {
               <PriceActionCard ref={priceActionRef} agent={agent} />
             </Suspense>
             <Suspense fallback={<Loading variant={agent.type} />}>
-              <TradeHistoryCard agentId={agent.id} initialTrades={initialTrades} />
+              <TradeHistoryCard
+                agentId={agent.id}
+                initialTrades={initialTrades}
+              />
             </Suspense>
-            {/* Le ChatCard est maintenant dans le header, donc on le supprime d'ici */}
           </AnimatedSection>
-
           <AnimatedSection className="space-y-6" direction="right" delay={0.4}>
             <Suspense fallback={<Loading variant={agent.type} />}>
               <Card className={cn('border-2')}>
-                <SwapWidget 
-                  agent={agent} 
+                <SwapWidget
+                  agent={agent}
                   onTransactionSuccess={handleTransactionSuccess}
                 />
               </Card>

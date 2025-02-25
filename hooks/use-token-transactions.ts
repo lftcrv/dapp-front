@@ -4,10 +4,12 @@ import {
   useAccount,
   useProvider,
   useSendTransaction,
+  jsonRpcProvider,
 } from '@starknet-react/core';
-import type { Abi } from 'starknet';
+import { RpcProvider, type Abi } from 'starknet';
 import { showToast } from '@/lib/toast';
 import { toast } from 'sonner';
+import { Chain } from '@starknet-react/chains';
 
 // ERC20 ABI for approve function
 const ERC20_ABI = [
@@ -53,20 +55,20 @@ interface UseTokenTransactionProps {
 
 /**
  * Token Transaction Hooks
- * 
+ *
  * Design Notes:
  * 1. Buy Flow: Requires two steps
  *    - First call: Approve ETH token contract to spend ETH (with 2% slippage buffer)
  *    - Second call: Execute buy on agent contract with exact token amount
  *    This pattern is necessary because ETH (ERC20) requires explicit approval before spending
- * 
+ *
  * 2. Sell Flow: Requires single step
  *    - Direct call: Execute sell on agent contract with exact token amount
  *    - No approval needed because:
  *      a) User is selling the agent's own tokens
  *      b) The agent contract already controls its token supply
  *      c) The sell function directly burns tokens and releases ETH
- * 
+ *
  * Implementation Details:
  * - Both flows use useSendTransaction for consistent transaction handling
  * - Both validate amounts for overflow and minimum thresholds
@@ -93,7 +95,12 @@ export function useBuyTokens({ address, abi }: UseTokenTransactionProps) {
   });
 
   const { account } = useAccount();
-  const { provider } = useProvider();
+
+  const provider = new RpcProvider({
+    nodeUrl:
+      process.env.STARKNET_RPC_URL ||
+      'https://starknet-sepolia.public.blastapi.io',
+  });
 
   // Prepare calls directly in the hook
   const calls = useCallback(
@@ -227,7 +234,12 @@ export function useSellTokens({ address, abi }: UseTokenTransactionProps) {
     address: address as `0x0${string}`,
   });
   const { account } = useAccount();
-  const { provider } = useProvider();
+
+  const provider = new RpcProvider({
+    nodeUrl:
+      process.env.STARKNET_RPC_URL ||
+      'https://starknet-sepolia.public.blastapi.io',
+  });
 
   // Prepare calls directly in the hook
   const calls = useCallback(
@@ -260,7 +272,7 @@ export function useSellTokens({ address, abi }: UseTokenTransactionProps) {
       if (process.env.NODE_ENV === 'development') {
         console.log('🔄 Sell Transaction:', {
           sell: Number(sellAmount) / 1e6,
-          rawAmount: sellAmount.toString()
+          rawAmount: sellAmount.toString(),
         });
       }
 
@@ -293,14 +305,14 @@ export function useSellTokens({ address, abi }: UseTokenTransactionProps) {
         if (process.env.NODE_ENV === 'development') {
           console.log('Executing sell with amount:', {
             amountInWei,
-            humanReadable: Number(amountInWei) / 1e6
+            humanReadable: Number(amountInWei) / 1e6,
           });
         }
 
         // Check token balance before selling
         const balance = await contract.balanceOf(account.address);
         const sellAmount = BigInt(amountInWei);
-        
+
         if (balance < sellAmount) {
           throw new Error('Insufficient token balance');
         }
@@ -312,7 +324,7 @@ export function useSellTokens({ address, abi }: UseTokenTransactionProps) {
 
         // Send transaction
         const response = await sendAsync(preparedCalls);
-        
+
         if (response?.transaction_hash) {
           const txHash = response.transaction_hash;
           const explorerUrl = `https://sepolia.voyager.online/tx/${txHash}`;
@@ -346,10 +358,11 @@ export function useSellTokens({ address, abi }: UseTokenTransactionProps) {
         if (process.env.NODE_ENV === 'development') {
           console.error('Sell transaction failed:', error);
         }
-        const errorMessage = error instanceof Error 
-          ? error.message
-          : 'Failed to execute sell transaction';
-          
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : 'Failed to execute sell transaction';
+
         if (errorMessage.includes('insufficient')) {
           throw new Error('Insufficient token balance to complete this sale');
         } else if (errorMessage.includes('rejected')) {

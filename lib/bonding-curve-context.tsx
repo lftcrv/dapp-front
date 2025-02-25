@@ -95,22 +95,12 @@ export function BondingCurveProvider({
   const [data, setData] = useState<BondingCurveData>(INITIAL_STATE);
   const isFetching = useRef(false);
 
-  console.log('🔌 BondingCurveProvider mounted:', { agentId });
-
   const fetchData = useCallback(async () => {
     if (!agentId || isFetching.current) {
-      console.log('🔄 Skipping bonding curve fetch:', { 
-        reason: !agentId ? 'No agentId' : 'Already fetching',
-        agentId 
-      });
       return;
     }
 
     isFetching.current = true;
-    console.log('🚀 Starting bonding curve data fetch:', { 
-      agentId,
-      timestamp: new Date().toISOString()
-    });
 
     try {
       // Fetch agent data and bonding percentage in parallel
@@ -119,22 +109,6 @@ export function BondingCurveProvider({
         getBondingCurvePercentage(agentId),
       ]);
 
-      console.log('📊 Bonding curve raw results:', {
-        agentData: {
-          success: agentResult.success,
-          contractAddress: agentResult.data?.contractAddress,
-          price: agentResult.data?.price,
-          marketCap: agentResult.data?.marketCap,
-          status: agentResult.data?.status,
-          error: agentResult.error
-        },
-        bondingData: {
-          success: bondingResult.success,
-          percentage: bondingResult.data,
-          error: bondingResult.error
-        }
-      });
-
       if (!agentResult.success || !agentResult.data) {
         throw new Error(agentResult.error || 'Failed to fetch agent data');
       }
@@ -142,7 +116,7 @@ export function BondingCurveProvider({
       if (!bondingResult.success) {
         console.warn('⚠️ Failed to fetch bonding percentage:', {
           error: bondingResult.error,
-          agentId
+          agentId,
         });
       }
 
@@ -152,26 +126,15 @@ export function BondingCurveProvider({
         priceChange24h: agentResult.data.priceChange24h || 0,
         holders: agentResult.data.holders || 0,
         marketCap: agentResult.data.marketCap || 0,
-        bondingStatus: agentResult.data.status === 'bonding' ? 'BONDING' : 'LIVE' as const,
+        bondingStatus:
+          agentResult.data.status === 'bonding' ? 'BONDING' : ('LIVE' as const),
       };
 
-      console.log('💰 Processed market data:', {
-        price: marketData.price.toString(),
-        priceChange24h: marketData.priceChange24h,
-        holders: marketData.holders,
-        marketCap: marketData.marketCap.toString(),
-        bondingStatus: marketData.bondingStatus
-      });
-
       // Use raw percentage from blockchain (already x100) or calculate locally
-      const bondingProgress = bondingResult.success && bondingResult.data !== undefined
-        ? bondingResult.data
-        : calculateBondingProgress(marketData.price, marketData.holders);
-
-      console.log('📈 Final bonding progress:', {
-        progress: bondingProgress,
-        source: bondingResult.success ? 'blockchain' : 'local calculation'
-      });
+      const bondingProgress =
+        bondingResult.success && bondingResult.data !== undefined
+          ? bondingResult.data
+          : calculateBondingProgress(marketData.price, marketData.holders);
 
       setData({
         currentPrice: marketData.price.toString(),
@@ -189,8 +152,8 @@ export function BondingCurveProvider({
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       });
-      
-      setData(prev => ({
+
+      setData((prev) => ({
         ...prev,
         isLoading: false,
         error: error instanceof Error ? error.message : 'Failed to fetch data',
@@ -202,7 +165,6 @@ export function BondingCurveProvider({
 
   // Only fetch on mount
   useEffect(() => {
-    console.log('⚡ Initial bonding curve data fetch:', { agentId });
     fetchData();
   }, [fetchData]);
 

@@ -252,7 +252,8 @@ export const SwapWidget = memo(
           setSimulatedEthAmount('');
 
           // Handle specific contract errors
-          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
           if (errorMessage.includes('insufficient')) {
             setError('Insufficient liquidity in the bonding curve');
           } else if (errorMessage.includes('exceeds_balance')) {
@@ -318,10 +319,10 @@ export const SwapWidget = memo(
         return;
       }
 
-      if (!isContractReady || isInitializing) {
-        setError('Contract not ready');
-        return;
-      }
+      // if (!isContractReady || isInitializing) {  // TODO check why that check was bad
+      //   setError('Contract not ready');
+      //   return;
+      // }
 
       if (!amount || !simulatedEthAmount || !convertedTokenAmount) {
         setError('Please enter an amount');

@@ -95,15 +95,6 @@ export const HomeContent = memo(
             error={error}
           />
         </Suspense>
-        <Suspense
-          fallback={
-            <div className="h-[400px] bg-white/5 rounded animate-pulse" />
-          }
-        >
-          <div className="mt-8">
-            <DockerMessageCard />
-          </div>
-        </Suspense>
       </>
     );
   },

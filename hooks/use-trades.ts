@@ -8,6 +8,7 @@ interface UseTradesOptions {
   initialData?: Trade[];
   limit?: number;
   enabled?: boolean;
+  refetchInterval?: number | false;
 }
 
 export function useTrades({
@@ -15,12 +16,19 @@ export function useTrades({
   initialData,
   limit = 10,
   enabled = true,
+  refetchInterval = false,
 }: UseTradesOptions = {}) {
   const [page, setPage] = useState(1);
-  
-  const queryKey = ['trades', agentId];
 
-  const { data: allTrades, isLoading, error } = useQuery<Trade[], Error>({
+  // More specific query key to allow proper caching per agent
+  const queryKey = agentId ? ['trades', 'agent', agentId] : ['trades', 'all'];
+
+  const {
+    data: allTrades,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery<Trade[], Error>({
     queryKey,
     queryFn: async () => {
       const result = agentId
@@ -28,15 +36,26 @@ export function useTrades({
         : await tradeService.getAll();
 
       if (!result.success) {
-        throw new Error(typeof result.error === 'string' ? result.error : 'Failed to fetch trades');
+        throw new Error(
+          typeof result.error === 'string'
+            ? result.error
+            : 'Failed to fetch trades',
+        );
       }
 
       return result.data || [];
     },
     initialData,
-    enabled: enabled && !initialData, // Only fetch if enabled and no initial data
-    staleTime: 10000, // Consider data fresh for 10 seconds
-    gcTime: 60000, // Keep in cache for 1 minute
+    // Always enable the query if agentId is present, but respect the enabled flag
+    enabled: enabled && agentId !== undefined,
+    // Cache the data for 10 seconds before considering it stale
+    staleTime: 10000,
+    // Keep in cache for 1 minute
+    gcTime: 60000,
+    // Allow periodic refetching if specified
+    refetchInterval,
+    // Refetch on window focus
+    refetchOnWindowFocus: true,
   });
 
   // Memoize the paginated trades and hasMore
@@ -45,11 +64,17 @@ export function useTrades({
     const slicedTrades = trades.slice(0, page * limit);
     return {
       paginatedTrades: slicedTrades,
-      hasMore: slicedTrades.length < trades.length
+      hasMore: slicedTrades.length < trades.length,
     };
   }, [allTrades, page, limit]);
 
   const loadMore = () => setPage((p) => p + 1);
+
+  // Add a reset function to go back to page 1
+  const resetPagination = () => setPage(1);
+
+  // Add a manual refresh function
+  const refreshTrades = () => refetch();
 
   return {
     trades: paginatedTrades,
@@ -57,5 +82,8 @@ export function useTrades({
     error: error as Error | null,
     hasMore,
     loadMore,
+    resetPagination,
+    refreshTrades,
+    totalTradesCount: allTrades?.length || 0,
   };
 }

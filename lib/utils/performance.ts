@@ -14,22 +14,6 @@ export const endTiming = (label: string) => {
   }
 };
 
-export const measureNavigation = () => {
-  const navigationTiming = performance.getEntriesByType(
-    'navigation',
-  )[0] as PerformanceNavigationTiming;
-
-  console.log(
-    `🎨 First Contentful Paint: ${navigationTiming.domContentLoadedEventEnd.toFixed(2)}ms`,
-  );
-  console.log(
-    `📦 DOM Content Loaded: ${navigationTiming.domContentLoadedEventEnd.toFixed(2)}ms`,
-  );
-  console.log(
-    `🏁 Load Complete: ${navigationTiming.loadEventEnd.toFixed(2)}ms`,
-  );
-};
-
 export const startRouteTransition = () => {
   startTiming('Route Transition');
 };

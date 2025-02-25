@@ -2,10 +2,13 @@
 
 import { useAccount, useProvider } from '@starknet-react/core';
 import { useContractAbi } from '@/utils/abi';
+import { RpcProvider } from 'starknet';
 
 export function useWalletStatus(contractAddress?: string) {
   const { address, isConnected } = useAccount();
-  const { provider } = useProvider();
+  const provider = new RpcProvider({ 
+    nodeUrl: process.env.STARKNET_RPC_URL || 'https://starknet-sepolia.public.blastapi.io'
+  });
   
   // Only fetch ABI if we have a valid contract address
   const { abi, isLoading: isLoadingAbi, error: abiError } = useContractAbi(
