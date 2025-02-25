@@ -49,7 +49,7 @@ export function adaptTradeData(trades: Trade[]): Trade[] {
           sellTokenName: isBuy ? quoteToken : baseToken,
           buyAmount: isBuy ? size : '0',
           sellAmount: isBuy ? '0' : size,
-          tradePriceUSD: trade.price || 0,
+          tradePriceUSD: 'MARKET PRICE',
         },
       };
 
@@ -57,10 +57,10 @@ export function adaptTradeData(trades: Trade[]): Trade[] {
       result = {
         ...trade,
         type: isBuy ? 'buy' : 'sell',
+        price: 'MARKET PRICE',
         information: modifiedInfo as MarketOrderTradeInfo,
       };
     }
-
     // Limit Order
     else if (isLimitOrder(info)) {
       const { market, side, size, price, explanation } = info.trade;
@@ -88,7 +88,6 @@ export function adaptTradeData(trades: Trade[]): Trade[] {
         information: modifiedInfo as LimitOrderTradeInfo,
       };
     }
-
     // Cancel Order
     else if (isCancelOrder(info)) {
       // For cancel orders, we don't add a trade property as it would violate the type
@@ -98,18 +97,15 @@ export function adaptTradeData(trades: Trade[]): Trade[] {
         type: 'cancel',
       };
     }
-
     // Legacy Trade (already has the right format)
     else if (isLegacyTrade(info)) {
       const tradeInfo = info.trade as LegacyTradeInfo;
       const isBuy = tradeInfo.buyAmount && parseFloat(tradeInfo.buyAmount) > 0;
-
       result = {
         ...trade,
         type: isBuy ? 'buy' : 'sell',
       };
     }
-
     // Unknown format - leave as is but mark as unknown type
     else {
       result = {

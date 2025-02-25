@@ -261,7 +261,7 @@ export interface MarketOrderTradeInfo extends BaseTradeInfo {
   trade: {
     market: string;
     side: 'BUY' | 'SELL';
-    type: 'MARKET';
+    type: 'MARKET PRICE';
     size: string;
     instruction: string;
     explanation: string;
@@ -325,7 +325,7 @@ export interface Trade {
   agentId: string;
   type: TradeType;
   amount?: number;
-  price?: number;
+  price?: number | string;
   time: string;
   summary: string;
   txHash: string;

@@ -79,7 +79,7 @@ export async function getTrades(agentId?: string) {
               amount: parseFloat(info.trade.size),
               summary:
                 info.trade.explanation ||
-                `${info.trade.side} ${info.trade.size} ${info.trade.market} at MARKET`,
+                `${info.trade.side} ${info.trade.size} ${info.trade.market} at MARKET PRICE`,
               txHash: info.tradeId || '',
               information: trade.information,
             };
