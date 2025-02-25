@@ -10,7 +10,15 @@ import { FormDataType } from '../types';
 
 type ArrayFields = keyof Pick<
   FormDataType,
-  'lore' | 'objectives' | 'knowledge' | 'external_plugins' | 'internal_plugins'
+  | 'bio'
+  | 'lore'
+  | 'objectives'
+  | 'knowledge'
+  | 'external_plugins'
+  | 'internal_plugins'
+  | 'topics'
+  | 'adjectives'
+  | 'postExamples'
 >;
 
 interface ArrayFieldProps {

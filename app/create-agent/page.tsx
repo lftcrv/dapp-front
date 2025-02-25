@@ -18,10 +18,13 @@ import {
 } from '@starknet-react/core';
 import { type Abi } from 'starknet';
 import { AgentConfig } from '@/lib/types';
-import { FormProvider, useFormContext } from '@/components/create-agent/FormContext';
+import {
+  FormProvider,
+  useFormContext,
+} from '@/components/create-agent/FormContext';
+import { WalletConnectionOverlay } from '@/components/create-agent/WalletConnectionOverlay';
 import { AgentForm } from '@/components/create-agent/AgentForm';
 import { AgentTypeSelector } from '@/components/create-agent/AgentTypeSelector';
-import { WalletConnectionOverlay } from '@/components/create-agent/WalletConnectionOverlay';
 
 const CreateAgentPageContent: React.FC = () => {
   const router = useRouter();
@@ -185,6 +188,7 @@ const CreateAgentPageContent: React.FC = () => {
           agentType,
         });
 
+        // Préparer l'objet pour l'API selon le nouveau format AgentConfig
         const agentConfig: AgentConfig = {
           name: formData.name,
           bio: formData.bio,
@@ -203,7 +207,7 @@ const CreateAgentPageContent: React.FC = () => {
             `Trading Behavior: ${formData.tradingBehavior}`,
           );
         }
-        console.log("agentConfig:", agentConfig)
+
         const result = await createAgent(
           formData.name,
           agentConfig,
@@ -240,10 +244,10 @@ const CreateAgentPageContent: React.FC = () => {
 
   // Effect to redirect if no address
   useEffect(() => {
-    if (!currentAddress) {
+    if (!currentAddress && !isLoading && privyReady) {
       router.push('/');
     }
-  }, [currentAddress, router]);
+  }, [currentAddress, router, isLoading, privyReady]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-start pt-24">
@@ -273,7 +277,7 @@ const CreateAgentPageContent: React.FC = () => {
           {/* Header with Agent Type Selection */}
           <AgentTypeSelector />
 
-          {/* Form Card - Single Tab */}
+          {/* Form Card with Tabs */}
           <AgentForm isSubmitting={isSubmitting} onDeploy={handleDeploy} />
         </motion.div>
       </div>
@@ -288,3 +292,4 @@ export default function CreateAgentPage() {
     </FormProvider>
   );
 }
+;

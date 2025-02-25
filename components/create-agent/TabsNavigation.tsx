@@ -2,13 +2,12 @@
 
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Brain, MessageSquare, Pencil } from 'lucide-react';
+import { Brain, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Flame, Loader2 } from 'lucide-react';
 import { useFormContext } from './FormContext';
-import { BasicInfoTab } from './tabs/BasicInfoTab';
-import { PersonalityTab } from './tabs/PersonalityTab';
-import { ExamplesTab } from './tabs/ExamplesTab';
+import { ProfileTab } from './tabs/ProfileTab';
+import { TechnicalTab } from './tabs/TechnicalTab';
 import { TabType } from './types';
 
 interface TabsNavigationProps {
@@ -30,9 +29,8 @@ export const TabsNavigation: React.FC<TabsNavigationProps> = ({
   } = useFormContext();
 
   const tabs = [
-    { id: 'basic' as TabType, icon: Brain, label: 'Basic' },
-    { id: 'personality' as TabType, icon: MessageSquare, label: 'Personality' },
-    { id: 'examples' as TabType, icon: Pencil, label: 'Examples' },
+    { id: 'profile' as TabType, icon: Brain, label: 'Agent Profile' },
+    { id: 'technical' as TabType, icon: Settings, label: 'Technical Setup' },
   ];
 
   return (
@@ -41,7 +39,7 @@ export const TabsNavigation: React.FC<TabsNavigationProps> = ({
       onValueChange={(value) => setCurrentTab(value as TabType)}
       className="w-full"
     >
-      <TabsList className="grid grid-cols-3 mb-4">
+      <TabsList className="grid grid-cols-2 mb-6">
         {tabs.map(({ id, icon: Icon, label }) => (
           <TabsTrigger
             key={id}
@@ -62,20 +60,16 @@ export const TabsNavigation: React.FC<TabsNavigationProps> = ({
         ))}
       </TabsList>
 
-      <TabsContent value="basic">
-        <BasicInfoTab />
+      <TabsContent value="profile">
+        <ProfileTab />
       </TabsContent>
 
-      <TabsContent value="personality">
-        <PersonalityTab />
-      </TabsContent>
-
-      <TabsContent value="examples">
-        <ExamplesTab />
+      <TabsContent value="technical">
+        <TechnicalTab />
       </TabsContent>
 
       <div className="flex gap-4 pt-6">
-        {currentTab !== 'basic' && (
+        {currentTab !== 'profile' && (
           <Button
             type="button"
             variant="outline"
@@ -87,7 +81,7 @@ export const TabsNavigation: React.FC<TabsNavigationProps> = ({
           </Button>
         )}
 
-        {currentTab !== 'examples' ? (
+        {currentTab !== 'technical' ? (
           <Button
             type="button"
             onClick={handleNext}
