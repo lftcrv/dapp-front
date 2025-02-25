@@ -1,7 +1,7 @@
 import { Contract, ProviderInterface, RpcProvider, num } from 'starknet';
 import type { Abi } from 'starknet';
 import { useState, useEffect, useMemo } from 'react';
-import { useAccount } from '@starknet-react/core';
+import { useAccount, useProvider } from '@starknet-react/core';
 
 export async function fetchAbi(provider: ProviderInterface, address: string) {
   if (!address || address === '0x' || address === '0x0') {
@@ -31,7 +31,12 @@ export async function fetchAbi(provider: ProviderInterface, address: string) {
   const isProxy = abiResult.some((func) => func.name === '__default__');
 
   if (!isProxy) {
-    console.log('Not a proxy contract, returning ABI directly');
+    // Reduced logging to once per session for this address
+    if (!window._abiCheckedAddresses) window._abiCheckedAddresses = {};
+    if (!window._abiCheckedAddresses[address]) {
+      console.log('Not a proxy contract, returning ABI directly');
+      window._abiCheckedAddresses[address] = true;
+    }
     return abiResult;
   }
 
@@ -97,22 +102,29 @@ export async function fetchAbi(provider: ProviderInterface, address: string) {
 }
 
 export function useContractAbi(address: string) {
-  // Créer le provider une seule fois avec useMemo
-  const provider = useMemo(
-    () =>
-      new RpcProvider({
-        nodeUrl:
-          process.env.STARKNET_RPC_URL ||
-          'https://starknet-sepolia.public.blastapi.io',
-      }),
-    [],
-  );
-
+  // Use the provider from context instead of creating a new one
+  const { provider: contextProvider } = useProvider();
   const { isConnected } = useAccount();
   const [abi, setAbi] = useState<Abi | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [fetchRequested, setFetchRequested] = useState(false);
 
+  // Fallback provider if context provider is not available
+  const fallbackProvider = useMemo(() => {
+    return new RpcProvider({
+      nodeUrl:
+        process.env.NEXT_PUBLIC_STARKNET_RPC_URL ||
+        'https://starknet-sepolia.public.blastapi.io',
+    });
+  }, []);
+
+  // Use context provider or fallback
+  const provider = useMemo(() => {
+    return contextProvider || fallbackProvider;
+  }, [contextProvider, fallbackProvider]);
+
+  // Mémorise l'adresse normalisée pour éviter des re-rendus inutiles
   const normalizedAddress = useMemo(() => {
     if (!address || address === '0x' || address === '0x0') {
       return null;
@@ -120,7 +132,37 @@ export function useContractAbi(address: string) {
     return address.toLowerCase();
   }, [address]);
 
+  // Cache ABIs in session to avoid repeated fetches
+  const cacheKey = useMemo(() => {
+    return normalizedAddress ? `abi-${normalizedAddress}` : null;
+  }, [normalizedAddress]);
+
+  // Check cache first
   useEffect(() => {
+    if (!cacheKey || !normalizedAddress) return;
+
+    // Try to get from memory cache first
+    if (!window._abiCache) window._abiCache = {};
+
+    if (window._abiCache[cacheKey]) {
+      setAbi(window._abiCache[cacheKey]);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
+
+    // Request a fetch
+    setFetchRequested(true);
+  }, [cacheKey, normalizedAddress]);
+
+  // Main effect to fetch ABI
+  useEffect(() => {
+    // Only proceed if fetch is requested
+    if (!fetchRequested) return;
+
+    // Reset fetch requested flag
+    setFetchRequested(false);
+
     // Reset state when disconnected or invalid address
     if (!isConnected || !normalizedAddress) {
       setAbi(null);
@@ -137,12 +179,13 @@ export function useContractAbi(address: string) {
       return;
     }
 
+    // Avoid multiple concurrent fetches for the same address
+    if (isLoading) return;
+
     let mounted = true;
+    setIsLoading(true);
 
     const load = async () => {
-      if (isLoading) return;
-
-      setIsLoading(true);
       try {
         const result = await fetchAbi(provider, normalizedAddress);
         if (!mounted) return;
@@ -151,6 +194,10 @@ export function useContractAbi(address: string) {
           setError('Contract ABI not available');
           setAbi(null);
         } else {
+          // Cache the result
+          if (!window._abiCache) window._abiCache = {};
+          window._abiCache[cacheKey!] = result;
+
           setError(null);
           setAbi(result);
         }
@@ -171,7 +218,22 @@ export function useContractAbi(address: string) {
     return () => {
       mounted = false;
     };
-  }, [normalizedAddress, isConnected, provider, isLoading]);
+  }, [
+    fetchRequested,
+    normalizedAddress,
+    isConnected,
+    provider,
+    isLoading,
+    cacheKey,
+  ]);
 
   return { abi, error, isLoading };
+}
+
+// Add TypeScript declaration for window extensions
+declare global {
+  interface Window {
+    _abiCache?: Record<string, any>;
+    _abiCheckedAddresses?: Record<string, boolean>;
+  }
 }
