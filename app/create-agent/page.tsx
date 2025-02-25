@@ -32,6 +32,7 @@ import {
 } from '@starknet-react/core';
 import { type Abi } from 'starknet';
 import { ProfilePictureUpload } from '@/components/profile-picture-upload';
+import { signatureStorage } from '@/actions/shared/derive-starknet-account';
 
 type TabType = 'basic' | 'personality' | 'examples';
 const TABS: TabType[] = ['basic', 'personality', 'examples'];
@@ -98,6 +99,8 @@ export default function CreateAgentPage() {
     isLoading,
     privyReady,
     currentAddress,
+    derivedStarknetAddress,
+    triggerStarknetDerivation,
   } = useWallet();
 
   // Move hooks to component level
@@ -362,51 +365,176 @@ export default function CreateAgentPage() {
         throw new Error('Deployment fees not configured');
       }
 
+      // Enhanced logging for wallet type
+      console.log('🔵 Wallet Debug:', {
+        walletType: activeWalletType,
+        address: currentAddress,
+        isEvm: activeWalletType === 'privy',
+        isStarknet: activeWalletType === 'starknet',
+        derivedAddress: derivedStarknetAddress
+      });
+
       console.log('🔵 Payment Debug:', {
         recipientAddress,
         amountToSend,
         curveSide,
+        walletType: activeWalletType,
       });
 
+      // For EVM wallets, we need to use the derived Starknet address
+      const effectiveAddress = activeWalletType === 'privy' ? derivedStarknetAddress : address;
+      
+      // Additional check for derived address
+      if (activeWalletType === 'privy' && !derivedStarknetAddress) {
+        console.error('❌ No derived Starknet address available for EVM wallet');
+        showToast('TX_ERROR', 'error', 'No Starknet address derived for your EVM wallet. Please try reconnecting your wallet.');
+        setIsSubmitting(false);
+        return;
+      }
+
       console.log('🔵 Contract Debug:', {
-        userAddress: address,
+        userAddress: effectiveAddress,
         chainId: chain?.id,
         contractAddress: contract?.address,
       });
 
-      if (!contract || !address) {
+      if (!contract?.address || !effectiveAddress) {
         throw new Error('Contract or address not available');
       }
 
-      // Call transfer directly
-      const transferCall = {
-        contractAddress: contract.address,
-        entrypoint: 'transfer',
-        calldata: [
-          recipientAddress,
-          BigInt(amountToSend).toString(),
-          '0', // For uint256, we need low and high parts
-        ],
-      };
+      showToast('TX_PENDING', 'loading', 'Sending payment for agent creation...');
 
-      console.log('🔵 Transaction Debug:', {
-        method: 'transfer',
-        params: [recipientAddress, BigInt(amountToSend).toString()],
-        calldata: [recipientAddress, BigInt(amountToSend).toString(), '0'],
-      });
+      let txHash;
 
-      showToast('TX_PENDING', 'loading');
+      // Handle transaction differently based on wallet type
+      const walletType = activeWalletType as 'privy' | 'starknet' | null;
+      
+      if (walletType === 'privy') {
+        // For EVM wallets, we need to use a different approach
+        // We'll use the signature from localStorage to derive the private key
+        console.log('🔵 Using EVM-derived wallet for transaction');
+        
+        // Get the signature from localStorage
+        const signature = await signatureStorage.getSignature(currentAddress || '');
+        if (!signature) {
+          throw new Error('No signature found for EVM wallet. Please reconnect your wallet.');
+        }
+        
+        // Import necessary functions from starknet.js
+        const { RpcProvider, Account, uint256 } = await import('starknet');
+        
+        // Import the function to derive the private key from signature
+        const { deriveStarkKeyFromSignature } = await import('@/actions/shared/derive-starknet-account');
+        
+        // Derive the private key from the signature
+        const privateKey = deriveStarkKeyFromSignature(signature);
+        
+        // Initialize provider
+        const provider = new RpcProvider({ 
+          nodeUrl: process.env.NEXT_PUBLIC_NODE_URL || 'https://starknet-sepolia.public.blastapi.io'
+        });
+        
+        // Initialize account with the derived private key
+        const account = new Account(provider, effectiveAddress as string, privateKey);
+        
+        // Convert amount to uint256
+        const amountBigInt = BigInt(amountToSend);
+        const amountUint256 = uint256.bnToUint256(amountBigInt);
+        
+        console.log('🔵 EVM Transaction Debug:', {
+          method: 'transfer',
+          contractAddress: contract.address,
+          recipient: recipientAddress,
+          amount: amountToSend,
+          amountLow: amountUint256.low.toString(),
+          amountHigh: amountUint256.high.toString(),
+        });
+        
+        // Execute the transaction
+        const response = await account.execute({
+          contractAddress: contract.address,
+          entrypoint: 'transfer',
+          calldata: [
+            recipientAddress,
+            amountUint256.low.toString(),
+            amountUint256.high.toString()
+          ]
+        });
+        
+        txHash = response.transaction_hash;
+        
+        // For EVM-derived wallets, we need to manually wait for the transaction
+        // instead of using the useTransactionReceipt hook
+        console.log('🔵 Manually waiting for transaction confirmation...');
+        showToast('TX_PENDING', 'loading', 'Waiting for transaction confirmation...');
+        
+        try {
+          // Wait for transaction to be confirmed
+          await provider.waitForTransaction(txHash);
+          console.log('✅ Transaction confirmed on L2');
+          showToast('TX_SUCCESS', 'success', 'Payment confirmed! Creating your agent...');
+          setIsTransactionConfirmed(true);
+          
+          // Create agent immediately after transaction confirmation
+          createAgentAfterTx(txHash);
+          
+          // Return early since we've handled the transaction confirmation manually
+          return;
+        } catch (waitError) {
+          console.error('❌ Error waiting for transaction:', waitError);
+          showToast('TX_ERROR', 'error', 'Error confirming transaction. Please check your wallet.');
+          setIsSubmitting(false);
+          return;
+        }
+      } else if (walletType === 'starknet') {
+        // For native Starknet wallets, use the starknet-react hooks
+        // Call transfer directly
+        const transferCall = {
+          contractAddress: contract.address,
+          entrypoint: 'transfer',
+          calldata: [
+            recipientAddress,
+            BigInt(amountToSend).toString(),
+            '0', // For uint256, we need low and high parts
+          ],
+        };
 
-      const response = await sendAsync([transferCall]);
+        console.log('🔵 Transaction Debug:', {
+          method: 'transfer',
+          params: [recipientAddress, BigInt(amountToSend).toString()],
+          calldata: [recipientAddress, BigInt(amountToSend).toString(), '0'],
+          evmDerived: activeWalletType === 'privy',
+          effectiveAddress,
+        });
 
-      if (response?.transaction_hash) {
-        console.log('🔵 Transaction Hash:', response.transaction_hash);
-        setTransactionHash(response.transaction_hash);
-        showToast('TX_SUCCESS', 'success', response.transaction_hash);
+        const response = await sendAsync([transferCall]);
+        txHash = response?.transaction_hash;
+      } else {
+        throw new Error('Unsupported wallet type');
+      }
+
+      if (txHash) {
+        console.log('🔵 Transaction Hash:', txHash);
+        console.log('🔵 Transaction Submitted:', {
+          hash: txHash,
+          walletType: activeWalletType,
+          effectiveAddress,
+          timestamp: new Date().toISOString(),
+        });
+        setTransactionHash(txHash);
+        showToast('TX_SUCCESS', 'success', `Payment sent with hash: ${txHash.slice(0, 10)}...`);
+      } else {
+        throw new Error('No transaction hash returned');
       }
     } catch (error) {
       console.error('❌ Transaction Error:', error);
-      showToast('TX_ERROR', 'error');
+      console.error('❌ Transaction Error Details:', {
+        walletType: activeWalletType,
+        address: currentAddress,
+        error: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString(),
+      });
+      showToast('TX_ERROR', 'error', 'Failed to send payment. Please try again.');
       setIsSubmitting(false);
     }
   };
@@ -417,15 +545,31 @@ export default function CreateAgentPage() {
   });
 
   React.useEffect(() => {
-    if (isLoading || !transactionHash) return;
+    // Skip this effect for EVM-derived wallets as we handle them manually
+    if (isLoading || !transactionHash || activeWalletType === 'privy') return;
 
     if (receiptError) {
       console.error('❌ Transaction Receipt Error:', receiptError);
-      showToast('TX_ERROR', 'error');
+      console.error('❌ Receipt Error Details:', {
+        hash: transactionHash,
+        walletType: activeWalletType,
+        error: receiptError instanceof Error ? receiptError.message : String(receiptError),
+        timestamp: new Date().toISOString(),
+      });
+      showToast('TX_ERROR', 'error', 'Transaction failed. Please try again.');
+      setIsSubmitting(false);
+      return;
     }
 
     if (receiptData) {
       console.log('🔵 Transaction Receipt:', receiptData);
+      console.log('🔵 Receipt Details:', {
+        hash: transactionHash,
+        walletType: activeWalletType,
+        finality: 'finality_status' in receiptData ? receiptData.finality_status : 'unknown',
+        execution: 'execution_status' in receiptData ? receiptData.execution_status : 'unknown',
+        timestamp: new Date().toISOString(),
+      });
 
       // Check if it's an invoke transaction
       if (
@@ -438,77 +582,112 @@ export default function CreateAgentPage() {
           finality_status === 'ACCEPTED_ON_L2' &&
           execution_status === 'SUCCEEDED'
         ) {
-          showToast('TX_SUCCESS', 'success', transactionHash);
+          console.log('✅ Transaction confirmed on L2');
+          console.log('✅ Transaction Success Details:', {
+            hash: transactionHash,
+            walletType: activeWalletType,
+            timestamp: new Date().toISOString(),
+          });
+          showToast('TX_SUCCESS', 'success', 'Payment confirmed! Creating your agent...');
           setIsTransactionConfirmed(true);
-
-          // Set up redirection after 5 seconds
-          setTimeout(() => {
-            console.log('🔄 Redirecting to home after 5s delay...');
-            showToast('AGENT_CREATING', 'loading');
-            router.push('/');
-          }, 5000);
+          
+          // Create agent immediately after transaction confirmation
+          createAgentAfterTx(transactionHash);
+        } else if (execution_status === 'REVERTED') {
+          console.error('❌ Transaction reverted:', receiptData);
+          console.error('❌ Revert Details:', {
+            hash: transactionHash,
+            walletType: activeWalletType,
+            finality: finality_status,
+            timestamp: new Date().toISOString(),
+          });
+          showToast('TX_ERROR', 'error', 'Transaction reverted. Please try again.');
+          setIsSubmitting(false);
         }
       }
     }
-  }, [receiptData, receiptError, isLoading, transactionHash]);
+  }, [receiptData, receiptError, isLoading, transactionHash, activeWalletType]);
 
-  React.useEffect(() => {
-    if (!isTransactionConfirmed || !transactionHash || !currentAddress) return;
+  // Separate function to create agent after transaction confirmation
+  const createAgentAfterTx = async (txHash: string) => {
+    if (!txHash || !currentAddress) {
+      setIsSubmitting(false);
+      return;
+    }
 
-    const createAgentAfterTx = async () => {
-      try {
-        console.log('🔵 Creating Agent:', {
-          transactionHash,
-          userAddress: currentAddress,
-          agentType,
-        });
-
-        const result = await createAgent(
-          formData.name,
-          {
-            name: formData.name,
-            clients: [],
-            modelProvider: 'anthropic',
-            settings: { secrets: {}, voice: { model: 'en_US-male-medium' } },
-            plugins: [],
-            bio: formData.bio.filter(Boolean),
-            lore: formData.lore.filter(Boolean),
-            knowledge: formData.knowledge.filter(Boolean),
-            messageExamples: formData.messageExamples.filter(
-              (msg) => msg[0].content.text && msg[1].content.text,
-            ),
-            postExamples: formData.postExamples.filter(Boolean),
-            topics: formData.topics.filter(Boolean),
-            style: {
-              all: formData.style.all.filter(Boolean),
-              chat: formData.style.chat.filter(Boolean),
-              post: formData.style.post.filter(Boolean),
-            },
-            adjectives: formData.adjectives.filter(Boolean),
-          },
-          agentType === 'leftcurve' ? 'LEFT' : 'RIGHT',
-          currentAddress,
-          transactionHash,
-          profilePicture || undefined,
-        );
-
-        if (result.success) {
-          console.log('🔵 Agent Created Successfully:', result);
-          showToast('AGENT_SUCCESS', 'success');
-        } else {
-          console.error('❌ Agent Creation Failed:', result.error);
-          showToast('AGENT_ERROR', 'error');
-        }
-      } catch (error) {
-        console.error('❌ Agent Creation Error:', error);
-        showToast('AGENT_ERROR', 'error');
-      } finally {
+    try {
+      // For EVM wallets, we need to use the derived Starknet address
+      const walletType = activeWalletType as 'privy' | 'starknet' | null;
+      const effectiveAddress = walletType === 'privy' ? derivedStarknetAddress : address;
+      
+      // Additional check for derived address
+      if (walletType === 'privy' && !derivedStarknetAddress) {
+        console.error('❌ No derived Starknet address available for EVM wallet');
+        showToast('AGENT_ERROR', 'error', 'No Starknet address derived for your EVM wallet. Please try reconnecting your wallet.');
         setIsSubmitting(false);
+        return;
       }
-    };
 
-    createAgentAfterTx();
-  }, [isTransactionConfirmed, transactionHash]);
+      console.log('🔵 Creating Agent:', {
+        transactionHash: txHash,
+        userAddress: currentAddress,
+        agentType: agentType,
+        walletType: activeWalletType,
+        effectiveAddress,
+        timestamp: new Date().toISOString(),
+      });
+
+      showToast('AGENT_CREATING', 'loading', 'Creating your agent...');
+
+      const result = await createAgent(
+        formData.name,
+        {
+          name: formData.name,
+          clients: [],
+          modelProvider: 'anthropic',
+          settings: { secrets: {}, voice: { model: 'en_US-male-medium' } },
+          plugins: [],
+          bio: formData.bio.filter(Boolean),
+          lore: formData.lore.filter(Boolean),
+          knowledge: formData.knowledge.filter(Boolean),
+          messageExamples: formData.messageExamples.filter(
+            (msg) => msg[0].content.text && msg[1].content.text,
+          ),
+          postExamples: formData.postExamples.filter(Boolean),
+          topics: formData.topics.filter(Boolean),
+          style: {
+            all: formData.style.all.filter(Boolean),
+            chat: formData.style.chat.filter(Boolean),
+            post: formData.style.post.filter(Boolean),
+          },
+          adjectives: formData.adjectives.filter(Boolean),
+        },
+        agentType === 'leftcurve' ? 'LEFT' : 'RIGHT',
+        currentAddress,
+        txHash,
+        profilePicture || undefined,
+      );
+
+      if (result.success) {
+        console.log('🔵 Agent Created Successfully:', result);
+        showToast('AGENT_SUCCESS', 'success', 'Your agent has been created successfully!');
+        
+        // Set up redirection after 3 seconds
+        setTimeout(() => {
+          console.log('🔄 Redirecting to home after 3s delay...');
+          router.push('/');
+        }, 3000);
+      } else {
+        console.error('❌ Agent Creation Failed:', result.error);
+        showToast('AGENT_ERROR', 'error', result.error || 'Failed to create agent');
+      }
+    } catch (error) {
+      console.error('❌ Agent Creation Error:', error);
+      showToast('AGENT_ERROR', 'error', error instanceof Error ? error.message : 'An unexpected error occurred');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const getPlaceholder = (field: FormField | 'style') => {
     const isLeft = agentType === 'leftcurve';
@@ -593,6 +772,36 @@ export default function CreateAgentPage() {
     }
   }, [currentAddress, router]);
 
+  // Effect to check for derived address for EVM wallets
+  useEffect(() => {
+    if (activeWalletType === 'privy' && !derivedStarknetAddress) {
+      console.log('⚠️ EVM wallet connected but no derived Starknet address found');
+      showToast('DEFAULT_ERROR', 'error', 'Waiting for Starknet address derivation. This may take a moment...');
+    } else if (activeWalletType === 'privy' && derivedStarknetAddress) {
+      console.log('✅ EVM wallet with derived Starknet address:', derivedStarknetAddress);
+    }
+  }, [activeWalletType, derivedStarknetAddress]);
+
+  // Function to manually trigger Starknet derivation
+  const handleManualDerivation = async () => {
+    if (activeWalletType !== 'privy') return;
+    
+    console.log('🔄 Manually triggering Starknet derivation...');
+    showToast('DEFAULT_ERROR', 'error', 'Deriving Starknet address. Please sign the message in your wallet...');
+    
+    try {
+      const success = await triggerStarknetDerivation();
+      if (success) {
+        showToast('TX_SUCCESS', 'success', 'Successfully derived Starknet address!');
+      } else {
+        showToast('TX_ERROR', 'error', 'Failed to derive Starknet address. Please try again.');
+      }
+    } catch (error) {
+      console.error('❌ Error during manual derivation:', error);
+      showToast('TX_ERROR', 'error', 'Error deriving Starknet address. Please try again.');
+    }
+  };
+
   const [isFormValid, setIsFormValid] = useState(false);
 
   useEffect(() => {
@@ -643,6 +852,20 @@ export default function CreateAgentPage() {
                   Connect EVM
                 </Button>
               </div>
+              {activeWalletType === 'privy' && !derivedStarknetAddress && (
+                <div className="mt-4">
+                  <Button
+                    onClick={handleManualDerivation}
+                    className="bg-gradient-to-r from-blue-500 to-green-500 hover:opacity-90"
+                  >
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Derive Starknet Address
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Your Starknet address is being derived. If it takes too long, click the button above.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
