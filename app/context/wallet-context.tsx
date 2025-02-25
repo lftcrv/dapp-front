@@ -9,15 +9,28 @@ import {
   useMemo,
   type ReactNode,
 } from 'react';
-import { usePrivy } from '@privy-io/react-auth';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { StarknetAccountDerivation } from '@/components/starknet-account-derivation';
-import { handleStarknetConnection } from '@/actions/shared/handle-starknet-connection';
-import { signatureStorage } from '@/actions/shared/derive-starknet-account';
-import { useConnect, useAccount, useDisconnect } from "@starknet-react/core";
-import { useStarknetkitConnectModal, type StarknetkitConnector } from "starknetkit";
+import {
+  handleStarknetConnection,
+  handleEvmConnection,
+} from '@/actions/shared/handle-starknet-connection';
+import { signatureStorage, derivedAddressStorage } from '@/actions/shared/derive-starknet-account';
+import { useConnect, useAccount, useDisconnect } from '@starknet-react/core';
+import {
+  useStarknetkitConnectModal,
+  type StarknetkitConnector,
+} from 'starknetkit';
+import React from 'react';
+import { deriveStarknetAccount } from '@/actions/shared/derive-starknet-account';
 
 interface StarknetWalletState {
-  wallet: any | null;
+  wallet: {
+    id: string;
+    name: string;
+    icon: string;
+    version: string;
+  } | null;
   address?: string;
   isConnected: boolean;
   chainId?: string;
@@ -40,6 +53,10 @@ interface WalletContextType {
   isLoading: boolean;
   activeWalletType: 'starknet' | 'privy' | null;
   currentAddress?: string;
+  derivedStarknetAddress?: string;
+  
+  // Utility functions
+  triggerStarknetDerivation: () => Promise<boolean>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -52,6 +69,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     wallet: null,
     isConnected: false,
   });
+  const [derivedAddress, setDerivedAddress] = useState<string | undefined>(undefined);
 
   // 2. All external hooks
   const {
@@ -62,12 +80,26 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     logout,
   } = usePrivy();
 
-  const { connect, connectors } = useConnect();
-  const { disconnect } = useDisconnect();
-  const { address: starknetAddress, isConnected: isStarknetConnected } = useAccount();
-  const { starknetkitConnectModal } = useStarknetkitConnectModal({
-    connectors: connectors as unknown as StarknetkitConnector[]
+  // Always call the hooks, never conditionally
+  const connectHook = useConnect();
+  const disconnectHook = useDisconnect();
+  const accountHook = useAccount();
+  const modalHook = useStarknetkitConnectModal({
+    connectors: connectHook.connectors as unknown as StarknetkitConnector[],
   });
+
+  // Safely access the hook results
+  const connect = connectHook.connect;
+  const connectors = connectHook.connectors;
+  const disconnect = disconnectHook.disconnect;
+  const starknetAddress = accountHook.address;
+  const isStarknetConnected = accountHook.isConnected;
+  const { starknetkitConnectModal } = modalHook;
+
+  const { wallets } = useWallets();
+
+  // Ref to prevent duplicate handling
+  const hasHandledEvmConnection = React.useRef(false);
 
   // 3. All useCallback hooks
   const clearStarknetState = useCallback(() => {
@@ -96,12 +128,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // Save/update user in database only if we have an address
       if (starknetAddress) {
         try {
-          await handleStarknetConnection(starknetAddress);
+          await handleStarknetConnection(starknetAddress, true);
         } catch (err) {
-          // Ignore 409 conflicts as they're expected when user already exists
-          if (err instanceof Error && !err.message.includes('409')) {
-            console.error('Failed to save user data');
-          }
+          console.error('Failed to handle Starknet connection:', err);
         }
       }
     } catch (_error) {
@@ -139,34 +168,213 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [login, privyReady, privyAuthenticated]);
 
   const logoutFromPrivy = useCallback(async () => {
-    if (!privyAuthenticated) return;
+    if (!privyAuthenticated || !user?.wallet) return;
     try {
       // Clear signature if there is one
-      if (user?.wallet?.address) {
-        signatureStorage.clearSignature(user.wallet.address);
-      }
+      await signatureStorage.clearSignature(user.wallet.address);
       await logout();
     } catch (err) {
       console.error('Failed to logout from Privy:', err);
     }
-  }, [logout, privyAuthenticated, user?.wallet?.address]);
+  }, [logout, privyAuthenticated, user?.wallet]);
+
+  // Function to manually trigger Starknet account derivation
+  const triggerStarknetDerivation = useCallback(async () => {
+    if (!privyAuthenticated || !user?.wallet?.address) {
+      console.error('❌ Cannot derive Starknet account: No EVM wallet connected');
+      return false;
+    }
+
+    console.log('🔄 Manually triggering Starknet account derivation...');
+    
+    const wallet = wallets.find(
+      (w) => w.address.toLowerCase() === user.wallet?.address.toLowerCase(),
+    );
+    
+    if (!wallet) {
+      console.error('❌ Connected wallet not found');
+      return false;
+    }
+    
+    try {
+      // Clear any existing signature to force a new derivation
+      await signatureStorage.clearSignature(wallet.address);
+      
+      // Request a new signature
+      const message = `Sign this message to derive your Starknet account.\n\nEVM Address: ${wallet.address}`;
+      const signature = await wallet.sign(message);
+      
+      // Save the signature
+      await signatureStorage.saveSignature(wallet.address, signature);
+      
+      // Derive the Starknet account
+      const account = await deriveStarknetAccount(
+        wallet.address,
+        async () => signature
+      );
+      
+      if (account?.starknetAddress) {
+        console.log('✅ Successfully derived Starknet account:', account.starknetAddress);
+        setDerivedAddress(account.starknetAddress);
+        derivedAddressStorage.saveAddress(wallet.address, account.starknetAddress);
+        return true;
+      } else {
+        console.error('❌ Failed to derive Starknet account');
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Error during manual Starknet derivation:', error);
+      return false;
+    }
+  }, [privyAuthenticated, user?.wallet?.address, wallets]);
+
+  // Handle EVM connection
+  useEffect(() => {
+    if (!privyAuthenticated || !user?.wallet?.address) {
+      hasHandledEvmConnection.current = false;
+      return;
+    }
+
+    const handleEvmUser = async () => {
+      console.log('🔄 Starting EVM connection process...');
+      console.log('📊 Current localStorage state:', {
+        keys: Object.keys(localStorage),
+        length: localStorage.length
+      });
+      
+      const wallet = wallets.find(
+        (w) => w.address.toLowerCase() === user.wallet?.address.toLowerCase(),
+      );
+      if (!wallet) {
+        console.error('❌ Connected wallet not found');
+        return;
+      }
+      console.log('✅ Found connected wallet:', wallet.address);
+
+      try {
+        // Check if we already have a derived Starknet address
+        const savedDerivedAddress = derivedAddressStorage.getAddress(wallet.address);
+        if (savedDerivedAddress) {
+          console.log('✅ Found existing derived Starknet address:', savedDerivedAddress);
+          setDerivedAddress(savedDerivedAddress);
+        }
+        
+        // Check if we already have a signature
+        console.log('🔍 Checking for saved signature...');
+        const savedSignature = await signatureStorage.getSignature(wallet.address);
+        let signature = savedSignature;
+        
+        console.log('📊 Local storage signature check:', {
+          hasSignature: !!signature,
+          signatureKey: `signature_${wallet.address.toLowerCase()}`,
+          signatureLength: signature?.length || 0,
+          signaturePreview: signature ? `${signature.slice(0, 10)}...${signature.slice(-10)}` : 'none'
+        });
+        
+        if (signature) {
+          console.log('✅ Found existing signature in storage');
+        } else {
+          console.log('📝 No signature found, requesting new signature...');
+          const message = `Sign this message to derive your Starknet account.\n\nEVM Address: ${wallet.address}`;
+          console.log('📤 Requesting signature for message:', message);
+          
+          signature = await wallet.sign(message);
+          console.log('✅ Got new signature from wallet:', {
+            length: signature.length,
+            preview: `${signature.slice(0, 10)}...${signature.slice(-10)}`
+          });
+          
+          console.log('💾 Saving signature to storage...');
+          await signatureStorage.saveSignature(wallet.address, signature);
+          console.log('📊 Updated localStorage state:', {
+            keys: Object.keys(localStorage),
+            length: localStorage.length,
+            newSignatureKey: `signature_${wallet.address.toLowerCase()}`
+          });
+          console.log('✅ Signature saved successfully');
+        }
+
+        // Instead of directly calling handleEvmConnection, we'll use deriveStarknetAccount
+        // which will handle both the derivation and the user creation
+        console.log('🔄 Deriving Starknet account from signature...');
+        try {
+          const account = await deriveStarknetAccount(
+            wallet.address,
+            async (message) => {
+              // If we already have a signature, return it instead of prompting again
+              if (signature) {
+                console.log('✅ Using existing signature');
+                return signature;
+              }
+              console.log('📝 Requesting new signature for derivation...');
+              const newSignature = await wallet.sign(message);
+              await signatureStorage.saveSignature(wallet.address, newSignature);
+              return newSignature;
+            }
+          );
+          
+          if (account?.starknetAddress) {
+            console.log('✅ Successfully derived Starknet account:', {
+              starknetAddress: account.starknetAddress,
+              evmAddress: account.evmAddress
+            });
+            setDerivedAddress(account.starknetAddress);
+            
+            // Save the derived address to localStorage for future use
+            derivedAddressStorage.saveAddress(wallet.address, account.starknetAddress);
+          } else {
+            console.error('❌ Failed to derive Starknet account');
+          }
+        } catch (derivationError) {
+          console.error('❌ Error during Starknet account derivation:', derivationError);
+          // If derivation fails, fall back to handleEvmConnection as a last resort
+          console.log('⚠️ Falling back to handleEvmConnection...');
+          const result = await handleEvmConnection(wallet.address, signature);
+          if (result.success) {
+            console.log('✅ EVM connection handled successfully', result.data);
+          } else {
+            console.error('❌ Failed to handle EVM connection:', result.error);
+          }
+        }
+      } catch (err) {
+        console.error('❌ Error during EVM connection:', err);
+        console.error('📊 Error context:', {
+          walletAddress: wallet.address,
+          localStorage: Object.keys(localStorage),
+          error: err instanceof Error ? err.message : 'Unknown error'
+        });
+      }
+    };
+
+    if (!hasHandledEvmConnection.current) {
+      hasHandledEvmConnection.current = true;
+      handleEvmUser();
+    }
+  }, [privyAuthenticated, user?.wallet?.address]); // Remove wallets from dependencies
 
   // 4. All useEffect hooks
   useEffect(() => {
     if (isStarknetConnected && starknetAddress) {
       // Find the connected connector
-      const activeConnector = connectors.find(c => c.id === 'argentX' || c.id === 'braavos');
-      
+      const activeConnector = connectors.find(
+        (c) => c.id === 'argentX' || c.id === 'braavos',
+      );
+
+      if (!activeConnector?.available()) {
+        clearStarknetState();
+        return;
+      }
+
       setStarknetWallet((prev) => ({
         ...prev,
         address: starknetAddress,
         isConnected: true,
-        wallet: activeConnector?.available() ? {
+        wallet: {
           id: activeConnector.id,
           name: activeConnector.name,
-          icon: activeConnector.icon,
+          icon: activeConnector.icon?.toString() || '',
           version: '1.0.0',
-        } as any : null,
+        },
       }));
 
       // Cache the connection
@@ -177,7 +385,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           data: {
             address: starknetAddress,
             isConnected: true,
-            walletType: activeConnector?.id,
+            walletType: activeConnector.id,
           },
         }),
       );
@@ -205,8 +413,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             const { timestamp, data } = JSON.parse(cachedWallet);
             if (data && timestamp && Date.now() - timestamp < 5 * 60 * 1000) {
               // Find the previously used connector
-              const previousConnector = connectors.find(c => c.id === data.walletType);
-              
+              const previousConnector = connectors.find(
+                (c) => c.id === data.walletType,
+              );
+
               if (previousConnector?.available()) {
                 await connect({ connector: previousConnector });
               }
@@ -232,6 +442,26 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     connect,
     connectors,
   ]);
+
+  // Add new effect to handle Starknet connection state
+  useEffect(() => {
+    const handleStarknetState = async () => {
+      if (!isStarknetConnected || !starknetAddress) return;
+
+      console.log('🔄 Handling Starknet connection state:', {
+        isConnected: isStarknetConnected,
+        address: starknetAddress
+      });
+
+      try {
+        await handleStarknetConnection(starknetAddress, true);
+      } catch (err) {
+        console.error('❌ Failed to handle Starknet connection:', err);
+      }
+    };
+
+    handleStarknetState();
+  }, [isStarknetConnected, starknetAddress]);
 
   // 5. All useMemo hooks
   const activeWalletType = useMemo((): 'starknet' | 'privy' | null => {
@@ -269,6 +499,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       isLoading: isLoadingWallet,
       activeWalletType,
       currentAddress,
+      derivedStarknetAddress: activeWalletType === 'privy' ? derivedAddress : starknetAddress,
+      
+      // Utility functions
+      triggerStarknetDerivation,
     }),
     [
       starknetWallet,
@@ -282,6 +516,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       isLoadingWallet,
       activeWalletType,
       currentAddress,
+      derivedAddress,
+      starknetAddress,
+      triggerStarknetDerivation,
     ],
   );
 

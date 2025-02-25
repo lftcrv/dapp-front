@@ -375,16 +375,42 @@ export interface ProtocolFeesData {
   userShares: Record<string, string>;
 }
 
+// User Types
 export interface User {
   id: string;
   evmAddress?: string;
   starknetAddress?: string;
-  name?: string;
-  twitter?: string;
+  type: 'derived' | 'starknet_native';
+  twitterHandle?: string;
   lastConnection: string;
   createdAt: string;
   updatedAt: string;
-  type: 'derived' | 'starknet_native';
+  usedReferralCode?: string;
+}
+
+export interface ValidationError {
+  field: string;
+  error: string;
+}
+
+export interface ApiError {
+  message: string;
+  error: string;
+  statusCode: number;
+  details?: ValidationError[];
+}
+
+export interface CreateUserPayload {
+  starknetAddress: string;
+  evmAddress: string;
+  addressType: 'DERIVED' | 'NATIVE';
+  twitterHandle?: string;
+  accessCode?: string;
+}
+
+export interface UpdateUserPayload {
+  evmAddress?: string;
+  twitterHandle?: string;
 }
 
 export interface TokenMarketData {
