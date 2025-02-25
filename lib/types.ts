@@ -391,6 +391,18 @@ export interface CharacterConfig {
   adjectives: string[];
 }
 
+export interface AgentConfig {
+  name: string;
+  bio: string;
+  lore: string[];
+  objectives: string[];
+  knowledge: string[];
+  interval: number;
+  chat_id: string;
+  external_plugins: string[];
+  internal_plugins: string[];
+}
+
 // Protocol Fee Types
 export interface ProtocolFeesData {
   totalFees: string;

@@ -1,6 +1,6 @@
 'use server';
 
-import { CharacterConfig } from '@/lib/types';
+import { AgentConfig } from '@/lib/types';
 
 interface CreateAgentResponse {
   status: string;
@@ -12,7 +12,7 @@ interface CreateAgentResponse {
 
 export async function createAgent(
   name: string,
-  characterConfig: CharacterConfig,
+  agentConfig: AgentConfig,
   curveSide: 'LEFT' | 'RIGHT',
   creatorWallet: string,
   transactionHash: string,
@@ -47,10 +47,14 @@ export async function createAgent(
     formData.append('curveSide', curveSide);
     formData.append('creatorWallet', creatorWallet);
     formData.append('transactionHash', transactionHash);
-    formData.append('characterConfig', JSON.stringify({
-      ...characterConfig,
-      name: formattedName // Update name in character config too
-    }));
+
+    // Update the name in the agent config
+    const configWithUpdatedName = {
+      ...agentConfig,
+      name: formattedName,
+    };
+
+    formData.append('agentConfig', JSON.stringify(configWithUpdatedName));
 
     // Handle profile picture if present
     if (profilePicture) {
@@ -185,15 +189,15 @@ export async function createAgent(
   }
 }
 
-function validateAgentName(name: string): { 
-  isValid: boolean; 
+function validateAgentName(name: string): {
+  isValid: boolean;
   error?: string;
   formattedName?: string;
 } {
   if (!name || !name.trim()) {
-    return { 
-      isValid: false, 
-      error: 'Agent name is required' 
+    return {
+      isValid: false,
+      error: 'Agent name is required',
     };
   }
 
@@ -202,36 +206,37 @@ function validateAgentName(name: string): {
 
   // Check length after trimming
   if (trimmedName.length < 2) {
-    return { 
-      isValid: false, 
-      error: 'Agent name must be at least 2 characters long' 
+    return {
+      isValid: false,
+      error: 'Agent name must be at least 2 characters long',
     };
   }
 
   if (trimmedName.length > 32) {
-    return { 
-      isValid: false, 
-      error: 'Agent name must be less than 32 characters' 
+    return {
+      isValid: false,
+      error: 'Agent name must be less than 32 characters',
     };
   }
 
   // Replace spaces with hyphens and ensure only allowed characters
   const formattedName = trimmedName
-    .replace(/\s+/g, '-')           // Replace spaces with hyphens
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
     .replace(/[^a-zA-Z0-9_.-]/g, '') // Remove any other disallowed characters
-    .toLowerCase();                   // Convert to lowercase for consistency
+    .toLowerCase(); // Convert to lowercase for consistency
 
   // Validate the final format
   const validNameRegex = /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/;
   if (!validNameRegex.test(formattedName)) {
-    return { 
-      isValid: false, 
-      error: 'Agent name can only contain letters, numbers, hyphens, dots, and underscores, and must start with a letter or number' 
+    return {
+      isValid: false,
+      error:
+        'Agent name can only contain letters, numbers, hyphens, dots, and underscores, and must start with a letter or number',
     };
   }
 
   return {
     isValid: true,
-    formattedName
+    formattedName,
   };
 }
