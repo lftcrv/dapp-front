@@ -3,6 +3,14 @@ import type { Abi } from 'starknet';
 import { useState, useEffect, useMemo } from 'react';
 import { useAccount, useProvider } from '@starknet-react/core';
 
+// First, define proper TypeScript declarations for window extensions
+declare global {
+  interface Window {
+    _abiCache?: Record<string, any>;
+    _abiCheckedAddresses?: Record<string, boolean>;
+  }
+}
+
 export async function fetchAbi(provider: ProviderInterface, address: string) {
   if (!address || address === '0x' || address === '0x0') {
     console.log('No valid address provided for ABI fetch');
@@ -101,7 +109,7 @@ export async function fetchAbi(provider: ProviderInterface, address: string) {
   }
 }
 
-export function useContractAbi(address: string) {
+export function useContractAbi(address: string, forceLocalAbi = false) {
   // Use the provider from context instead of creating a new one
   const { provider: contextProvider } = useProvider();
   const { isConnected } = useAccount();
@@ -109,6 +117,7 @@ export function useContractAbi(address: string) {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [fetchRequested, setFetchRequested] = useState(false);
+  const [startTime] = useState<number>(Date.now()); // Track when loading started
 
   // Fallback provider if context provider is not available
   const fallbackProvider = useMemo(() => {
@@ -137,9 +146,24 @@ export function useContractAbi(address: string) {
     return normalizedAddress ? `abi-${normalizedAddress}` : null;
   }, [normalizedAddress]);
 
+  // Add timeout handling
+  useEffect(() => {
+    if (!isLoading || forceLocalAbi) return;
+
+    const timeoutId = setTimeout(() => {
+      console.warn(
+        `[useContractAbi] ABI loading timed out for ${normalizedAddress}`,
+      );
+      setError('ABI loading timed out');
+      setIsLoading(false);
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(timeoutId);
+  }, [isLoading, normalizedAddress, forceLocalAbi]);
+
   // Check cache first
   useEffect(() => {
-    if (!cacheKey || !normalizedAddress) return;
+    if (!cacheKey || !normalizedAddress || forceLocalAbi) return;
 
     // Try to get from memory cache first
     if (!window._abiCache) window._abiCache = {};
@@ -153,10 +177,18 @@ export function useContractAbi(address: string) {
 
     // Request a fetch
     setFetchRequested(true);
-  }, [cacheKey, normalizedAddress]);
+  }, [cacheKey, normalizedAddress, forceLocalAbi]);
 
   // Main effect to fetch ABI
   useEffect(() => {
+    // Skip if force local ABI is set
+    if (forceLocalAbi) {
+      setAbi(null);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
+
     // Only proceed if fetch is requested
     if (!fetchRequested) return;
 
@@ -184,6 +216,7 @@ export function useContractAbi(address: string) {
 
     let mounted = true;
     setIsLoading(true);
+    console.log(`[useContractAbi] Starting ABI fetch for ${normalizedAddress}`);
 
     const load = async () => {
       try {
@@ -191,9 +224,15 @@ export function useContractAbi(address: string) {
         if (!mounted) return;
 
         if (!result) {
+          console.log(
+            `[useContractAbi] No ABI result for ${normalizedAddress}`,
+          );
           setError('Contract ABI not available');
           setAbi(null);
         } else {
+          console.log(
+            `[useContractAbi] ABI fetch successful for ${normalizedAddress}`,
+          );
           // Cache the result
           if (!window._abiCache) window._abiCache = {};
           window._abiCache[cacheKey!] = result;
@@ -219,6 +258,7 @@ export function useContractAbi(address: string) {
       mounted = false;
     };
   }, [
+    forceLocalAbi,
     fetchRequested,
     normalizedAddress,
     isConnected,
@@ -227,13 +267,10 @@ export function useContractAbi(address: string) {
     cacheKey,
   ]);
 
-  return { abi, error, isLoading };
-}
+  // Calculate if a timeout has occurred based on time elapsed
+  const hasTimedOut = useMemo(() => {
+    return isLoading && Date.now() - startTime > 10000;
+  }, [isLoading, startTime]);
 
-// Add TypeScript declaration for window extensions
-declare global {
-  interface Window {
-    _abiCache?: Record<string, any>;
-    _abiCheckedAddresses?: Record<string, boolean>;
-  }
+  return { abi, error, isLoading, hasTimedOut };
 }

@@ -139,6 +139,8 @@ export const SwapWidget = memo(
     const [isLoading, setIsLoading] = useState(false);
     const [ethBalance, setEthBalance] = useState('0');
     const [tokenBalance, setTokenBalance] = useState('0');
+    const [useLocalAbi, setUseLocalAbi] = useState(false);
+    const [debugInfo, setDebugInfo] = useState<string>('');
 
     const { address, isContractReady } = useWalletStatus(agent.contractAddress);
     const { toast } = useToast();
@@ -148,11 +150,23 @@ export const SwapWidget = memo(
       abi,
       error: abiError,
       isLoading: isAbiLoading,
-    } = useContractAbi(agent.contractAddress);
+      hasTimedOut,
+    } = useContractAbi(agent.contractAddress, useLocalAbi);
+
+    // Handle ABI loading timeout
+    useEffect(() => {
+      if (hasTimedOut || (abiError && !useLocalAbi)) {
+        console.log('ABI loading timed out or failed, using local ABI instead');
+        setUseLocalAbi(true);
+        setDebugInfo(
+          (prev) => prev + '\nSwitched to local ABI due to timeout or error',
+        );
+      }
+    }, [hasTimedOut, abiError, useLocalAbi]);
 
     // Get contract instance
     const { contract } = useContract({
-      abi: abi || agent.abi,
+      abi: useLocalAbi ? agent.abi : abi || agent.abi,
       address: agent.contractAddress as `0x0${string}`,
     });
 
@@ -174,15 +188,16 @@ export const SwapWidget = memo(
     // Use transaction hooks
     const { buyTokens } = useBuyTokens({
       address: agent.contractAddress,
-      abi: abi || agent.abi,
+      abi: useLocalAbi ? agent.abi : abi || agent.abi,
     });
 
     const { sellTokens } = useSellTokens({
       address: agent.contractAddress,
-      abi: abi || agent.abi,
+      abi: useLocalAbi ? agent.abi : abi || agent.abi,
     });
 
-    const isInitializing = isAbiLoading || !buyTokens || !sellTokens;
+    const isInitializing =
+      (isAbiLoading && !useLocalAbi) || !buyTokens || !sellTokens;
 
     // 3. All derived values
     const isLeftCurve = agent.type === 'leftcurve';
@@ -267,7 +282,8 @@ export const SwapWidget = memo(
           setSimulatedEthAmount('');
 
           // Handle specific contract errors
-          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
           if (errorMessage.includes('insufficient')) {
             setError('Insufficient liquidity in the bonding curve');
           } else if (errorMessage.includes('exceeds_balance')) {
@@ -316,14 +332,6 @@ export const SwapWidget = memo(
       }
     }, [address, ethContract, contract]);
 
-    // Fetch balances only when dependencies change
-    useEffect(() => {
-      if (!isInitializing && address && ethContract && contract) {
-        fetchBalances();
-      }
-    }, [address, ethContract, contract, isInitializing, fetchBalances]);
-
-    // Handle swap
     const handleSwap = useCallback(async () => {
       // Clear any existing errors first
       setError(null);
@@ -433,8 +441,34 @@ export const SwapWidget = memo(
       toast,
     ]);
 
-    // Update button disabled check with logging
+    // Fetch balances only when dependencies change
+    useEffect(() => {
+      if (!isInitializing && address && ethContract && contract) {
+        fetchBalances();
+      }
+    }, [address, ethContract, contract, isInitializing, fetchBalances]);
+
+    // Handle button click
+    const handleButtonClick = useCallback(() => {
+      if (isAbiLoading && !useLocalAbi) {
+        // Force use of local ABI if still loading
+        setUseLocalAbi(true);
+        setDebugInfo(
+          (prev) => prev + '\nManually switched to local ABI via button click',
+        );
+        return;
+      }
+
+      handleSwap();
+    }, [isAbiLoading, useLocalAbi, handleSwap]);
+
+    // Update button disabled check
     const isButtonDisabled = useMemo(() => {
+      // Allow button to be clicked when ABI is loading to force local ABI
+      if (isAbiLoading && !useLocalAbi) {
+        return false;
+      }
+
       const disabled =
         !address ||
         !debouncedAmount ||
@@ -451,23 +485,27 @@ export const SwapWidget = memo(
       isProcessing,
       isLoading,
       error,
+      isAbiLoading,
+      useLocalAbi,
     ]);
 
     // Update button text to show ABI loading state
     const buttonText = useMemo(() => {
-      if (isAbiLoading) return 'Loading Contract...';
+      if (useLocalAbi && abiError) return 'Using Local ABI';
+      if (isAbiLoading && !useLocalAbi) return 'Use Local ABI';
       if (isLoading) return 'Simulating...';
       if (isProcessing) return 'Processing...';
-      if (abiError) return 'Contract Error';
+      if (abiError && !useLocalAbi) return 'Contract Error';
       if (error) return 'Error';
       if (!address) return 'Connect Wallet';
       if (!debouncedAmount) return 'Enter Amount';
       return 'Swap';
     }, [
+      useLocalAbi,
+      abiError,
       isAbiLoading,
       isLoading,
       isProcessing,
-      abiError,
       error,
       address,
       debouncedAmount,
@@ -488,14 +526,30 @@ export const SwapWidget = memo(
     useEffect(() => {
       if (abiError) {
         console.error('Failed to load contract ABI:', abiError);
-        toast({
-          title: 'Contract Error',
-          description:
-            'Failed to load contract interface. Please try again later.',
-          variant: 'destructive',
-        });
+        if (!useLocalAbi) {
+          setDebugInfo((prev) => prev + `\nABI Error: ${abiError}`);
+          toast({
+            title: 'Contract Error',
+            description:
+              'Failed to load contract ABI. Using local ABI instead.',
+            variant: 'destructive',
+          });
+        }
       }
-    }, [abiError, toast]);
+    }, [abiError, useLocalAbi, toast]);
+
+    // Add debug logging for ABI loading state
+    useEffect(() => {
+      if (isAbiLoading && !useLocalAbi) {
+        console.log(
+          'ABI is currently loading for contract:',
+          agent.contractAddress,
+        );
+        setDebugInfo(
+          (prev) => `${prev}\nABI Loading: ${new Date().toISOString()}`,
+        );
+      }
+    }, [isAbiLoading, agent.contractAddress, useLocalAbi]);
 
     return (
       <div className={cn('p-6 space-y-4', className)}>
@@ -595,7 +649,7 @@ export const SwapWidget = memo(
             <Button
               className={buttonStyle}
               size="lg"
-              onClick={handleSwap}
+              onClick={handleButtonClick}
               disabled={isButtonDisabled}
             >
               {buttonText}
@@ -643,7 +697,7 @@ export const SwapWidget = memo(
             <Button
               className={buttonStyle}
               size="lg"
-              onClick={handleSwap}
+              onClick={handleButtonClick}
               disabled={isButtonDisabled}
             >
               {buttonText}
