@@ -6,8 +6,7 @@ import { useTrades } from '@/hooks/use-trades';
 import { Trade } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { RefreshCcw } from 'lucide-react';
-import { useState, useMemo } from 'react';
-import { adaptTradeData } from '@/lib/adapters/trade-adapter';
+import { useState } from 'react';
 
 interface TradeHistoryCardProps {
   agentId: string;
@@ -20,18 +19,13 @@ export function TradeHistoryCard({
 }: TradeHistoryCardProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Pass initial trades to the hook
+  // Use the trades hook
   const { trades, isLoading, error, refreshTrades, hasMore, loadMore } =
     useTrades({
       agentId,
       initialData: initialTrades,
       enabled: true,
     });
-
-  // Adapt the trade data to match what the TradeHistory component expects
-  const adaptedTrades = useMemo(() => {
-    return adaptTradeData(trades || initialTrades);
-  }, [trades, initialTrades]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -57,7 +51,7 @@ export function TradeHistoryCard({
       </CardHeader>
       <CardContent>
         <TradeHistory
-          trades={adaptedTrades}
+          trades={trades || initialTrades}
           isLoading={isLoading || isRefreshing}
           onLoadMore={loadMore}
           hasMore={hasMore}

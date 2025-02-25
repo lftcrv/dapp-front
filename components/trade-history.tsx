@@ -11,6 +11,8 @@ import {
   ArrowDownRight,
   RefreshCcw,
   History,
+  XCircle,
+  HelpCircle,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -18,7 +20,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Trade } from '@/lib/types';
+import {
+  Trade,
+  TradeType,
+  MarketOrderTradeInfo,
+  LimitOrderTradeInfo,
+  CancelOrderTradeInfo,
+} from '@/lib/types';
 
 // Simplified date handling
 const formatTimeAgo = (isoString: string | undefined): string => {
@@ -77,18 +85,40 @@ const formatFullDate = (isoString: string | undefined): string => {
   }
 };
 
+// Type guards
+function isMarketOrder(info: any): info is MarketOrderTradeInfo {
+  return info && info.tradeType === 'paradexPlaceOrderMarket';
+}
+
+function isLimitOrder(info: any): info is LimitOrderTradeInfo {
+  return info && info.tradeType === 'paradexPlaceOrderLimit';
+}
+
+function isCancelOrder(info: any): info is CancelOrderTradeInfo {
+  return info && info.tradeType === 'paradexCancelOrder';
+}
+
+function hasTradeProperty(info: any): boolean {
+  return info && 'trade' in info;
+}
+
 interface TradeItemProps {
   trade: Trade;
   isLatest?: boolean;
 }
 
-const TradeIcon = memo(({ type }: { type: 'buy' | 'sell' }) =>
-  type === 'buy' ? (
-    <ArrowUpRight className="w-4 h-4 text-green-500" />
-  ) : (
-    <ArrowDownRight className="w-4 h-4 text-red-500" />
-  ),
-);
+const TradeIcon = memo(({ type }: { type: TradeType }) => {
+  switch (type) {
+    case 'buy':
+      return <ArrowUpRight className="w-4 h-4 text-green-500" />;
+    case 'sell':
+      return <ArrowDownRight className="w-4 h-4 text-red-500" />;
+    case 'cancel':
+      return <XCircle className="w-4 h-4 text-orange-500" />;
+    default:
+      return <HelpCircle className="w-4 h-4 text-gray-500" />;
+  }
+});
 TradeIcon.displayName = 'TradeIcon';
 
 // General number formatting functions
@@ -117,6 +147,65 @@ const formatPrice = (price: number | undefined): string => {
   }
 };
 
+// Extract explanation safely based on trade type
+function getExplanation(trade: Trade): string {
+  if (!trade.information) return trade.summary || '';
+
+  const info = trade.information;
+
+  if (isCancelOrder(info)) {
+    return info.explanation || trade.summary || 'Order cancelled';
+  }
+
+  if (hasTradeProperty(info) && info.trade) {
+    if ('explanation' in info.trade) {
+      return info.trade.explanation || trade.summary || '';
+    }
+  }
+
+  return trade.summary || '';
+}
+
+// Get display data for buy/sell trades
+function getTradeDisplayData(trade: Trade) {
+  const info = trade.information;
+  if (!info) return null;
+
+  // Default values
+  let buyTokenName = 'Unknown';
+  let sellTokenName = 'Unknown';
+  let buyAmount = '0';
+  let sellAmount = '0';
+  let tradePriceUSD = trade.price || 0;
+
+  if (hasTradeProperty(info) && info.trade) {
+    // If we have buyTokenName and sellTokenName directly (legacy format)
+    if ('buyTokenName' in info.trade && 'sellTokenName' in info.trade) {
+      buyTokenName = info.trade.buyTokenName;
+      sellTokenName = info.trade.sellTokenName;
+      buyAmount = info.trade.buyAmount || '0';
+      sellAmount = info.trade.sellAmount || '0';
+      tradePriceUSD = info.trade.tradePriceUSD || tradePriceUSD;
+    }
+    // For market/limit orders, extract from market field
+    else if ('market' in info.trade && 'side' in info.trade) {
+      const [baseToken, quoteToken] = (info.trade.market || '').split('-');
+      const isBuy = info.trade.side === 'BUY';
+
+      buyTokenName = isBuy ? baseToken || 'Unknown' : quoteToken || 'USD';
+      sellTokenName = isBuy ? quoteToken || 'USD' : baseToken || 'Unknown';
+      buyAmount = isBuy ? info.trade.size || '0' : '0';
+      sellAmount = isBuy ? '0' : info.trade.size || '0';
+
+      if (isLimitOrder(info) && info.trade.price) {
+        tradePriceUSD = parseFloat(info.trade.price) || tradePriceUSD;
+      }
+    }
+  }
+
+  return { buyTokenName, sellTokenName, buyAmount, sellAmount, tradePriceUSD };
+}
+
 const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
   const formattedTime = useMemo(() => {
     if (!trade?.time) return 'Just now';
@@ -128,33 +217,118 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
     return formatFullDate(trade.time);
   }, [trade?.time]);
 
-  if (!trade?.information?.trade) {
-    return null;
+  // Get explanation
+  const explanation = getExplanation(trade);
+
+  // Handle cancel orders
+  if (trade.type === 'cancel') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        className={cn(
+          'flex flex-col space-y-1 rounded-lg border p-2 transition-colors',
+          'bg-orange-500/5 border-orange-500/20',
+          isLatest &&
+            'ring-2 ring-offset-2 ring-offset-background ring-orange-500/30',
+        )}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <TradeIcon type="cancel" />
+            <span className="text-sm font-medium text-orange-500">
+              Cancel Order
+            </span>
+          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-[10px] text-muted-foreground cursor-help">
+                  {formattedTime}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="bg-white border shadow-xl z-50 relative">
+                <div className="p-3 rounded-md">
+                  <p className="text-xs font-medium text-gray-900">
+                    {fullDate}
+                  </p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        <div
+          className="text-xs text-muted-foreground leading-relaxed line-clamp-2"
+          title={explanation}
+        >
+          {explanation}
+        </div>
+      </motion.div>
+    );
   }
 
-  const tradeInfo = trade.information.trade;
-  const {
-    buyTokenName,
-    sellTokenName,
-    buyAmount,
-    sellAmount,
-    tradePriceUSD,
-    explanation,
-  } = tradeInfo;
-  console.log("tradeInfo:", tradeInfo)
-
-  if (!buyTokenName || !sellTokenName) {
-    return null;
+  // Handle unknown trade types
+  if (trade.type === 'unknown') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        className={cn(
+          'flex flex-col space-y-1 rounded-lg border p-2 transition-colors',
+          'bg-gray-500/5 border-gray-500/20',
+          isLatest &&
+            'ring-2 ring-offset-2 ring-offset-background ring-gray-500/30',
+        )}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <TradeIcon type="unknown" />
+            <span className="text-sm font-medium text-gray-500">
+              Unknown Trade
+            </span>
+          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-[10px] text-muted-foreground cursor-help">
+                  {formattedTime}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="bg-white border shadow-xl z-50 relative">
+                <div className="p-3 rounded-md">
+                  <p className="text-xs font-medium text-gray-900">
+                    {fullDate}
+                  </p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        <div
+          className="text-xs text-muted-foreground leading-relaxed line-clamp-2"
+          title={explanation}
+        >
+          {explanation}
+        </div>
+      </motion.div>
+    );
   }
 
-  // Simplified buy/sell determination based on trade.type
+  // For buy/sell trades, extract data
+  const displayData = getTradeDisplayData(trade);
+  if (!displayData) return null;
+
+  const { buyTokenName, sellTokenName, buyAmount, sellAmount, tradePriceUSD } =
+    displayData;
+
   const isBuy = trade.type === 'buy';
   const colorClass = isBuy ? 'text-green-500' : 'text-red-500';
   const bgClass = isBuy
     ? 'bg-green-500/5 border-green-500/20'
     : 'bg-red-500/5 border-red-500/20';
 
-  // Simplified display logic
   const displayAmount = isBuy
     ? formatAmount(buyAmount)
     : formatAmount(sellAmount);
@@ -194,8 +368,8 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
               <TooltipContent className="w-64 bg-white border shadow-xl z-50 relative">
                 <div className="text-xs space-y-1 p-3 rounded-md">
                   <div className="font-medium border-b border-gray-100 pb-2 text-gray-900">
-                    {isBuy ? 'Buying' : 'Selling'} {sellTokenName} for{' '}
-                    {buyTokenName}
+                    {isBuy ? 'Buying' : 'Selling'} {displayToken} for{' '}
+                    {otherToken}
                   </div>
                   <div className="grid grid-cols-2 gap-2 pt-2">
                     <div className="text-gray-500">
@@ -356,7 +530,11 @@ export function TradeHistory({
     if (!a.time) return 1; // Move items without dates to the end
     if (!b.time) return -1;
 
-    return new Date(b.time).getTime() - new Date(a.time).getTime();
+    try {
+      return new Date(b.time).getTime() - new Date(a.time).getTime();
+    } catch {
+      return 0;
+    }
   });
 
   return (
