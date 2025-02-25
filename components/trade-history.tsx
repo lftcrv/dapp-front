@@ -23,8 +23,6 @@ import {
 import {
   Trade,
   TradeType,
-  MarketOrderTradeInfo,
-  LimitOrderTradeInfo,
   CancelOrderTradeInfo,
 } from '@/lib/types';
 
@@ -85,20 +83,19 @@ const formatFullDate = (isoString: string | undefined): string => {
   }
 };
 
-// Type guards
-function isMarketOrder(info: any): info is MarketOrderTradeInfo {
-  return info && info.tradeType === 'paradexPlaceOrderMarket';
-}
-
-function isLimitOrder(info: any): info is LimitOrderTradeInfo {
-  return info && info.tradeType === 'paradexPlaceOrderLimit';
-}
-
 function isCancelOrder(info: any): info is CancelOrderTradeInfo {
   return info && info.tradeType === 'paradexCancelOrder';
 }
 
-function hasTradeProperty(info: any): boolean {
+// Define the interface for objects with a trade property
+interface TradeInfoWithTrade {
+  trade: any;
+  tradeId: string;
+  containerId?: string;
+}
+
+// Type predicate to narrow down the type
+function hasTradeProperty(info: any): info is TradeInfoWithTrade {
   return info && 'trade' in info;
 }
 
@@ -157,9 +154,10 @@ function getExplanation(trade: Trade): string {
     return info.explanation || trade.summary || 'Order cancelled';
   }
 
-  if (hasTradeProperty(info) && info.trade) {
-    if ('explanation' in info.trade) {
-      return info.trade.explanation || trade.summary || '';
+  if (hasTradeProperty(info)) {
+    const tradeInfo = info.trade;
+    if ('explanation' in tradeInfo) {
+      return tradeInfo.explanation || trade.summary || '';
     }
   }
 
@@ -178,27 +176,30 @@ function getTradeDisplayData(trade: Trade) {
   let sellAmount = '0';
   let tradePriceUSD = trade.price || 0;
 
-  if (hasTradeProperty(info) && info.trade) {
+  // Check if the trade info has a trade property and narrow the type
+  if (hasTradeProperty(info)) {
+    const tradeInfo = info.trade;
+
     // If we have buyTokenName and sellTokenName directly (legacy format)
-    if ('buyTokenName' in info.trade && 'sellTokenName' in info.trade) {
-      buyTokenName = info.trade.buyTokenName;
-      sellTokenName = info.trade.sellTokenName;
-      buyAmount = info.trade.buyAmount || '0';
-      sellAmount = info.trade.sellAmount || '0';
-      tradePriceUSD = info.trade.tradePriceUSD || tradePriceUSD;
+    if ('buyTokenName' in tradeInfo && 'sellTokenName' in tradeInfo) {
+      buyTokenName = tradeInfo.buyTokenName;
+      sellTokenName = tradeInfo.sellTokenName;
+      buyAmount = tradeInfo.buyAmount || '0';
+      sellAmount = tradeInfo.sellAmount || '0';
+      tradePriceUSD = tradeInfo.tradePriceUSD || tradePriceUSD;
     }
     // For market/limit orders, extract from market field
-    else if ('market' in info.trade && 'side' in info.trade) {
-      const [baseToken, quoteToken] = (info.trade.market || '').split('-');
-      const isBuy = info.trade.side === 'BUY';
+    else if ('market' in tradeInfo && 'side' in tradeInfo) {
+      const [baseToken, quoteToken] = (tradeInfo.market || '').split('-');
+      const isBuy = tradeInfo.side === 'BUY';
 
       buyTokenName = isBuy ? baseToken || 'Unknown' : quoteToken || 'USD';
       sellTokenName = isBuy ? quoteToken || 'USD' : baseToken || 'Unknown';
-      buyAmount = isBuy ? info.trade.size || '0' : '0';
-      sellAmount = isBuy ? '0' : info.trade.size || '0';
+      buyAmount = isBuy ? tradeInfo.size || '0' : '0';
+      sellAmount = isBuy ? '0' : tradeInfo.size || '0';
 
-      if (isLimitOrder(info) && info.trade.price) {
-        tradePriceUSD = parseFloat(info.trade.price) || tradePriceUSD;
+      if ('price' in tradeInfo && tradeInfo.price) {
+        tradePriceUSD = parseFloat(tradeInfo.price) || tradePriceUSD;
       }
     }
   }

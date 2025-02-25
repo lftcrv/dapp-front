@@ -14,12 +14,6 @@ export const endTiming = (label: string) => {
   }
 };
 
-export const measureNavigation = () => {
-  const navigationTiming = performance.getEntriesByType(
-    'navigation',
-  )[0] as PerformanceNavigationTiming;
-};
-
 export const startRouteTransition = () => {
   startTiming('Route Transition');
 };

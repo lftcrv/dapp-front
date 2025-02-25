@@ -32,11 +32,6 @@ const PriceActionCard = lazy(() =>
     default: mod.PriceActionCard,
   })),
 );
-const TradeHistoryCard = lazy(() =>
-  import('@/components/agent/trade-history-card').then((mod) => ({
-    default: mod.TradeHistoryCard,
-  })),
-);
 const ChatCard = lazy(() =>
   import('@/components/agent/chat-card').then((mod) => ({
     default: mod.ChatCard,
@@ -48,7 +43,7 @@ interface AgentContentProps {
   initialTrades?: Trade[];
 }
 
-export function AgentContent({ agent, initialTrades = [] }: AgentContentProps) {
+export function AgentContent({ agent }: AgentContentProps) {
   // Add refs to components that need refreshing
   const priceActionRef = useRef<{ refetch?: () => void }>({});
   const bondingCurveRef = useRef<{ refetch?: () => void }>({});

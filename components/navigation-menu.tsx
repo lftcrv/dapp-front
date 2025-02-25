@@ -16,7 +16,6 @@ import { WalletButtonSkeleton } from './wallet-button-skeleton';
 import {
   startTiming,
   endTiming,
-  measureNavigation,
   startRouteTransition,
   endRouteTransition,
 } from '@/lib/utils/performance';
@@ -194,7 +193,6 @@ export const NavigationMenu = memo(() => {
     if (process.env.NODE_ENV === 'development') {
       const segment = pathname?.split('/')[1] || 'home';
       startTiming(`Navigation Change (${segment})`);
-      measureNavigation();
       return () => endTiming(`Navigation Change (${segment})`);
     }
   }, [pathname]);
