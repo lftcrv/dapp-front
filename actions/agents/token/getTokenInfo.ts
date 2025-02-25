@@ -342,12 +342,50 @@ export async function getCompleteAgentData(
     });
 
     if (!response.ok) {
-      throw new Error('Failed to get agent data');
+      throw new Error(
+        `Failed to get agent data: ${response.status} ${response.statusText}`,
+      );
     }
 
-    const {
-      data: { agent: apiAgent },
-    } = await response.json();
+    // Parse the response JSON
+    const responseData = await response.json();
+    // Try to extract the agent data based on different possible structures
+    let apiAgent;
+
+    // Check for various possible response structures
+    if (responseData.data?.agent) {
+      // Structure: { data: { agent: {...} } }
+      apiAgent = responseData.data.agent;
+    } else if (responseData.agent) {
+      // Structure: { agent: {...} }
+      apiAgent = responseData.agent;
+    } else if (
+      responseData.data &&
+      typeof responseData.data === 'object' &&
+      !Array.isArray(responseData.data)
+    ) {
+      // Structure: { data: {...} } - assuming data is the agent directly
+      apiAgent = responseData.data;
+    } else if (
+      typeof responseData === 'object' &&
+      !Array.isArray(responseData) &&
+      responseData.id
+    ) {
+      // Structure: {...} - assuming response is the agent directly
+      apiAgent = responseData;
+    } else {
+      console.error(
+        '❌ Unable to determine agent data structure:',
+        responseData,
+      );
+      throw new Error('Unexpected API response format');
+    }
+
+    // Validate that we have extracted a valid agent
+    if (!apiAgent || !apiAgent.id) {
+      console.error('❌ Invalid agent data extracted:', apiAgent);
+      throw new Error('Invalid agent data in response');
+    }
 
     // Format token contract address
     const tokenAddress = apiAgent.Token?.contractAddress
@@ -371,24 +409,27 @@ export async function getCompleteAgentData(
       }
     }
 
+    // Safely access nested properties with fallbacks
+    const latestMarketData = apiAgent.LatestMarketData || {};
+    const tokenInfo = apiAgent.Token || {};
+    const walletInfo = apiAgent.Wallet || {};
+
     // Construct complete agent data from the comprehensive response
     const agent: Agent = {
       id: apiAgent.id,
-      name: apiAgent.name,
+      name: apiAgent.name || 'Unknown Agent',
       symbol:
-        apiAgent.Token?.symbol || apiAgent.name.substring(0, 4).toUpperCase(),
+        tokenInfo.symbol ||
+        (apiAgent.name ? apiAgent.name.substring(0, 4).toUpperCase() : 'UNKN'),
       type: apiAgent.curveSide === 'LEFT' ? 'leftcurve' : 'rightcurve',
-      status:
-        apiAgent.LatestMarketData?.bondingStatus === 'BONDING'
-          ? 'bonding'
-          : 'live',
-      price: apiAgent.LatestMarketData?.price || 0,
-      marketCap: apiAgent.LatestMarketData?.marketCap || 0,
-      holders: apiAgent.LatestMarketData?.holders || 0,
-      creator: apiAgent.Wallet?.deployedAddress
-        ? `0x${apiAgent.Wallet.deployedAddress}`
+      status: latestMarketData.bondingStatus === 'BONDING' ? 'bonding' : 'live',
+      price: latestMarketData.price || 0,
+      marketCap: latestMarketData.marketCap || 0,
+      holders: latestMarketData.holders || 0,
+      creator: walletInfo.deployedAddress
+        ? `0x${walletInfo.deployedAddress}`
         : 'unknown',
-      createdAt: apiAgent.createdAt,
+      createdAt: apiAgent.createdAt || new Date().toISOString(),
       creativityIndex: apiAgent.degenScore || 0,
       performanceIndex: apiAgent.winScore || 0,
       contractAddress: tokenAddress as `0x${string}`,
@@ -397,9 +438,9 @@ export async function getCompleteAgentData(
         : undefined,
       abi: contractAbi,
       // Additional data that might be useful for components
-      buyTax: apiAgent.Token?.buyTax,
-      sellTax: apiAgent.Token?.sellTax,
-      priceChange24h: apiAgent.LatestMarketData?.priceChange24h || 0,
+      buyTax: tokenInfo.buyTax,
+      sellTax: tokenInfo.sellTax,
+      priceChange24h: latestMarketData.priceChange24h || 0,
       characterConfig: apiAgent.characterConfig,
     };
 
@@ -411,6 +452,7 @@ export async function getCompleteAgentData(
     console.error('❌ Error fetching complete agent data:', {
       agentId,
       error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
     });
     return {
       success: false,

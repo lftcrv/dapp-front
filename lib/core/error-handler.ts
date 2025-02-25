@@ -15,7 +15,6 @@ export const withErrorHandling = async <T>(
     return { data, success: true };
   } catch (error) {
     const finalError = error instanceof Error ? error : new Error(errorMessage);
-    showToast('DEFAULT_ERROR', 'error');
     return { error: finalError, success: false };
   }
 };

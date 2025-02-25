@@ -3,7 +3,7 @@ import { Abi } from 'starknet';
 // Common Types
 export type AgentType = 'leftcurve' | 'rightcurve';
 export type AgentStatus = 'bonding' | 'live' | 'ended';
-export type TradeType = 'buy' | 'sell';
+export type TradeType = 'buy' | 'sell' | 'cancel' | 'unknown';
 
 // Core Service Types
 export interface IBaseService<T> {
@@ -199,11 +199,13 @@ export interface ApiAgent {
   winScore: number;
   profilePicture: string | null;
   profilePictureUrl: string | null;
-  Token: {  // Note: Capital T to match Prisma model
+  Token: {
+    // Note: Capital T to match Prisma model
     contractAddress: string;
     elizaAgentId: string;
   };
-  Wallet: {  // Note: Capital W to match Prisma model
+  Wallet: {
+    // Note: Capital W to match Prisma model
     contractAddress: string;
     deployedAddress: string;
     elizaAgentId: string;
@@ -249,8 +251,43 @@ export interface Agent {
   };
 }
 
-// Trade Types
-export interface TradeInfo {
+export interface BaseTradeInfo {
+  tradeId: string;
+  containerId?: string;
+}
+
+export interface MarketOrderTradeInfo extends BaseTradeInfo {
+  tradeType: 'paradexPlaceOrderMarket';
+  trade: {
+    market: string;
+    side: 'BUY' | 'SELL';
+    type: 'MARKET';
+    size: string;
+    instruction: string;
+    explanation: string;
+  };
+}
+
+export interface LimitOrderTradeInfo extends BaseTradeInfo {
+  tradeType: 'paradexPlaceOrderLimit';
+  trade: {
+    market: string;
+    side: 'BUY' | 'SELL';
+    type: 'LIMIT';
+    size: string;
+    price: string;
+    instruction: string;
+    explanation: string;
+  };
+}
+
+export interface CancelOrderTradeInfo extends BaseTradeInfo {
+  tradeType: 'paradexCancelOrder';
+  explanation: string;
+}
+
+// Legacy TradeInfo for backward compatibility
+export interface LegacyTradeInfo {
   buyAmount: string;
   sellAmount: string;
   explanation: string;
@@ -261,14 +298,25 @@ export interface TradeInfo {
   sellTokenAddress: string;
 }
 
+// Union type for all possible trade information types
+export type TradeInfo =
+  | MarketOrderTradeInfo['trade']
+  | LimitOrderTradeInfo['trade']
+  | LegacyTradeInfo;
+
 export interface ApiTrade {
   id: string;
-  time: string;
-  information: {
-    trade: TradeInfo;
-    tradeId: string;
-    containerId: string;
-  };
+  time?: string;
+  createdAt?: string;
+  information:
+    | MarketOrderTradeInfo
+    | LimitOrderTradeInfo
+    | CancelOrderTradeInfo
+    | {
+        trade: LegacyTradeInfo;
+        tradeId: string;
+        containerId?: string;
+      };
   elizaAgentId: string;
 }
 
@@ -276,8 +324,8 @@ export interface Trade {
   id: string;
   agentId: string;
   type: TradeType;
-  amount: number;
-  price: number;
+  amount?: number;
+  price?: number;
   time: string;
   summary: string;
   txHash: string;
