@@ -23,8 +23,7 @@ export default function StarknetProvider({
     new WebWalletConnector({ url: 'https://web.argent.xyz' }),
   ];
 
-  const PRIVATE_RPC_URL =
-    process.env.NEXT_PUBLIC_STARKNET_RPC_URL; 
+  const PRIVATE_RPC_URL = process.env.NEXT_PUBLIC_STARKNET_RPC_URL;
 
   const provider = jsonRpcProvider({
     rpc: (chain) => ({
@@ -32,8 +31,8 @@ export default function StarknetProvider({
     }),
   });
 
-  console.log("chains:", chains)
-  console.log("provider:", provider)
+  console.log('chains:', chains);
+  console.log('provider:', provider);
 
   return (
     <StarknetConfig
