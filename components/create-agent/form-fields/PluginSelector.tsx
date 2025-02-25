@@ -31,7 +31,7 @@ export const PluginSelector: React.FC = () => {
       case 'avnu':
         return 'Avnu (DEX Integration)';
       case 'lftcrv':
-        return 'LeftCurve Protocol';
+        return 'Avnu (DEX Integration)';
       case 'paradex':
         return 'Paradex (Perpetual Trading)';
       default:
@@ -46,7 +46,7 @@ export const PluginSelector: React.FC = () => {
       case 'avnu':
         return 'Enables trading on Avnu DEX for spot markets';
       case 'lftcrv':
-        return 'Integrates with LeftCurve protocol features';
+        return 'nables trading on Avnu DEX for onchain swap';
       case 'paradex':
         return 'Provides perpetual futures trading capabilities';
       default:
