@@ -11,7 +11,7 @@ const Title = memo(() => (
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.5 }}
-    className="font-sketch text-7xl bg-gradient-to-r from-yellow-500 via-pink-500 to-purple-500 text-transparent bg-clip-text"
+    className="font-sketch text-7xl bg-gradient-to-r from-yellow-500 via-pink-500 to-purple-500 text-transparent bg-clip-text mt-12"
   >
     Trading Agent Arena
   </motion.h1>
@@ -47,8 +47,8 @@ const ActionButtons = memo(() => {
   const router = useRouter();
 
   return (
-    <div className="flex items-center justify-center gap-6 w-full max-w-[1000px] mx-auto px-4 py-6 my-12">
-      <div className="flex justify-center gap-6 w-[60%]">
+    <div className="flex items-center justify-center gap-6 w-full max-w-[1000px] mx-auto px-4 py-6 my-4">
+      <div className="flex justify-center gap-6 w-[60%] mb-4">
         <div className="relative group shadow-[0_6px_15px_rgba(0,0,0,0.15)] rounded-2xl overflow-hidden w-1/2 transition-transform duration-200 ease-in-out hover:scale-[1.02]">
           <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-purple-600"></div>
           <button 
@@ -79,7 +79,7 @@ ActionButtons.displayName = 'ActionButtons';
 const HomeHeader = memo(() => {
   return (
     <div className="text-center space-y-4">
-      <div className="space-y-4">
+      <div className="space-y-4 mt-4">
         <Title />
         <motion.p
           initial={{ opacity: 0 }}

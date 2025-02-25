@@ -319,9 +319,6 @@ export const TopAgents = memo(
             type="rightcurve"
           />
         </div>
-        <div className="flex items-center justify-center gap-2 text-[10px] text-neutral-500 font-mono">
-          <span>midcurvers staying ngmi since 2024</span>
-        </div>
       </div>
     );
   },
