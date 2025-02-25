@@ -188,15 +188,6 @@ export const NavigationMenu = memo(() => {
   // Development-only performance tracking
   // usePerformanceTracking('NavigationMenu');
 
-  // Track navigation changes with segment info (development only)
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      const segment = pathname?.split('/')[1] || 'home';
-      startTiming(`Navigation Change (${segment})`);
-      return () => endTiming(`Navigation Change (${segment})`);
-    }
-  }, [pathname]);
-
   // Close mobile menu when route changes
   useEffect(() => {
     setIsOpen(false);
