@@ -115,7 +115,7 @@ const AgentRow = memo(({ agent, index }: AgentRowProps) => {
   };
 
   return (
-    <TableRow className="group hover:bg-white/5">
+    <TableRow className="group hover:bg-white/5 transition-all duration-200 ease-in-out hover:scale-[1.01] cursor-pointer relative z-10">
       <TableCell className="font-mono text-xs py-2">{index + 1}</TableCell>
       <TableCell className="py-2">
         <Link
@@ -292,8 +292,8 @@ export function AgentTable({
   }
 
   return (
-    <div className="relative overflow-x-auto">
-      <Table>
+    <div className="relative overflow-x-auto overflow-y-hidden">
+      <Table className="overflow-hidden">
         <TableHeader>
           <TableRow className="hover:bg-white/5">
             <TableHead className="w-[50px] text-xs py-2">
