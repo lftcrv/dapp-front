@@ -41,12 +41,14 @@ const Nav = memo(() => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className="
-        fixed top-0 left-0 right-0 z-50 
-        flex items-center justify-between 
-        px-4 py-3 
-        bg-black/50 backdrop-blur-lg
-        border-b border-white/5
-      "
+      fixed top-0 left-0 right-0 z-50 
+      flex items-center justify-between 
+      px-4 py-6 
+      h-20 /* This sets height to 80px */
+      min-h-[80px] /* This ensures a minimum height */
+      bg-black/50 backdrop-blur-lg
+      border-b border-white/5
+    "
     >
       <Logo />
       <Actions />

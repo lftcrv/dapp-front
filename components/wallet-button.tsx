@@ -61,7 +61,7 @@ const ConnectedWallet = memo(
   ({ address, walletType, onDisconnect, onCopy }: ConnectedWalletProps) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="font-mono text-sm">
+        <Button variant="outline" className="font-mono text-base py-5 px-5">
           {walletType === 'starknet' ? '🌟' : '⚡️'} {shortAddress(address)}
         </Button>
       </DropdownMenuTrigger>
@@ -88,7 +88,7 @@ interface DisconnectedWalletProps {
 
 const DisconnectedWallet = memo(
   ({ onClick, isLoading }: DisconnectedWalletProps) => (
-    <Button variant="outline" onClick={onClick} disabled={isLoading}>
+    <Button variant="outline" onClick={onClick} disabled={isLoading} className="text-base py-5 px-5">
       {isLoading ? 'Checking...' : 'Connect Wallet'}
     </Button>
   ),

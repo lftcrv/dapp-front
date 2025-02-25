@@ -35,11 +35,12 @@ const DepositButton = memo(() => {
           onClick={handleOpenModal}
           variant="outline"
           className="
-            bg-gradient-to-r from-yellow-500 to-pink-500 
-            text-white hover:opacity-90 
-            transition-all duration-200 
-            hover:shadow-lg hover:shadow-yellow-500/20
-          "
+    bg-gradient-to-r from-yellow-500 to-pink-500 
+    text-white hover:opacity-90 
+    transition-all duration-200 
+    hover:shadow-lg hover:shadow-yellow-500/20
+    text-base py-5 px-5
+  "
         >
           Deposit
         </Button>

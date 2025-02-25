@@ -64,15 +64,15 @@ const WalletButtonContainer = dynamic(
 const Logo = memo(() => (
   <Link href="/" className="flex items-center space-x-2">
     <Image
-      src="/degen.png"
-      alt="LeftCurve Logo"
-      width={32}
-      height={32}
-      className="rounded-full w-8 h-8"
-      priority={false}
-      unoptimized
-    />
-    <span className="font-sketch text-xl">LeftCurve</span>
+  src="/degen.png"
+  alt="LeftCurve Logo"
+  width={58}
+  height={58} 
+  className="rounded-full w-12 h-12"
+  priority={false}
+  unoptimized
+/>
+<span className="font-sketch text-4xl">LeftCurve</span>
   </Link>
 ));
 Logo.displayName = 'Logo';
@@ -106,7 +106,7 @@ const NavLink = memo(
         href={href}
         onClick={handleClick}
         prefetch={true}
-        className={`text-sm transition-colors hover:text-primary relative ${
+        className={`text-base transition-colors hover:text-primary relative ${
           isActive ? 'text-primary font-medium' : 'text-muted-foreground'
         }`}
       >
@@ -218,7 +218,7 @@ export const NavigationMenu = memo(() => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-sm border-b border-white/5">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
+        <div className="flex h-24 items-center justify-between">
           <Logo />
 
           {/* Desktop Navigation */}
