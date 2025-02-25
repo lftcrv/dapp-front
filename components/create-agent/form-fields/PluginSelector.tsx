@@ -1,5 +1,4 @@
 'use client';
-
 import React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -10,8 +9,10 @@ export const PluginSelector: React.FC = () => {
   const { formData, updateField } = useFormContext();
 
   const handlePluginToggle = (plugin: string) => {
-    const isSelected = formData.internal_plugins.includes(plugin);
+    // If the plugin is 'avnu', don't do anything when clicked
+    if (plugin === 'avnu') return;
 
+    const isSelected = formData.internal_plugins.includes(plugin);
     if (isSelected) {
       // Remove plugin
       updateField(
@@ -46,7 +47,7 @@ export const PluginSelector: React.FC = () => {
       case 'avnu':
         return 'Enables trading on Avnu DEX for spot markets';
       case 'lftcrv':
-        return 'nables trading on Avnu DEX for onchain swap';
+        return 'Enables trading on Avnu DEX for onchain swap';
       case 'paradex':
         return 'Provides perpetual futures trading capabilities';
       default:
@@ -61,7 +62,6 @@ export const PluginSelector: React.FC = () => {
         Select the plugins your agent will use for trading and on-chain
         interactions.
       </p>
-
       <div className="grid gap-4 pt-2">
         {AVAILABLE_INTERNAL_PLUGINS.map((plugin) => (
           <div

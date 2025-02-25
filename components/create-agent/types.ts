@@ -92,7 +92,7 @@ export const getPlaceholder = (
   return placeholders[field as keyof typeof placeholders] || '';
 };
 
-export const AVAILABLE_INTERNAL_PLUGINS = ['rpc', 'lftcrv', 'paradex'];
+export const AVAILABLE_INTERNAL_PLUGINS = ['rpc', 'avnu', 'lftcrv', 'paradex'];
 
 // Ancien format pour Eliza (pour référence/compatibilité)
 export interface CharacterConfig {
