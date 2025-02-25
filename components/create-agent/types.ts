@@ -40,7 +40,7 @@ export const initialFormData: FormDataType = {
   interval: 30,
   chat_id: '',
   external_plugins: [],
-  internal_plugins: ['rpc', 'lftcrv', 'paradex'],
+  internal_plugins: ['rpc', 'paradex'],
   tradingBehavior: '',
   topics: [],
   adjectives: [],
