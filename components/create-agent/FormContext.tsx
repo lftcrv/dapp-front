@@ -30,7 +30,7 @@ interface FormContextType {
   handleArrayInput: (
     field: keyof Pick<
       FormDataType,
-      | 'bio'
+      | 'bioParagraphs'
       | 'lore'
       | 'objectives'
       | 'knowledge'
@@ -46,7 +46,7 @@ interface FormContextType {
   handleRemoveField: (
     field: keyof Pick<
       FormDataType,
-      | 'bio'
+      | 'bioParagraphs'
       | 'lore'
       | 'objectives'
       | 'knowledge'
@@ -61,7 +61,7 @@ interface FormContextType {
   handleAddField: (
     field: keyof Pick<
       FormDataType,
-      | 'bio'
+      | 'bioParagraphs'
       | 'lore'
       | 'objectives'
       | 'knowledge'
@@ -123,7 +123,7 @@ export const FormProvider: React.FC<{ children: React.ReactNode }> = ({
   const handleArrayInput = (
     field: keyof Pick<
       FormDataType,
-      | 'bio'
+      | 'bioParagraphs'
       | 'lore'
       | 'objectives'
       | 'knowledge'
@@ -137,7 +137,8 @@ export const FormProvider: React.FC<{ children: React.ReactNode }> = ({
     value: string,
   ) => {
     setFormData((prev) => {
-      const newArray = [...prev[field]];
+      const currentArray = prev[field] as string[];
+      const newArray = [...currentArray];
       newArray[index] = value;
       return {
         ...prev,
@@ -149,7 +150,7 @@ export const FormProvider: React.FC<{ children: React.ReactNode }> = ({
   const handleRemoveField = (
     field: keyof Pick<
       FormDataType,
-      | 'bio'
+      | 'bioParagraphs'
       | 'lore'
       | 'objectives'
       | 'knowledge'
@@ -161,16 +162,19 @@ export const FormProvider: React.FC<{ children: React.ReactNode }> = ({
     >,
     index: number,
   ) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: prev[field].filter((_, i) => i !== index),
-    }));
+    setFormData((prev) => {
+      const currentArray = prev[field] as string[];
+      return {
+        ...prev,
+        [field]: currentArray.filter((_, i) => i !== index),
+      };
+    });
   };
 
   const handleAddField = (
     field: keyof Pick<
       FormDataType,
-      | 'bio'
+      | 'bioParagraphs'
       | 'lore'
       | 'objectives'
       | 'knowledge'
@@ -181,10 +185,13 @@ export const FormProvider: React.FC<{ children: React.ReactNode }> = ({
       | 'postExamples'
     >,
   ) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: [...prev[field], ''],
-    }));
+    setFormData((prev) => {
+      const currentArray = prev[field] as string[];
+      return {
+        ...prev,
+        [field]: [...currentArray, ''],
+      };
+    });
   };
 
   const handleMessageExample = (

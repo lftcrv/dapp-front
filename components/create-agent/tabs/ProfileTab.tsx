@@ -10,8 +10,13 @@ import { TradingBehavior } from '../form-fields/TradingBehavior';
 import { AdvancedConfiguration } from '../form-fields/AdvancedConfiguration';
 
 export const ProfileTab: React.FC = () => {
-  const { formData, agentType, updateField, setProfilePicture } =
-    useFormContext();
+  const {
+    formData,
+    agentType,
+    updateField,
+    handleArrayInput,
+    setProfilePicture,
+  } = useFormContext();
 
   return (
     <div className="space-y-6 mt-4">
@@ -53,7 +58,13 @@ export const ProfileTab: React.FC = () => {
               : 'focus:border-purple-500 focus:ring-purple-500/20'
           }`}
           value={formData.bio}
-          onChange={(e) => updateField('bio', e.target.value)}
+          onChange={(e) => {
+            updateField('bio', e.target.value);
+            // Mettre aussi à jour le premier élément de bioParagraphs pour maintenir la cohérence
+            if (formData.bioParagraphs.length > 0) {
+              handleArrayInput('bioParagraphs', 0, e.target.value);
+            }
+          }}
           placeholder={getPlaceholder('bio', agentType)}
           required
         />

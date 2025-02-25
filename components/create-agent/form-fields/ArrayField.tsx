@@ -10,7 +10,7 @@ import { FormDataType } from '../types';
 
 type ArrayFields = keyof Pick<
   FormDataType,
-  | 'bio'
+  | 'bioParagraphs'
   | 'lore'
   | 'objectives'
   | 'knowledge'

@@ -4,12 +4,13 @@ export type StyleType = 'all' | 'chat' | 'post';
 
 export type MessageExample = [
   { user: string; content: { text: string } },
-  { user: string; content: { text: string } }
+  { user: string; content: { text: string } },
 ];
 
 export type FormDataType = {
   name: string;
   bio: string;
+  bioParagraphs: string[];
   lore: string[];
   objectives: string[];
   knowledge: string[];
@@ -18,7 +19,6 @@ export type FormDataType = {
   external_plugins: string[];
   internal_plugins: string[];
   tradingBehavior: string;
-  // Champs pour la rétrocompatibilité
   topics: string[];
   adjectives: string[];
   messageExamples: MessageExample[];
@@ -33,15 +33,15 @@ export type FormDataType = {
 export const initialFormData: FormDataType = {
   name: '',
   bio: '',
+  bioParagraphs: [''],
   lore: [],
   objectives: [],
   knowledge: [],
   interval: 30,
   chat_id: 'test0',
   external_plugins: [],
-  internal_plugins: ['rpc', 'avnu', 'lftcrv', 'paradex'], // Plugins par défaut
+  internal_plugins: ['rpc', 'avnu', 'lftcrv', 'paradex'],
   tradingBehavior: '',
-  // Champs pour la rétrocompatibilité
   topics: [],
   adjectives: [],
   messageExamples: [

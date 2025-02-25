@@ -188,7 +188,6 @@ const CreateAgentPageContent: React.FC = () => {
           agentType,
         });
 
-        // Préparer l'objet pour l'API selon le nouveau format AgentConfig
         const agentConfig: AgentConfig = {
           name: formData.name,
           bio: formData.bio,
@@ -200,6 +199,19 @@ const CreateAgentPageContent: React.FC = () => {
           external_plugins: formData.external_plugins.filter(Boolean),
           internal_plugins: formData.internal_plugins,
         };
+
+        // Ajouter les paragraphes de bio si présents
+        if (
+          formData.bioParagraphs.length > 0 &&
+          formData.bioParagraphs.some((p) => p.trim())
+        ) {
+          const combinedBio = formData.bioParagraphs
+            .filter(Boolean)
+            .join('\n\n');
+          if (combinedBio) {
+            agentConfig.bio = combinedBio;
+          }
+        }
 
         // Ajouter le comportement de trading dans les objectives s'il existe
         if (formData.tradingBehavior.trim()) {
@@ -292,4 +304,3 @@ export default function CreateAgentPage() {
     </FormProvider>
   );
 }
-;
