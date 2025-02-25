@@ -77,6 +77,7 @@ export async function getTrades(agentId?: string) {
               ...commonTrade,
               type: info.trade.side === 'BUY' ? 'buy' : ('sell' as TradeType),
               amount: parseFloat(info.trade.size),
+              price: 'MARKET PRICE',
               summary:
                 info.trade.explanation ||
                 `${info.trade.side} ${info.trade.size} ${info.trade.market} at MARKET PRICE`,

@@ -29,7 +29,6 @@ export function adaptTradeData(trades: Trade[]): Trade[] {
 
   return trades.map((trade) => {
     if (!trade?.information) return trade;
-
     const info = trade.information;
     let result: Trade = { ...trade };
 

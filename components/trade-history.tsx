@@ -20,11 +20,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import {
-  Trade,
-  TradeType,
-  CancelOrderTradeInfo,
-} from '@/lib/types';
+import { Trade, TradeType, CancelOrderTradeInfo } from '@/lib/types';
 
 // Simplified date handling
 const formatTimeAgo = (isoString: string | undefined): string => {
@@ -132,8 +128,16 @@ const formatAmount = (amount: string | undefined): string => {
   }
 };
 
-const formatPrice = (price: number | undefined): string => {
-  if (!price) return '0.00';
+// Updated formatPrice to handle both number and string values
+const formatPrice = (price: number | string | undefined): string => {
+  if (price === undefined || price === null) return '0.00';
+
+  // If price is already a string (like 'MARKET PRICE'), return it directly
+  if (typeof price === 'string') {
+    return price;
+  }
+
+  // Otherwise format the number
   try {
     return price.toLocaleString(undefined, {
       minimumFractionDigits: 2,
@@ -359,7 +363,9 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
               <TooltipTrigger asChild>
                 <div className="flex items-center gap-1.5 cursor-help">
                   <span className={cn('text-sm font-medium', colorClass)}>
-                    ${formatPrice(tradePriceUSD)}
+                    {typeof tradePriceUSD === 'string'
+                      ? tradePriceUSD
+                      : `$${formatPrice(tradePriceUSD)}`}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     ({displayAmount} {displayToken})
@@ -387,7 +393,9 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
                     </div>
                     <div className="text-gray-500">Price:</div>
                     <div className="font-medium text-gray-900">
-                      ${formatPrice(tradePriceUSD)}
+                      {typeof tradePriceUSD === 'string'
+                        ? tradePriceUSD
+                        : `$${formatPrice(tradePriceUSD)}`}
                     </div>
                   </div>
                 </div>
