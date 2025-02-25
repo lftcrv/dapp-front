@@ -70,7 +70,6 @@ export async function getTrades(agentId?: string) {
 
         // Determine the trade type based on the information structure
         if ('tradeType' in trade.information) {
-          console.log("tradetype:", trade.information.tradeType)
           // Handle Paradex trades
           if (trade.information.tradeType === 'paradexPlaceOrderMarket') {
             const info = trade.information as MarketOrderTradeInfo;

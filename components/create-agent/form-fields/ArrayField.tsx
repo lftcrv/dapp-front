@@ -6,18 +6,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Plus, X } from 'lucide-react';
 import { useFormContext } from '../FormContext';
-import { ArrayFormField } from '../types';
+import { FormDataType } from '../types';
+
+type ArrayFields = keyof Pick<
+  FormDataType,
+  'lore' | 'objectives' | 'knowledge' | 'external_plugins' | 'internal_plugins'
+>;
 
 interface ArrayFieldProps {
-  field: ArrayFormField;
+  field: ArrayFields;
   label: string;
-  placeholder: string;
+  placeholder?: string;
+  description?: string;
 }
 
 export const ArrayField: React.FC<ArrayFieldProps> = ({
   field,
   label,
   placeholder,
+  description,
 }) => {
   const {
     formData,
@@ -30,7 +37,12 @@ export const ArrayField: React.FC<ArrayFieldProps> = ({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <Label className="text-base font-medium">{label}</Label>
+        <div>
+          <Label className="text-base font-medium">{label}</Label>
+          {description && (
+            <p className="text-sm text-muted-foreground mt-1">{description}</p>
+          )}
+        </div>
         <Button
           type="button"
           variant="outline"
@@ -38,23 +50,23 @@ export const ArrayField: React.FC<ArrayFieldProps> = ({
           onClick={() => handleAddField(field)}
         >
           <Plus className="h-4 w-4 mr-1" />
-          Add {label}
+          Add
         </Button>
       </div>
       <div className="space-y-3">
-        {formData[field].map((value: string, index: number) => (
-          <div key={index} className="flex gap-2 group">
-            <Input
-              value={value}
-              onChange={(e) => handleArrayInput(field, index, e.target.value)}
-              placeholder={placeholder}
-              className={`border-2 transition-all duration-200 ${
-                agentType === 'leftcurve'
-                  ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
-                  : 'focus:border-purple-500 focus:ring-purple-500/20'
-              }`}
-            />
-            {index > 0 && (
+        {formData[field].length > 0 ? (
+          formData[field].map((value: string, index: number) => (
+            <div key={index} className="flex gap-2 group">
+              <Input
+                value={value}
+                onChange={(e) => handleArrayInput(field, index, e.target.value)}
+                placeholder={placeholder}
+                className={`border-2 transition-all duration-200 ${
+                  agentType === 'leftcurve'
+                    ? 'focus:border-yellow-500 focus:ring-yellow-500/20'
+                    : 'focus:border-purple-500 focus:ring-purple-500/20'
+                }`}
+              />
               <Button
                 type="button"
                 variant="ghost"
@@ -64,9 +76,13 @@ export const ArrayField: React.FC<ArrayFieldProps> = ({
               >
                 <X className="h-4 w-4" />
               </Button>
-            )}
-          </div>
-        ))}
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-muted-foreground italic">
+            No items added yet. Click "Add" to get started.
+          </p>
+        )}
       </div>
     </div>
   );

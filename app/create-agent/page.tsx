@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import { createAgent } from '@/actions/agents/create/createAgent';
 import { showToast } from '@/lib/toast';
@@ -18,20 +17,18 @@ import {
   useTransactionReceipt,
 } from '@starknet-react/core';
 import { type Abi } from 'starknet';
+import { AgentConfig } from '@/lib/types';
+import { FormProvider, useFormContext } from '@/components/create-agent/FormContext';
+import { AgentForm } from '@/components/create-agent/AgentForm';
 import { AgentTypeSelector } from '@/components/create-agent/AgentTypeSelector';
-import { ProgressBar } from '@/components/create-agent/ProgressBar';
-import { TabsNavigation } from '@/components/create-agent/TabsNavigation';
 import { WalletConnectionOverlay } from '@/components/create-agent/WalletConnectionOverlay';
-import {
-  FormProvider,
-  useFormContext,
-} from '@/components/create-agent/FormContext';
 
 const CreateAgentPageContent: React.FC = () => {
   const router = useRouter();
   const { formData, agentType, profilePicture } = useFormContext();
 
   const {
+    activeWalletType,
     connectStarknet,
     loginWithPrivy,
     starknetWallet,
@@ -43,6 +40,7 @@ const CreateAgentPageContent: React.FC = () => {
 
   // Move hooks to component level
   const { address } = useAccount();
+  const { chain } = useNetwork();
   const { contract } = useContract({
     abi: [
       {
@@ -84,6 +82,11 @@ const CreateAgentPageContent: React.FC = () => {
 
     if (!currentAddress) {
       showToast('CONNECTION_ERROR');
+      return;
+    }
+
+    if (!formData.name.trim() || !formData.bio.trim()) {
+      showToast('AGENT_ERROR');
       return;
     }
 
@@ -182,29 +185,28 @@ const CreateAgentPageContent: React.FC = () => {
           agentType,
         });
 
+        const agentConfig: AgentConfig = {
+          name: formData.name,
+          bio: formData.bio,
+          lore: formData.lore.filter(Boolean),
+          objectives: formData.objectives.filter(Boolean),
+          knowledge: formData.knowledge.filter(Boolean),
+          interval: formData.interval,
+          chat_id: formData.chat_id,
+          external_plugins: formData.external_plugins.filter(Boolean),
+          internal_plugins: formData.internal_plugins,
+        };
+
+        // Ajouter le comportement de trading dans les objectives s'il existe
+        if (formData.tradingBehavior.trim()) {
+          agentConfig.objectives.push(
+            `Trading Behavior: ${formData.tradingBehavior}`,
+          );
+        }
+        console.log("agentConfig:", agentConfig)
         const result = await createAgent(
           formData.name,
-          {
-            name: formData.name,
-            clients: [],
-            modelProvider: 'anthropic',
-            settings: { secrets: {}, voice: { model: 'en_US-male-medium' } },
-            plugins: [],
-            bio: formData.bio.filter(Boolean),
-            lore: formData.lore.filter(Boolean),
-            knowledge: formData.knowledge.filter(Boolean),
-            messageExamples: formData.messageExamples.filter(
-              (msg) => msg[0].content.text && msg[1].content.text,
-            ),
-            postExamples: formData.postExamples.filter(Boolean),
-            topics: formData.topics.filter(Boolean),
-            style: {
-              all: formData.style.all.filter(Boolean),
-              chat: formData.style.chat.filter(Boolean),
-              post: formData.style.post.filter(Boolean),
-            },
-            adjectives: formData.adjectives.filter(Boolean),
-          },
+          agentConfig,
           agentType === 'leftcurve' ? 'LEFT' : 'RIGHT',
           currentAddress,
           transactionHash,
@@ -239,7 +241,6 @@ const CreateAgentPageContent: React.FC = () => {
   // Effect to redirect if no address
   useEffect(() => {
     if (!currentAddress) {
-      console.log("currentaddress:", currentAddress)
       router.push('/');
     }
   }, [currentAddress, router]);
@@ -272,18 +273,8 @@ const CreateAgentPageContent: React.FC = () => {
           {/* Header with Agent Type Selection */}
           <AgentTypeSelector />
 
-          {/* Progress Bar */}
-          <ProgressBar />
-
-          {/* Form Card */}
-          <Card className="border-2 shadow-lg">
-            <CardContent className="pt-6">
-              <TabsNavigation
-                isSubmitting={isSubmitting}
-                onDeploy={handleDeploy}
-              />
-            </CardContent>
-          </Card>
+          {/* Form Card - Single Tab */}
+          <AgentForm isSubmitting={isSubmitting} onDeploy={handleDeploy} />
         </motion.div>
       </div>
     </div>
