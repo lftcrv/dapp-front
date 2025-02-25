@@ -40,6 +40,7 @@ export class TradeService extends BaseService<Trade> {
   }
 
   async getByAgent(agentId: string): Promise<Result<Trade[]>> {
+    console.log("agentid:", agentId)
     return withErrorHandling(async () => {
       if (process.env.NEXT_PUBLIC_USE_TEST_DATA === 'true') {
         return tradesData.trades

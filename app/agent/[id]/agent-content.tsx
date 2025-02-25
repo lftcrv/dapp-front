@@ -9,6 +9,7 @@ import { BondingCurveProvider } from '@/lib/bonding-curve-context';
 import { AnimatedSection } from '@/components/ui/animated-section';
 import { Loading } from '@/components/ui/loading';
 import { Agent, Trade } from '@/lib/types';
+import AgentTrades from '@/components/agent/agent-trades';
 
 // Lazy load components that are not immediately visible
 const BondingCurveChart = lazy(() =>
@@ -49,7 +50,7 @@ interface AgentContentProps {
 
 export function AgentContent({ agent, initialTrades = [] }: AgentContentProps) {
   // Add refs to components that need refreshing
-  const priceActionRef = useRef<{ refetch?: () => void }>({}); 
+  const priceActionRef = useRef<{ refetch?: () => void }>({});
   const bondingCurveRef = useRef<{ refetch?: () => void }>({});
   const agentStatsRef = useRef<{ refetch?: () => void }>({});
 
@@ -77,7 +78,7 @@ export function AgentContent({ agent, initialTrades = [] }: AgentContentProps) {
             </Suspense>
 
             <Suspense fallback={<Loading variant={agent.type} />}>
-              <TradeHistoryCard agentId={agent.id} initialTrades={initialTrades} />
+              <AgentTrades />
             </Suspense>
 
             <Suspense fallback={<Loading variant={agent.type} />}>
@@ -88,8 +89,8 @@ export function AgentContent({ agent, initialTrades = [] }: AgentContentProps) {
           <AnimatedSection className="space-y-6" direction="right" delay={0.4}>
             <Suspense fallback={<Loading variant={agent.type} />}>
               <Card className={cn('border-2')}>
-                <SwapWidget 
-                  agent={agent} 
+                <SwapWidget
+                  agent={agent}
                   onTransactionSuccess={handleTransactionSuccess}
                 />
               </Card>
@@ -107,4 +108,4 @@ export function AgentContent({ agent, initialTrades = [] }: AgentContentProps) {
       </BondingCurveProvider>
     </AgentThemeProvider>
   );
-} 
+}
