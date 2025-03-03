@@ -100,12 +100,10 @@ export async function getLatestAgents() {
 
     const url = `${apiUrl}/api/eliza-agent/latest`;
 
-
-
     const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
+        'x-api-key': 'carbonable-our-giga-secret-api-key',
       },
     });
 
