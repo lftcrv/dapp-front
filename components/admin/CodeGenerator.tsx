@@ -28,7 +28,13 @@ const formSchema = z.object({
   maxUses: z.string().optional(),
   expiresAt: z.string().optional(),
   description: z.string().optional(),
-  count: z.string().default('1'),
+  count: z.string().default('1').refine(
+    (val) => {
+      const num = parseInt(val, 10);
+      return !isNaN(num) && num >= 1 && num <= 100;
+    },
+    { message: "Count must be a number between 1 and 100" }
+  ),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -59,7 +65,7 @@ const CodeGenerator: React.FC<CodeGeneratorProps> = ({
       maxUses: values.maxUses ? parseInt(values.maxUses, 10) : undefined,
       expiresAt: values.expiresAt || undefined,
       description: values.description,
-      count: values.count,
+      count: parseInt(values.count, 10),
     };
 
     await onGenerate(params);

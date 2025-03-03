@@ -14,6 +14,20 @@ export async function generateAccessCode(params: GenerationParams): Promise<Acce
   try {
     console.log('Generating access code with params:', JSON.stringify(params, null, 2));
     
+    // Ensure count is a valid number between 1 and 100
+    let count = 1;
+    if (params.count) {
+      // Convert to number if it's a string
+      count = typeof params.count === 'string' ? parseInt(params.count, 10) : params.count;
+      
+      // Validate count is within acceptable range
+      if (isNaN(count) || count < 1) {
+        count = 1;
+      } else if (count > 100) {
+        count = 100;
+      }
+    }
+    
     // Format the parameters for the API
     const apiParams = {
       type: params.type,
@@ -22,8 +36,8 @@ export async function generateAccessCode(params: GenerationParams): Promise<Acce
       ...(params.description && { description: params.description }),
       // Always use short code
       useShortCode: true,
-      // Add count parameter if greater than 1
-      ...(params.count && params.count !== 1 && { count: params.count }),
+      // Always include count as a number
+      count: count
     };
     
     console.log('Formatted API params:', JSON.stringify(apiParams, null, 2));
