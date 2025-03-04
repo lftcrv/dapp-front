@@ -49,7 +49,7 @@ const AgentItem = memo(
               <div className="w-8 h-8 relative rounded-lg overflow-hidden flex-shrink-0 bg-white/5 flex items-center justify-center">
                 {agent.profilePictureUrl ? (
                   <Image
-                    src={`${process.env.NEXT_PUBLIC_ELIZA_API_URL}${agent.profilePictureUrl}`}
+                    src={`${process.env.NEXT_PUBLIC_BACKEND_API_URL}${agent.profilePictureUrl}`}
                     alt={agent.name}
                     width={32}
                     height={32}
@@ -60,7 +60,7 @@ const AgentItem = memo(
                       console.error('❌ Image Error:', {
                         src: e.currentTarget.src,
                         name: agent.name,
-                        url: `${process.env.NEXT_PUBLIC_ELIZA_API_URL}${agent.profilePictureUrl}`,
+                        url: `${process.env.NEXT_PUBLIC_BACKEND_API_URL}${agent.profilePictureUrl}`,
                       });
                       e.currentTarget.style.display = 'none';
                       const parent = e.currentTarget.parentElement;

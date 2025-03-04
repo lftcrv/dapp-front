@@ -6,7 +6,8 @@ import { isInBondingPhase } from '@/lib/utils';
 
 // Initialize provider
 const provider = new RpcProvider({
-  nodeUrl: process.env.NODE_URL || 'https://starknet-sepolia.public.blastapi.io'
+  nodeUrl:
+    process.env.NODE_URL || 'https://starknet-sepolia.public.blastapi.io',
 });
 
 async function mapApiAgentToAgent(apiAgent: ApiAgent): Promise<Agent> {
@@ -25,8 +26,6 @@ async function mapApiAgentToAgent(apiAgent: ApiAgent): Promise<Agent> {
   const profilePictureUrl = apiAgent.profilePicture
     ? `/uploads/profile-pictures/${apiAgent.profilePicture}`
     : undefined;
-
-
 
   // Create base agent with explicit type
   const baseAgent: Omit<Agent, 'abi'> & { abi: Abi } = {
@@ -72,7 +71,7 @@ async function mapApiAgentToAgent(apiAgent: ApiAgent): Promise<Agent> {
 
 export async function getLatestAgents() {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL;
+    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
     const apiKey = process.env.API_KEY;
 
     if (!apiUrl || !apiKey) {
@@ -100,18 +99,14 @@ export async function getLatestAgents() {
 
     const url = `${apiUrl}/api/eliza-agent/latest`;
 
-
-
     const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
+        'x-api-key': apiKey as string,
       },
     });
 
     let responseData = await response.json();
-
-
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -143,8 +138,6 @@ export async function getLatestAgents() {
         );
       }
     }
-
-
 
     // Check if we have the expected data structure
     if (!responseData.data?.agents) {

@@ -5,7 +5,7 @@ import { mainnet, sepolia } from '@starknet-react/chains';
 import {
   StarknetConfig,
   jsonRpcProvider,
-  publicProvider,
+
 } from '@starknet-react/core';
 import { ReactNode } from 'react';
 
@@ -31,9 +31,7 @@ export default function StarknetProvider({
     }),
   });
 
-  console.log("rpcUrl:", PRIVATE_RPC_URL)
 
-  console.log('chains:', chains);
 
   return (
     <StarknetConfig
