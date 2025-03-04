@@ -132,10 +132,93 @@ const CreateAgentPageContent: React.FC = () => {
         console.log('🔵 Transaction Hash:', response.transaction_hash);
         setTransactionHash(response.transaction_hash);
         showToast('TX_SUCCESS', 'success', response.transaction_hash);
+        
+        // Create agent immediately after getting transaction hash
+        await createAgentWithTxHash(response.transaction_hash);
       }
     } catch (error) {
       console.error('❌ Transaction Error:', error);
       showToast('TX_ERROR', 'error');
+      setIsSubmitting(false);
+    }
+  };
+
+  // Function to create agent with transaction hash
+  const createAgentWithTxHash = async (txHash: string) => {
+    if (!txHash || !currentAddress) {
+      console.error('❌ Missing transaction hash or address');
+      showToast('AGENT_ERROR', 'error');
+      setIsSubmitting(false);
+      return;
+    }
+    
+    try {
+      console.log('🔵 Creating Agent:', {
+        transactionHash: txHash,
+        userAddress: currentAddress,
+        agentType,
+      });
+
+      showToast('AGENT_CREATING', 'loading');
+
+      const agentConfig: AgentConfig = {
+        name: formData.name,
+        bio: formData.bio,
+        lore: formData.lore.filter(Boolean),
+        objectives: formData.objectives.filter(Boolean),
+        knowledge: formData.knowledge.filter(Boolean),
+        interval: formData.interval,
+        chat_id: generateRandomChatId(),
+        external_plugins: formData.external_plugins.filter(Boolean),
+        internal_plugins: formData.internal_plugins,
+      };
+
+      // Ajouter les paragraphes de bio si présents
+      if (
+        formData.bioParagraphs.length > 0 &&
+        formData.bioParagraphs.some((p) => p.trim())
+      ) {
+        const combinedBio = formData.bioParagraphs
+          .filter(Boolean)
+          .join('\n\n');
+        if (combinedBio) {
+          agentConfig.bio = combinedBio;
+        }
+      }
+
+      // Ajouter le comportement de trading dans les objectives s'il existe
+      if (formData.tradingBehavior.trim()) {
+        agentConfig.objectives.push(
+          `Trading Behavior: ${formData.tradingBehavior}`,
+        );
+      }
+
+      const result = await createAgent(
+        formData.name,
+        agentConfig,
+        agentType === 'leftcurve' ? 'LEFT' : 'RIGHT',
+        currentAddress,
+        txHash,
+        profilePicture || undefined,
+      );
+
+      if (result.success) {
+        console.log('🔵 Agent Created Successfully:', result);
+        showToast('AGENT_SUCCESS', 'success');
+        
+        // Set up redirection after 3 seconds
+        setTimeout(() => {
+          console.log('🔄 Redirecting to home...');
+          router.push('/');
+        }, 3000);
+      } else {
+        console.error('❌ Agent Creation Failed:', result.error);
+        showToast('AGENT_ERROR', 'error');
+      }
+    } catch (error) {
+      console.error('❌ Agent Creation Error:', error);
+      showToast('AGENT_ERROR', 'error');
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -145,6 +228,7 @@ const CreateAgentPageContent: React.FC = () => {
     watch: true,
   });
 
+  // Keep this effect for monitoring transaction status, but remove the agent creation part
   React.useEffect(() => {
     if (isLoading || !transactionHash) return;
 
@@ -167,96 +251,12 @@ const CreateAgentPageContent: React.FC = () => {
           finality_status === 'ACCEPTED_ON_L2' &&
           execution_status === 'SUCCEEDED'
         ) {
-          showToast('TX_SUCCESS', 'success', transactionHash);
+          console.log('✅ Transaction confirmed on L2');
           setIsTransactionConfirmed(true);
-
-          // Set up redirection after 5 seconds
-          setTimeout(() => {
-            console.log('🔄 Redirecting to home after 5s delay...');
-            showToast('AGENT_CREATING', 'loading');
-            router.push('/');
-          }, 5000);
         }
       }
     }
-  }, [receiptData, receiptError, isLoading, transactionHash, router]);
-
-  React.useEffect(() => {
-    if (!isTransactionConfirmed || !transactionHash || !currentAddress) return;
-
-    const createAgentAfterTx = async () => {
-      try {
-        console.log('🔵 Creating Agent:', {
-          transactionHash,
-          userAddress: currentAddress,
-          agentType,
-        });
-
-        const agentConfig: AgentConfig = {
-          name: formData.name,
-          bio: formData.bio,
-          lore: formData.lore.filter(Boolean),
-          objectives: formData.objectives.filter(Boolean),
-          knowledge: formData.knowledge.filter(Boolean),
-          interval: formData.interval,
-          chat_id: generateRandomChatId(),
-          external_plugins: formData.external_plugins.filter(Boolean),
-          internal_plugins: formData.internal_plugins,
-        };
-
-        // Ajouter les paragraphes de bio si présents
-        if (
-          formData.bioParagraphs.length > 0 &&
-          formData.bioParagraphs.some((p) => p.trim())
-        ) {
-          const combinedBio = formData.bioParagraphs
-            .filter(Boolean)
-            .join('\n\n');
-          if (combinedBio) {
-            agentConfig.bio = combinedBio;
-          }
-        }
-
-        // Ajouter le comportement de trading dans les objectives s'il existe
-        if (formData.tradingBehavior.trim()) {
-          agentConfig.objectives.push(
-            `Trading Behavior: ${formData.tradingBehavior}`,
-          );
-        }
-
-        const result = await createAgent(
-          formData.name,
-          agentConfig,
-          agentType === 'leftcurve' ? 'LEFT' : 'RIGHT',
-          currentAddress,
-          transactionHash,
-          profilePicture || undefined,
-        );
-
-        if (result.success) {
-          console.log('🔵 Agent Created Successfully:', result);
-          showToast('AGENT_SUCCESS', 'success');
-        } else {
-          console.error('❌ Agent Creation Failed:', result.error);
-          showToast('AGENT_ERROR', 'error');
-        }
-      } catch (error) {
-        console.error('❌ Agent Creation Error:', error);
-        showToast('AGENT_ERROR', 'error');
-      } finally {
-        setIsSubmitting(false);
-      }
-    };
-
-    createAgentAfterTx();
-  }, [
-    isTransactionConfirmed,
-    transactionHash,
-    currentAddress,
-    agentType,
-    formData,
-    profilePicture,
-  ]);
+  }, [receiptData, receiptError, isLoading, transactionHash]);
 
   // Effect to redirect if no address
   useEffect(() => {
