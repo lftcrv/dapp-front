@@ -4,12 +4,13 @@ import {
   AccessCode,
   AccessCodeActivity,
   AccessCodeDashboard,
-  CodeType
+  CodeType,
 } from '../../types/accessCode';
 
 // API base URL for access codes
-const API_URL = 'http://localhost:8080';
-const API_KEY = 'carbonable-our-giga-secret-api-key';
+const API_URL =
+  process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8080';
+const API_KEY = process.env.API_KEY;
 const API_BASE_URL = '/api/access-code';
 
 // Default empty stats to use when the endpoint is not available
@@ -19,7 +20,7 @@ const DEFAULT_EMPTY_STATS = {
   usedCodes: 0,
   expiringCodes: 0,
   byType: {},
-  usageHistory: []
+  usageHistory: [],
 };
 
 /**
@@ -33,28 +34,37 @@ export async function getAccessCodeStats(): Promise<
   }
 > {
   try {
-    const response = await fetch(`${API_URL}${API_BASE_URL}/access-codes/stats`, {
-      headers: {
-        'x-api-key': API_KEY
-      }
-    });
-    
+    const response = await fetch(
+      `${API_URL}${API_BASE_URL}/access-codes/stats`,
+      {
+        headers: {
+          'x-api-key': API_KEY as string,
+        },
+      },
+    );
+
     if (response.status === 404) {
       console.warn('Stats endpoint not found (404), using default empty stats');
       return DEFAULT_EMPTY_STATS;
     }
-    
+
     if (!response.ok) {
-      throw new Error(`Failed to fetch stats: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Failed to fetch stats: ${response.status} ${response.statusText}`,
+      );
     }
 
     // Parse the response
     const responseData = await response.json();
-    
+
     // Handle the new response format from the backend
-    if (responseData.status === 'success' && responseData.data && responseData.data.stats) {
+    if (
+      responseData.status === 'success' &&
+      responseData.data &&
+      responseData.data.stats
+    ) {
       console.log('Received stats data:', responseData.data);
-      
+
       // Map the backend response to our expected format
       return {
         totalCodes: responseData.data.stats.totalCodes || 0,
@@ -62,10 +72,10 @@ export async function getAccessCodeStats(): Promise<
         usedCodes: responseData.data.stats.usedCodes || 0,
         expiringCodes: responseData.data.stats.expiringCodes || 0,
         byType: responseData.data.stats.codesByType || {},
-        usageHistory: responseData.data.stats.usageHistory || []
+        usageHistory: responseData.data.stats.usageHistory || [],
       };
     }
-    
+
     // If the response doesn't match the expected format, return the original response
     return responseData;
   } catch (error) {
@@ -98,7 +108,7 @@ export async function getAccessCodes(
   try {
     // Build query string
     const params = new URLSearchParams();
-    
+
     if (filters) {
       if (filters.status) params.append('status', filters.status);
       if (filters.type && filters.type.length)
@@ -107,46 +117,57 @@ export async function getAccessCodes(
       if (filters.dateStart) params.append('dateStart', filters.dateStart);
       if (filters.dateEnd) params.append('dateEnd', filters.dateEnd);
     }
-    
+
     if (sort) {
       params.append('sortField', sort.field);
       params.append('sortDirection', sort.direction);
     }
-    
+
     if (pagination) {
       params.append('page', pagination.page.toString());
       params.append('pageSize', pagination.pageSize.toString());
     }
-    
+
     const queryString = params.toString() ? `?${params.toString()}` : '';
-    const response = await fetch(`${API_URL}${API_BASE_URL}/access-codes/list${queryString}`, {
-      headers: {
-        'x-api-key': API_KEY
-      }
-    });
-    
+    const response = await fetch(
+      `${API_URL}${API_BASE_URL}/access-codes/list${queryString}`,
+      {
+        headers: {
+          'x-api-key': API_KEY as string,
+        },
+      },
+    );
+
     if (response.status === 404) {
-      console.warn('Access codes list endpoint not found (404), returning empty list');
+      console.warn(
+        'Access codes list endpoint not found (404), returning empty list',
+      );
       return { codes: [], total: 0 };
     }
-    
+
     if (!response.ok) {
-      throw new Error(`Failed to fetch access codes: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Failed to fetch access codes: ${response.status} ${response.statusText}`,
+      );
     }
 
     // Parse the response
     const responseData = await response.json();
-    
+
     // Handle the new response format
-    if (responseData.status === 'success' && responseData.data && responseData.data.accessCodes) {
+    if (
+      responseData.status === 'success' &&
+      responseData.data &&
+      responseData.data.accessCodes
+    ) {
       const accessCodes = responseData.data.accessCodes;
       console.log(`Received ${accessCodes.length} access codes`);
-      return { 
-        codes: accessCodes, 
-        total: accessCodes.length // If the API doesn't provide a total count, use the array length
+      return {
+        codes: accessCodes,
+        total: accessCodes.length, // If the API doesn't provide a total count, use the array length
       };
     }
-    
+
     // If the response doesn't match the expected format, return the original response
     // This maintains backward compatibility
     return responseData;
@@ -165,19 +186,24 @@ export async function getAccessCodeById(id: string): Promise<{
   activities: AccessCodeActivity[];
 }> {
   try {
-    const response = await fetch(`${API_URL}${API_BASE_URL}/access-codes/${id}`, {
-      headers: {
-        'x-api-key': API_KEY
-      }
-    });
-    
+    const response = await fetch(
+      `${API_URL}${API_BASE_URL}/access-codes/${id}`,
+      {
+        headers: {
+          'x-api-key': API_KEY as string,
+        },
+      },
+    );
+
     if (response.status === 404) {
       console.warn(`Access code ${id} not found (404)`);
       throw new Error(`Access code ${id} not found`);
     }
-    
+
     if (!response.ok) {
-      throw new Error(`Failed to fetch access code details: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Failed to fetch access code details: ${response.status} ${response.statusText}`,
+      );
     }
 
     return response.json();
@@ -196,19 +222,24 @@ export async function getAccessCodeStatus(id: string): Promise<{
   isFullyUsed: boolean;
 }> {
   try {
-    const response = await fetch(`${API_URL}${API_BASE_URL}/access-codes/status/${id}`, {
-      headers: {
-        'x-api-key': API_KEY
-      }
-    });
-    
+    const response = await fetch(
+      `${API_URL}${API_BASE_URL}/access-codes/status/${id}`,
+      {
+        headers: {
+          'x-api-key': API_KEY as string,
+        },
+      },
+    );
+
     if (response.status === 404) {
       console.warn(`Access code status for ${id} not found (404)`);
       return { isActive: false, isExpired: false, isFullyUsed: false };
     }
-    
+
     if (!response.ok) {
-      throw new Error(`Failed to fetch access code status: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Failed to fetch access code status: ${response.status} ${response.statusText}`,
+      );
     }
 
     return response.json();
@@ -223,18 +254,23 @@ export async function getAccessCodeStatus(id: string): Promise<{
  * @param limit Maximum number of activities to return
  * @returns Array of recent activities
  */
-export async function getRecentActivities(limit: number = 10): Promise<AccessCodeActivity[]> {
+export async function getRecentActivities(
+  limit: number = 10,
+): Promise<AccessCodeActivity[]> {
   try {
     // First try the activities endpoint with the expected path
-    const response = await fetch(`${API_URL}${API_BASE_URL}/access-codes/activities?limit=${limit}`, {
-      headers: {
-        'x-api-key': API_KEY
-      }
-    });
-    
+    const response = await fetch(
+      `${API_URL}${API_BASE_URL}/access-codes/activities?limit=${limit}`,
+      {
+        headers: {
+          'x-api-key': API_KEY as string,
+        },
+      },
+    );
+
     if (response.status === 404) {
       console.warn('Activities endpoint not found (404), returning empty list');
-      
+
       // Since the activities endpoint is not available, we'll try to generate some activities
       // from the access codes list as a fallback
       try {
@@ -243,37 +279,45 @@ export async function getRecentActivities(limit: number = 10): Promise<AccessCod
           // Create synthetic activities based on the access codes
           const syntheticActivities: AccessCodeActivity[] = codes
             .slice(0, limit)
-            .map(code => ({
+            .map((code) => ({
               id: `synthetic-${code.id}`,
               codeId: code.id,
               code: code.code,
               action: 'CREATED',
               timestamp: code.createdAt,
               userId: code.createdBy || undefined,
-              details: `${code.type} code created`
+              details: `${code.type} code created`,
             }));
-          
-          console.log(`Generated ${syntheticActivities.length} synthetic activities from access codes`);
+
+          console.log(
+            `Generated ${syntheticActivities.length} synthetic activities from access codes`,
+          );
           return syntheticActivities;
         }
       } catch (fallbackError) {
         console.error('Error generating synthetic activities:', fallbackError);
       }
-      
+
       return [];
     }
-    
+
     if (!response.ok) {
-      throw new Error(`Failed to fetch recent activities: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Failed to fetch recent activities: ${response.status} ${response.statusText}`,
+      );
     }
 
     const responseData = await response.json();
-    
+
     // Handle the new response format
-    if (responseData.status === 'success' && responseData.data && responseData.data.activities) {
+    if (
+      responseData.status === 'success' &&
+      responseData.data &&
+      responseData.data.activities
+    ) {
       return responseData.data.activities;
     }
-    
+
     // If the response doesn't match the expected format, return the original response
     return responseData;
   } catch (error) {

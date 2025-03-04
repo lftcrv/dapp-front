@@ -72,7 +72,7 @@ export async function mapApiAgentToAgent(apiAgent: ApiAgent): Promise<Agent> {
 
 export async function getAgents() {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL;
+    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
     const apiKey = process.env.API_KEY;
 
     if (!apiUrl || !apiKey) {
@@ -134,7 +134,7 @@ export async function getAgents() {
 
 export async function getAgentById(id: string) {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL;
+    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
     const apiKey = process.env.API_KEY;
 
     if (!apiUrl || !apiKey) {

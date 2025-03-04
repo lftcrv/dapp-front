@@ -12,7 +12,7 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: process.env.NEXT_PUBLIC_ELIZA_API_URL?.replace(/^https?:\/\//, '') || 'api.eliza.xyz',
+        hostname: process.env.NEXT_PUBLIC_BACKEND_API_URL?.replace(/^https?:\/\//, '') || 'api.eliza.xyz',
         pathname: '/uploads/profile-pictures/**',
       },
     ],
@@ -59,7 +59,7 @@ const nextConfig = {
     ],
   },
   env: {
-    NEXT_PUBLIC_ELIZA_API_URL: process.env.NEXT_PUBLIC_ELIZA_API_URL,
+    NEXT_PUBLIC_BACKEND_API_URL: process.env.NEXT_PUBLIC_BACKEND_API_URL,
     NEXT_PUBLIC_BACKEND_RADICAL_URL: process.env.NEXT_PUBLIC_BACKEND_RADICAL_URL,
     NEXT_PUBLIC_ETH_TOKEN_ADDRESS: process.env.NEXT_PUBLIC_ETH_TOKEN_ADDRESS,
     NEXT_PUBLIC_DEPLOYMENT_FEES_RECIPIENT: process.env.NEXT_PUBLIC_DEPLOYMENT_FEES_RECIPIENT,

@@ -21,7 +21,7 @@ const provider = new RpcProvider({
 // Cache simulation results for 5 seconds
 const getCachedSimulation = unstable_cache(
   async (agentId: string, tokenAmount: string, type: 'buy' | 'sell') => {
-    const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL;
+    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
     const apiKey = process.env.API_KEY;
 
     if (!apiUrl || !apiKey) {
@@ -85,7 +85,7 @@ export async function simulateSellTokens(agentId: string, tokenAmount: string) {
 
 export async function getBondingCurvePercentage(agentId: string) {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL;
+    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
     const apiKey = process.env.API_KEY;
 
     if (!apiUrl || !apiKey) {
@@ -122,7 +122,7 @@ export async function getBondingCurvePercentage(agentId: string) {
 
 export async function getTokenPriceHistory(agentId: string) {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL;
+    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
     const apiKey = process.env.API_KEY;
 
     if (!apiUrl || !apiKey) {
@@ -162,7 +162,7 @@ export async function getTokenPriceHistory(agentId: string) {
 
 export async function getCurrentPrice(agentId: string) {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL;
+    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
     const apiKey = process.env.API_KEY;
 
     if (!apiUrl || !apiKey) throw new Error('Missing API configuration');
@@ -192,7 +192,7 @@ export async function getCurrentPrice(agentId: string) {
 
 export async function getMarketCap(agentId: string) {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL;
+    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
     const apiKey = process.env.API_KEY;
 
     if (!apiUrl || !apiKey) throw new Error('Missing API configuration');
@@ -222,7 +222,7 @@ export async function getMarketCap(agentId: string) {
 
 export async function getTokenMarketData(agentId: string) {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL;
+    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
     const apiKey = process.env.API_KEY;
 
     if (!apiUrl || !apiKey) throw new Error('Missing API configuration');
@@ -255,7 +255,7 @@ export async function getTokenMarketData(agentId: string) {
 
 export async function getAgentAvatar(agentId: string) {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL;
+    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
     const apiKey = process.env.API_KEY;
 
     if (!apiUrl || !apiKey) throw new Error('Missing API configuration');
@@ -327,7 +327,7 @@ export async function getCompleteAgentData(
   agentId: string,
 ): Promise<{ success: boolean; data?: Agent; error?: string }> {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_ELIZA_API_URL;
+    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
     const apiKey = process.env.API_KEY;
 
     if (!apiUrl || !apiKey) throw new Error('Missing API configuration');

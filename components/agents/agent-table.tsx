@@ -125,7 +125,7 @@ const AgentRow = memo(({ agent, index }: AgentRowProps) => {
           <div className="w-7 h-7 relative rounded-lg overflow-hidden bg-white/5 flex items-center justify-center">
             {agent.profilePictureUrl ? (
               <Image
-                src={`${process.env.NEXT_PUBLIC_ELIZA_API_URL}${agent.profilePictureUrl}`}
+                src={`${process.env.NEXT_PUBLIC_BACKEND_API_URL}${agent.profilePictureUrl}`}
                 alt={agent.name}
                 width={28}
                 height={28}
