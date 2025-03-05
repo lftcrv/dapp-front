@@ -132,7 +132,7 @@ const CreateAgentPageContent: React.FC = () => {
         console.log('🔵 Transaction Hash:', response.transaction_hash);
         setTransactionHash(response.transaction_hash);
         showToast('TX_SUCCESS', 'success', response.transaction_hash);
-        
+
         // Create agent immediately after getting transaction hash
         await createAgentWithTxHash(response.transaction_hash);
       }
@@ -151,7 +151,7 @@ const CreateAgentPageContent: React.FC = () => {
       setIsSubmitting(false);
       return;
     }
-    
+
     try {
       console.log('🔵 Creating Agent:', {
         transactionHash: txHash,
@@ -178,9 +178,7 @@ const CreateAgentPageContent: React.FC = () => {
         formData.bioParagraphs.length > 0 &&
         formData.bioParagraphs.some((p) => p.trim())
       ) {
-        const combinedBio = formData.bioParagraphs
-          .filter(Boolean)
-          .join('\n\n');
+        const combinedBio = formData.bioParagraphs.filter(Boolean).join('\n\n');
         if (combinedBio) {
           agentConfig.bio = combinedBio;
         }
@@ -193,6 +191,12 @@ const CreateAgentPageContent: React.FC = () => {
         );
       }
 
+      console.log('🔵 API URL:', process.env.NEXT_PUBLIC_BACKEND_API_URL);
+      console.log(
+        '🔵 Full API Endpoint:',
+        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/eliza-agent`,
+      );
+
       const result = await createAgent(
         formData.name,
         agentConfig,
@@ -202,10 +206,15 @@ const CreateAgentPageContent: React.FC = () => {
         profilePicture || undefined,
       );
 
+      console.log(
+        '🔵 Full Create Agent Result:',
+        JSON.stringify(result, null, 2),
+      );
+
       if (result.success) {
         console.log('🔵 Agent Created Successfully:', result);
         showToast('AGENT_SUCCESS', 'success');
-        
+
         // Set up redirection after 3 seconds
         setTimeout(() => {
           console.log('🔄 Redirecting to home...');
@@ -216,7 +225,11 @@ const CreateAgentPageContent: React.FC = () => {
         showToast('AGENT_ERROR', 'error');
       }
     } catch (error) {
-      console.error('❌ Agent Creation Error:', error);
+      console.error('❌ Detailed Agent Creation Error:', {
+        message: (error as any).message,
+        stack: (error as any).stack,
+        name: (error as any).name,
+      });
       showToast('AGENT_ERROR', 'error');
     } finally {
       setIsSubmitting(false);
