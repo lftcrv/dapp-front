@@ -173,7 +173,6 @@ const CreateAgentPageContent: React.FC = () => {
         internal_plugins: formData.internal_plugins,
       };
 
-      // Ajouter les paragraphes de bio si présents
       if (
         formData.bioParagraphs.length > 0 &&
         formData.bioParagraphs.some((p) => p.trim())
@@ -184,18 +183,11 @@ const CreateAgentPageContent: React.FC = () => {
         }
       }
 
-      // Ajouter le comportement de trading dans les objectives s'il existe
       if (formData.tradingBehavior.trim()) {
         agentConfig.objectives.push(
           `Trading Behavior: ${formData.tradingBehavior}`,
         );
       }
-
-      console.log('🔵 API URL:', process.env.NEXT_PUBLIC_BACKEND_API_URL);
-      console.log(
-        '🔵 Full API Endpoint:',
-        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/eliza-agent`,
-      );
 
       const result = await createAgent(
         formData.name,
@@ -206,23 +198,19 @@ const CreateAgentPageContent: React.FC = () => {
         profilePicture || undefined,
       );
 
-      console.log(
-        '🔵 Full Create Agent Result:',
-        JSON.stringify(result, null, 2),
-      );
+      if (result.success && result.orchestrationId) {
+        console.log('🔵 Agent Creation Initiated:', result);
+        showToast('AGENT_CREATING', 'success');
 
-      if (result.success) {
-        console.log('🔵 Agent Created Successfully:', result);
-        showToast('AGENT_SUCCESS', 'success');
-
-        // Set up redirection after 3 seconds
+        // Redirect to deploying state page with orchestration ID
         setTimeout(() => {
-          console.log('🔄 Redirecting to home...');
-          router.push('/');
-        }, 3000);
+          console.log('🔄 Redirecting to deployment status page...');
+          router.push(`/agent/deploying/${result.orchestrationId}`);
+        }, 1500);
       } else {
         console.error('❌ Agent Creation Failed:', result.error);
         showToast('AGENT_ERROR', 'error');
+        setIsSubmitting(false);
       }
     } catch (error) {
       console.error('❌ Detailed Agent Creation Error:', {
