@@ -179,6 +179,10 @@ export function DeployingStateWithOrchestration({
 
           if (stepIndex >= 0) {
             setCurrentStep(stepIndex);
+
+            if (currentStepId === 'start-container') {
+              setProgress(80);
+            }
           }
 
           // Check if we have agent info in the result
@@ -191,6 +195,7 @@ export function DeployingStateWithOrchestration({
 
           // Check the orchestration status
           if (result.data.orchestrationStatus === 'COMPLETED') {
+            setProgress(100);
             setDeploymentState('deployed');
             clearIntervals();
             console.log('Orchestration completed, checking for agent ID...');
@@ -235,9 +240,6 @@ export function DeployingStateWithOrchestration({
     checkOrchestrationStatus();
 
     return () => {
-      console.log(
-        `[${new Date().toLocaleTimeString()}] Stopped monitoring orchestration #${orchestrationId}`,
-      );
       isMounted = false;
       clearIntervals();
     };
