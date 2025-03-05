@@ -3,7 +3,6 @@ import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { unstable_cache } from 'next/cache';
 import { AgentContent } from './agent-content';
-import { DeployingState } from './deploying-state';
 import { getCompleteAgentData } from '@/actions/agents/token/getTokenInfo';
 
 // Mark this page as dynamic to skip static build
@@ -52,14 +51,6 @@ export default async function AgentPage({ params }: PageProps) {
 
   if (error || !agent) {
     notFound();
-  }
-
-  // Check for valid contract address
-  const isDeploying = !agent.contractAddress || agent.contractAddress === '0x0';
-
-  // If the agent is still deploying, show the auto-refreshing deploying page
-  if (isDeploying) {
-    return <DeployingState agent={agent} />;
   }
 
   return (

@@ -205,7 +205,11 @@ const CreateAgentPageContent: React.FC = () => {
         // Redirect to deploying state page with orchestration ID
         setTimeout(() => {
           console.log('🔄 Redirecting to deployment status page...');
-          router.push(`/agent/deploying/${result.orchestrationId}`);
+          router.push(
+            `/agent/deploying/${
+              result.orchestrationId
+            }?tx=${txHash}&wallet=${encodeURIComponent(currentAddress)}`,
+          );
         }, 1500);
       } else {
         console.error('❌ Agent Creation Failed:', result.error);

@@ -4,12 +4,36 @@ import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { getCreationStatus } from '@/actions/agents/create/getCreationStatus';
+import { findAgentByTransaction } from '@/actions/agents/create/findAgentByTransaction';
 
 interface DeployingStateWithOrchestrationProps {
   orchestrationId: string;
+  transactionHash: string;
+  creatorWallet: string;
   error: string | null;
   onError: (message: string) => void;
 }
+
+const getStepTitle = (stepId: string | null) => {
+  switch (stepId) {
+    case 'create-db-record':
+      return 'Creating Agent Record';
+    case 'create-wallet':
+      return 'Creating Agent Wallet';
+    case 'fund-wallet':
+      return 'Funding Agent Wallet';
+    case 'deploy-wallet':
+      return 'Deploying Wallet Contract';
+    case 'deploy-agent-token':
+      return 'Deploying Agent Token';
+    case 'create-container':
+      return 'Setting Up Agent Environment';
+    case 'start-container':
+      return 'Starting Agent Environment';
+    default:
+      return 'Agent Deployment In Progress';
+  }
+};
 
 type DeploymentState =
   | 'initializing'
@@ -24,6 +48,7 @@ const DEPLOYMENT_STEPS = [
     label: 'Initialize deployment',
     emoji: '⚡️',
     description: 'Starting deployment process...',
+    stepId: null,
   },
   {
     id: 1,
@@ -78,20 +103,25 @@ const DEPLOYMENT_STEPS = [
 
 export function DeployingStateWithOrchestration({
   orchestrationId,
+  transactionHash,
+  creatorWallet,
   error: initialError,
   onError,
 }: DeployingStateWithOrchestrationProps) {
   const router = useRouter();
   const [deploymentState, setDeploymentState] =
     useState<DeploymentState>('initializing');
-  const [countdown, setCountdown] = useState(20);
+  const [countdown, setCountdown] = useState(5);
   const [currentStep, setCurrentStep] = useState(0);
+  const [orchestrationData, setOrchestrationData] = useState<{
+    creatorWallet?: string;
+    transactionHash?: string;
+  }>({});
   const [agentInfo, setAgentInfo] = useState<{ id?: string; name?: string }>(
     {},
   );
+  const [progress, setProgress] = useState(0);
   const isInitializedRef = useRef(false);
-
-  const progress = ((20 - countdown) / 20) * 100;
 
   // Initialization effect
   useEffect(() => {
@@ -102,7 +132,7 @@ export function DeployingStateWithOrchestration({
       `[${new Date().toLocaleTimeString()}] Started monitoring orchestration:`,
       {
         orchestrationId,
-        checkInterval: '20 seconds',
+        checkInterval: '5 seconds',
       },
     );
   }, [orchestrationId]);
@@ -120,23 +150,49 @@ export function DeployingStateWithOrchestration({
       countdownInterval = null;
     };
 
+    const lookupAgentByTransaction = async () => {
+      if (!transactionHash) {
+        console.error('Missing transaction hash - cannot look up agent');
+        router.push('/');
+        return;
+      }
+
+      try {
+        console.log('Looking up agent by transaction:', transactionHash);
+        const result = await findAgentByTransaction(
+          transactionHash,
+          creatorWallet,
+        );
+
+        if (result.success && result.agentId) {
+          console.log('🎉 Found agent by transaction lookup:', result.agentId);
+          router.push(`/agent/${result.agentId}?t=${Date.now()}`);
+          return true;
+        } else {
+          console.log('No agent found by transaction lookup');
+          router.push('/');
+          return false;
+        }
+      } catch (error) {
+        console.error('Error during agent lookup:', error);
+        router.push('/');
+        return false;
+      }
+    };
+
     const checkOrchestrationStatus = async () => {
       if (!isMounted) return;
 
       try {
         setDeploymentState('checking');
-        console.log(
-          `[${new Date().toLocaleTimeString()}] Checking status for orchestration #${orchestrationId}...`,
-        );
 
         const result = await getCreationStatus(orchestrationId);
 
         if (!isMounted) return;
 
         if (result.success && result.data) {
-          console.log('Current orchestration status:', result.data);
+          setProgress(result.data.progress || 0);
 
-          // Find the current step in our steps array
           const currentStepId = result.data.currentStepId;
           const stepIndex = DEPLOYMENT_STEPS.findIndex(
             (step) => step.stepId === currentStepId,
@@ -158,21 +214,15 @@ export function DeployingStateWithOrchestration({
           if (result.data.orchestrationStatus === 'COMPLETED') {
             setDeploymentState('deployed');
             clearIntervals();
-
-            // Redirect to agent page if we have an ID
-            if (result.data.result?.id) {
-              window.location.href = `/agent/${
-                result.data.result.id
-              }?t=${Date.now()}`;
-              return;
-            }
+            console.log('Orchestration completed, checking for agent ID...');
+            await lookupAgentByTransaction();
           } else if (result.data.orchestrationStatus === 'FAILED') {
             onError(result.data.error || 'Deployment failed');
             setDeploymentState('error');
             clearIntervals();
           } else {
             setDeploymentState('waiting');
-            setCountdown(20);
+            setCountdown(5);
           }
         } else {
           throw new Error(
@@ -191,21 +241,18 @@ export function DeployingStateWithOrchestration({
       }
     };
 
-    // Set up intervals
-    checkInterval = setInterval(checkOrchestrationStatus, 20000);
+    checkInterval = setInterval(checkOrchestrationStatus, 5000);
     countdownInterval = setInterval(() => {
       if (isMounted) {
         setCountdown((prev) => {
           if (prev <= 1) {
-            checkOrchestrationStatus();
-            return 20;
+            return 5;
           }
           return prev - 1;
         });
       }
     }, 1000);
 
-    // Initial check
     checkOrchestrationStatus();
 
     return () => {
@@ -215,7 +262,7 @@ export function DeployingStateWithOrchestration({
       isMounted = false;
       clearIntervals();
     };
-  }, [orchestrationId, onError, agentInfo.id]);
+  }, [orchestrationId, onError, agentInfo.id, router]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center">
@@ -255,15 +302,13 @@ export function DeployingStateWithOrchestration({
             <div className="space-y-4">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-yellow-500 mx-auto"></div>
               <h2 className="text-xl font-semibold">
-                Smart Contract Deployment in Progress
+                {getStepTitle(DEPLOYMENT_STEPS[currentStep]?.stepId)}
               </h2>
               <p className="text-muted-foreground">
                 The agent&apos;s smart contract is currently being deployed on
-                the Starknet network. This process typically takes 1-2 minutes
-                to complete.
+                the Starknet network.
               </p>
               <div className="space-y-4">
-                {/* Steps list */}
                 <div className="flex flex-col gap-2 text-sm">
                   {DEPLOYMENT_STEPS.map((step) => (
                     <motion.div
@@ -323,7 +368,6 @@ export function DeployingStateWithOrchestration({
                   ))}
                 </div>
 
-                {/* Progress bar */}
                 <div className="relative w-full h-4 bg-yellow-950/20 rounded-lg overflow-hidden border border-yellow-500/20">
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-r from-yellow-500 to-orange-500"
@@ -357,7 +401,7 @@ export function DeployingStateWithOrchestration({
                       'Processing...'}
                   </motion.p>
                   <p className="text-xs opacity-75">
-                    Next check in {countdown}s
+                    {progress.toFixed(0)}% complete • Next check in {countdown}s
                   </p>
                 </div>
               </div>
