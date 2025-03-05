@@ -2,14 +2,6 @@
 
 import { AgentConfig } from '@/lib/types';
 
-interface CreateAgentResponse {
-  status: string;
-  data: {
-    orchestrationId: string;
-    message: string;
-  };
-}
-
 export async function createAgent(
   name: string,
   agentConfig: AgentConfig,

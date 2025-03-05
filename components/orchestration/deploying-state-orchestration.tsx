@@ -14,27 +14,6 @@ interface DeployingStateWithOrchestrationProps {
   onError: (message: string) => void;
 }
 
-const getStepTitle = (stepId: string | null) => {
-  switch (stepId) {
-    case 'create-db-record':
-      return 'Creating Agent Record';
-    case 'create-wallet':
-      return 'Creating Agent Wallet';
-    case 'fund-wallet':
-      return 'Funding Agent Wallet';
-    case 'deploy-wallet':
-      return 'Deploying Wallet Contract';
-    case 'deploy-agent-token':
-      return 'Deploying Agent Token';
-    case 'create-container':
-      return 'Setting Up Agent Environment';
-    case 'start-container':
-      return 'Starting Agent Environment';
-    default:
-      return 'Agent Deployment In Progress';
-  }
-};
-
 type DeploymentState =
   | 'initializing'
   | 'checking'
@@ -301,13 +280,6 @@ export function DeployingStateWithOrchestration({
           ) : (
             <div className="space-y-4">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-yellow-500 mx-auto"></div>
-              <h2 className="text-xl font-semibold">
-                {getStepTitle(DEPLOYMENT_STEPS[currentStep]?.stepId)}
-              </h2>
-              <p className="text-muted-foreground">
-                The agent&apos;s smart contract is currently being deployed on
-                the Starknet network.
-              </p>
               <div className="space-y-4">
                 <div className="flex flex-col gap-2 text-sm">
                   {DEPLOYMENT_STEPS.map((step) => (
