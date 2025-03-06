@@ -36,6 +36,7 @@ interface AgentHeaderProps {
   agent?: Agent;
   isLoading?: boolean;
   error?: Error | null;
+  children?: React.ReactNode;
 }
 
 // Loading component
