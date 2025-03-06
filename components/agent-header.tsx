@@ -434,18 +434,6 @@ const AgentDetailsModal = memo(
               </div>
             </TabsContent>
           </Tabs>
-
-          <DialogClose asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                'absolute top-2 right-2',
-                isLeftCurve ? 'hover:text-yellow-500' : 'hover:text-purple-500',
-              )}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </DialogClose>
         </DialogContent>
       </Dialog>
     );
