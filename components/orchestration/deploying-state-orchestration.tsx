@@ -2,15 +2,16 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { getCompleteAgentData } from '@/actions/agents/token/getTokenInfo';
+import { useRouter } from 'next/navigation';
+import { getCreationStatus } from '@/actions/agents/create/getCreationStatus';
+import { findAgentByTransaction } from '@/actions/agents/create/findAgentByTransaction';
 
-interface DeployingStateProps {
-  agent: {
-    name: string;
-    id: string;
-    avatar?: string;
-    contractAddress?: string;
-  };
+interface DeployingStateWithOrchestrationProps {
+  orchestrationId: string;
+  transactionHash: string;
+  creatorWallet: string;
+  error: string | null;
+  onError: (message: string) => void;
 }
 
 type DeploymentState =
@@ -26,61 +27,96 @@ const DEPLOYMENT_STEPS = [
     label: 'Initialize deployment',
     emoji: '⚡️',
     description: 'Starting deployment process...',
+    stepId: null,
   },
   {
     id: 1,
-    label: 'Verify payment TX',
-    emoji: '💸',
-    description: 'Checking your payment...',
+    label: 'Create database record',
+    emoji: '📝',
+    description: 'Creating your agent record...',
+    stepId: 'create-db-record',
   },
   {
     id: 2,
     label: 'Create agent wallet',
     emoji: '🏦',
     description: 'Setting up agent wallet...',
+    stepId: 'create-wallet',
   },
   {
     id: 3,
     label: 'Fund agent wallet',
     emoji: '💰',
     description: 'Loading up some ETH...',
+    stepId: 'fund-wallet',
   },
   {
     id: 4,
-    label: 'Deploy agent token',
-    emoji: '🪙',
-    description: 'Creating your token...',
+    label: 'Deploy agent wallet',
+    emoji: '🚀',
+    description: 'Deploying wallet contract...',
+    stepId: 'deploy-wallet',
   },
   {
     id: 5,
-    label: 'Deploy agent service',
+    label: 'Deploy agent token',
+    emoji: '🪙',
+    description: 'Creating your token...',
+    stepId: 'deploy-agent-token',
+  },
+  {
+    id: 6,
+    label: 'Create container',
+    emoji: '📦',
+    description: 'Preparing agent container...',
+    stepId: 'create-container',
+  },
+  {
+    id: 7,
+    label: 'Start container',
     emoji: '🚀',
-    description: 'Final deployment steps...',
+    description: 'Starting up your agent...',
+    stepId: 'start-container',
   },
 ];
 
-export function DeployingState({ agent }: DeployingStateProps) {
-  const [deploymentState, setDeploymentState] = useState<DeploymentState>('initializing');
-  const [countdown, setCountdown] = useState(20);
+export function DeployingStateWithOrchestration({
+  orchestrationId,
+  transactionHash,
+  creatorWallet,
+  error: initialError,
+  onError,
+}: DeployingStateWithOrchestrationProps) {
+  const router = useRouter();
+  const [deploymentState, setDeploymentState] =
+    useState<DeploymentState>('initializing');
+  const [countdown, setCountdown] = useState(5);
   const [currentStep, setCurrentStep] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const [orchestrationData, setOrchestrationData] = useState<{
+    creatorWallet?: string;
+    transactionHash?: string;
+  }>({});
+  const [agentInfo, setAgentInfo] = useState<{ id?: string; name?: string }>(
+    {},
+  );
+  const [progress, setProgress] = useState(0);
   const isInitializedRef = useRef(false);
 
-  const progress = ((20 - countdown) / 20) * 100;
-
-  // Separate initialization effect
+  // Initialization effect
   useEffect(() => {
     if (isInitializedRef.current) return;
     isInitializedRef.current = true;
 
-    console.log(`[${new Date().toLocaleTimeString()}] Started monitoring deployment:`, {
-      agentId: agent.id,
-      agentName: agent.name,
-      initialContractAddress: agent.contractAddress || 'Not deployed',
-      checkInterval: '20 seconds',
-    });
-  }, [agent.id, agent.name, agent.contractAddress]);
+    console.log(
+      `[${new Date().toLocaleTimeString()}] Started monitoring orchestration:`,
+      {
+        orchestrationId,
+        checkInterval: '5 seconds',
+      },
+    );
+  }, [orchestrationId]);
 
+  // Status checking effect
   useEffect(() => {
     let isMounted = true;
     let checkInterval: NodeJS.Timeout | null = null;
@@ -93,99 +129,140 @@ export function DeployingState({ agent }: DeployingStateProps) {
       countdownInterval = null;
     };
 
-    const checkContractStatus = async () => {
+    const lookupAgentByTransaction = async () => {
+      if (!transactionHash) {
+        console.error('Missing transaction hash - cannot look up agent');
+        router.push('/');
+        return;
+      }
+
+      try {
+        console.log('Looking up agent by transaction:', transactionHash);
+        const result = await findAgentByTransaction(
+          transactionHash,
+          creatorWallet,
+        );
+
+        if (result.success && result.agentId) {
+          console.log('🎉 Found agent by transaction lookup:', result.agentId);
+          router.push(`/agent/${result.agentId}?t=${Date.now()}`);
+          return true;
+        } else {
+          console.log('No agent found by transaction lookup');
+          router.push('/');
+          return false;
+        }
+      } catch (error) {
+        console.error('Error during agent lookup:', error);
+        router.push('/');
+        return false;
+      }
+    };
+
+    const checkOrchestrationStatus = async () => {
       if (!isMounted) return;
 
       try {
         setDeploymentState('checking');
-        console.log(`[${new Date().toLocaleTimeString()}] Checking status for agent #${agent.id}...`);
-        
-        const result = await getCompleteAgentData(agent.id);
+
+        const result = await getCreationStatus(orchestrationId);
 
         if (!isMounted) return;
 
         if (result.success && result.data) {
-          const isDeployed = Boolean(
-            result.data.contractAddress &&
-            result.data.contractAddress !== '0x0' &&
-            result.data.contractAddress.length > 42
+          setProgress(result.data.progress || 0);
+
+          const currentStepId = result.data.currentStepId;
+          const stepIndex = DEPLOYMENT_STEPS.findIndex(
+            (step) => step.stepId === currentStepId,
           );
 
-          console.log('Contract status check result:', {
-            contractAddress: result.data.contractAddress || 'Not deployed',
-            status: result.data.status,
-            timeSinceStart: Math.floor((20 - countdown) / 20) * 20 + ' seconds',
-            currentStep,
-            isDeployed,
-          });
+          if (stepIndex >= 0) {
+            setCurrentStep(stepIndex);
 
-          if (isDeployed) {
-            setDeploymentState('deployed');
-            clearIntervals();
-            window.location.href = `/agent/${agent.id}?t=${Date.now()}`;
-            return;
+            if (currentStepId === 'start-container') {
+              setProgress(80);
+            }
           }
 
-          setDeploymentState('waiting');
-          setCurrentStep(prev => (prev >= 5 ? 1 : prev + 1));
-          setCountdown(20);
+          // Check if we have agent info in the result
+          if (result.data.result?.id && !agentInfo.id) {
+            setAgentInfo({
+              id: result.data.result.id,
+              name: result.data.result.name || 'Your Agent',
+            });
+          }
+
+          // Check the orchestration status
+          if (result.data.orchestrationStatus === 'COMPLETED') {
+            setProgress(100);
+            setDeploymentState('deployed');
+            clearIntervals();
+            console.log('Orchestration completed, checking for agent ID...');
+            await lookupAgentByTransaction();
+          } else if (result.data.orchestrationStatus === 'FAILED') {
+            onError(result.data.error || 'Deployment failed');
+            setDeploymentState('error');
+            clearIntervals();
+          } else {
+            setDeploymentState('waiting');
+            setCountdown(5);
+          }
         } else {
-          throw new Error(result.error || 'Failed to check contract status');
+          throw new Error(
+            result.error || 'Failed to check orchestration status',
+          );
         }
       } catch (error) {
         if (isMounted) {
-          console.error('Error checking contract status:', error);
-          setError(error instanceof Error ? error.message : 'Unknown error occurred');
+          console.error('Error checking orchestration status:', error);
+          onError(
+            error instanceof Error ? error.message : 'Unknown error occurred',
+          );
           setDeploymentState('error');
           clearIntervals();
         }
       }
     };
 
-    // Set up intervals
-    checkInterval = setInterval(checkContractStatus, 20000);
+    checkInterval = setInterval(checkOrchestrationStatus, 5000);
     countdownInterval = setInterval(() => {
       if (isMounted) {
-        setCountdown(prev => {
+        setCountdown((prev) => {
           if (prev <= 1) {
-            checkContractStatus();
-            return 20;
+            return 5;
           }
           return prev - 1;
         });
       }
     }, 1000);
 
-    // Initial check
-    checkContractStatus();
+    checkOrchestrationStatus();
 
     return () => {
-      console.log(`[${new Date().toLocaleTimeString()}] Stopped monitoring deployment for agent #${agent.id}`);
       isMounted = false;
       clearIntervals();
     };
-  }, [agent.id]); // Only depend on agent.id
+  }, [orchestrationId, onError, agentInfo.id, router]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center">
       <div className="container max-w-lg mx-auto px-4 text-center space-y-6">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 relative rounded-xl overflow-hidden bg-white/5">
-            {agent.avatar ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={agent.avatar}
-                alt={agent.name}
-                className="object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/10" />
-            )}
-          </div>
-          <h1 className="text-2xl font-bold">{agent.name}</h1>
-          <div className="text-sm text-muted-foreground font-mono">
-            #{agent.id}
-          </div>
+          {agentInfo.id && (
+            <>
+              <div className="w-16 h-16 relative rounded-xl overflow-hidden bg-white/5">
+                <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/10" />
+              </div>
+              <h1 className="text-2xl font-bold">{agentInfo.name}</h1>
+              <div className="text-sm text-muted-foreground font-mono">
+                #{agentInfo.id}
+              </div>
+            </>
+          )}
+          {!agentInfo.id && (
+            <div className="text-xl font-bold">Creating Your Agent</div>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -193,28 +270,19 @@ export function DeployingState({ agent }: DeployingStateProps) {
             <div className="space-y-4">
               <div className="text-red-500">❌ Deployment Error</div>
               <p className="text-muted-foreground">
-                {error || 'Failed to deploy agent'}
+                {initialError || 'Failed to deploy agent'}
               </p>
               <button
-                onClick={() => window.location.reload()}
+                onClick={() => router.push('/create-agent')}
                 className="px-4 py-2 bg-red-500 text-white rounded-lg"
               >
-                Retry
+                Try Again
               </button>
             </div>
           ) : (
             <div className="space-y-4">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-yellow-500 mx-auto"></div>
-              <h2 className="text-xl font-semibold">
-                Smart Contract Deployment in Progress
-              </h2>
-              <p className="text-muted-foreground">
-                The agent&apos;s smart contract is currently being deployed on
-                the Starknet network. This process typically takes 1-2 minutes
-                to complete.
-              </p>
               <div className="space-y-4">
-                {/* Steps list */}
                 <div className="flex flex-col gap-2 text-sm">
                   {DEPLOYMENT_STEPS.map((step) => (
                     <motion.div
@@ -274,7 +342,6 @@ export function DeployingState({ agent }: DeployingStateProps) {
                   ))}
                 </div>
 
-                {/* Progress bar */}
                 <div className="relative w-full h-4 bg-yellow-950/20 rounded-lg overflow-hidden border border-yellow-500/20">
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-r from-yellow-500 to-orange-500"
@@ -303,11 +370,12 @@ export function DeployingState({ agent }: DeployingStateProps) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
                   >
-                    {DEPLOYMENT_STEPS[currentStep].emoji}{' '}
-                    {DEPLOYMENT_STEPS[currentStep].description}
+                    {DEPLOYMENT_STEPS[currentStep]?.emoji || '⚡️'}{' '}
+                    {DEPLOYMENT_STEPS[currentStep]?.description ||
+                      'Processing...'}
                   </motion.p>
                   <p className="text-xs opacity-75">
-                    Next check in {countdown}s
+                    {progress.toFixed(0)}% complete • Next check in {countdown}s
                   </p>
                 </div>
               </div>

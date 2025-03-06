@@ -2,14 +2,6 @@
 
 import { AgentConfig } from '@/lib/types';
 
-interface CreateAgentResponse {
-  status: string;
-  data: {
-    orchestrationId: string;
-    message: string;
-  };
-}
-
 export async function createAgent(
   name: string,
   agentConfig: AgentConfig,
@@ -17,7 +9,7 @@ export async function createAgent(
   creatorWallet: string,
   transactionHash: string,
   profilePicture?: File,
-): Promise<{ success: boolean; data?: CreateAgentResponse; error?: string }> {
+): Promise<{ success: boolean; orchestrationId?: string; error?: string }> {
   try {
     // Validate and format agent name
     const nameValidation = validateAgentName(name);
@@ -144,24 +136,23 @@ export async function createAgent(
       method: 'POST',
       headers: {
         'x-api-key': apiKey,
-        // Note: Don't set Content-Type header, browser will set it with boundary for multipart/form-data
       },
       body: formData,
     });
 
-    const data = await response.json();
+    const result = await response.json();
 
     if (!response.ok) {
       console.error('❌ API Error:', {
         status: response.status,
         statusText: response.statusText,
-        error: data,
+        error: result,
         headers: Object.fromEntries(response.headers.entries()),
       });
 
       // Handle specific error cases
       if (response.status === 400) {
-        throw new Error(data.message || 'Invalid request data');
+        throw new Error(result.message || 'Invalid request data');
       } else if (response.status === 401) {
         throw new Error('Invalid API key');
       } else if (response.status === 413) {
@@ -169,15 +160,15 @@ export async function createAgent(
       } else if (response.status === 415) {
         throw new Error('Unsupported file type');
       } else {
-        throw new Error(data.message || 'Failed to create agent');
+        throw new Error(result.message || 'Failed to create agent');
       }
     }
 
-    console.log('✅ Agent created successfully:', data);
+    console.log('✅ Agent deployment request received successfully:', result);
 
     return {
       success: true,
-      data: data as CreateAgentResponse,
+      orchestrationId: result.data.orchestrationId,
     };
   } catch (error) {
     console.error('❌ Error creating agent:', error);
