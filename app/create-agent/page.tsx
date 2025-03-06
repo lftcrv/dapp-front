@@ -35,7 +35,6 @@ const CreateAgentPageContent: React.FC = () => {
   const { formData, agentType, profilePicture } = useFormContext();
 
   const {
-    activeWalletType,
     connectStarknet,
     loginWithPrivy,
     starknetWallet,
@@ -47,7 +46,6 @@ const CreateAgentPageContent: React.FC = () => {
 
   // Move hooks to component level
   const { address } = useAccount();
-  const { chain } = useNetwork();
   const { contract } = useContract({
     abi: [
       {

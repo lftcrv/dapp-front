@@ -1,23 +1,27 @@
 'use client';
-
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { getCreationStatus } from '@/actions/agents/create/getCreationStatus';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { DeployingStateWithOrchestration } from '@/components/orchestration/deploying-state-orchestration';
 
 interface DeployingPageProps {
-  params: {
-    orchestrationId: string;
-  };
+  params: Promise<{ orchestrationId: string }>;
 }
 
 export default function DeployingPage({ params }: DeployingPageProps) {
-  const { orchestrationId } = params;
+  const [orchestrationId, setOrchestrationId] = useState('');
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
-
   const transactionHash = searchParams.get('tx') || '';
   const creatorWallet = searchParams.get('wallet') || '';
+
+  useEffect(() => {
+    const fetchOrchestrationId = async () => {
+      const resolvedParams = await params;
+      setOrchestrationId(resolvedParams.orchestrationId ?? '');
+    };
+
+    fetchOrchestrationId();
+  }, [params]);
 
   return (
     <DeployingStateWithOrchestration

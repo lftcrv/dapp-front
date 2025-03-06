@@ -14,7 +14,6 @@ const getCachedPageData = unstable_cache(
   async (agentId: string) => {
     // Get all agent data in a single call
     const agentResult = await getCompleteAgentData(agentId);
-
     if (!agentResult.success || !agentResult.data) {
       console.error('❌ Failed to fetch agent:', agentResult.error);
       return { error: agentResult.error || 'Agent not found' };
@@ -22,7 +21,6 @@ const getCachedPageData = unstable_cache(
 
     // Get trades separately as they're not part of the agent endpoint
     const tradesResult = await tradeService.getByAgent(agentId);
-
     return {
       agent: agentResult.data,
       trades:
@@ -41,13 +39,13 @@ interface PageProps {
 }
 
 export default async function AgentPage({ params }: PageProps) {
-  const { id: agentId } = await params;
+  const resolvedParams = await params;
 
-  if (!agentId) {
+  if (!resolvedParams.id) {
     notFound();
   }
 
-  const { agent, trades, error } = await getCachedPageData(agentId);
+  const { agent, trades, error } = await getCachedPageData(resolvedParams.id);
 
   if (error || !agent) {
     notFound();
