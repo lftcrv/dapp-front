@@ -373,6 +373,7 @@ export interface CharacterConfig {
   };
   plugins: string[];
   bio: string[];
+  objectives: string[];
   lore: string[];
   knowledge: string[];
   messageExamples: Array<
