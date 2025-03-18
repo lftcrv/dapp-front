@@ -519,7 +519,7 @@ export const SwapWidget = memo(
   }}
 >
   <TabsList className="grid w-full grid-cols-3 bg-transparent p-0 mb-8">
-    <div className="col-span-3 flex justify-center w-full h-12 bg-[#e5dcd2] dark:bg-[#e5dcd2]/30 rounded-full p-1">
+    <div className="col-span-3 flex justify-center w-full h-12 bg-[#F6ECE7] dark:bg-[#F6ECE7]/30 rounded-full p-1">
       <TabsTrigger
         value="buy"
         className={cn(

@@ -14,8 +14,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { DepositButton } from './deposit-button';
 import { WalletButtonSkeleton } from './wallet-button-skeleton';
 import {
-  startTiming,
-  endTiming,
   startRouteTransition,
   endRouteTransition,
 } from '@/lib/utils/performance';
@@ -63,15 +61,15 @@ const WalletButtonContainer = dynamic(
 const Logo = memo(() => (
   <Link href="/" className="flex items-center space-x-2">
     <Image
-  src="/degen.png"
+  src="/logo.png"
   alt="LeftCurve Logo"
   width={58}
   height={58} 
-  className="rounded-full w-12 h-12"
+  className="  w-28 "
   priority={false}
   unoptimized
 />
-<span className="font-sketch text-4xl">LeftCurve</span>
+
   </Link>
 ));
 Logo.displayName = 'Logo';
