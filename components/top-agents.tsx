@@ -200,10 +200,10 @@ const AgentList = memo(({ title, subtitle, agents, type }: AgentListProps) => {
   return (
     <motion.div
       className={cn(
-        'rounded-xl border p-3 backdrop-blur-sm flex-1',
+        'rounded-xl border p-3 backdrop-blur-sm flex-1 bg-[#F6ECE7]',
         type === 'leftcurve'
-          ? 'border-orange-500/20 bg-orange-950/5 hover:border-orange-500/30'
-          : 'border-purple-500/20 bg-purple-950/5 hover:border-purple-500/30',
+          ? 'border-orange-500/20 hover:border-orange-500/30'
+          : 'border-purple-500/20 hover:border-purple-500/30',
       )}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
