@@ -434,7 +434,9 @@ export async function getCompleteAgentData(
       performanceIndex: apiAgent.winScore || 0,
       contractAddress: tokenAddress as `0x${string}`,
       profilePictureUrl: apiAgent.profilePictureUrl
-        ? `${apiUrl}${apiAgent.profilePictureUrl}`
+        ? apiAgent.profilePictureUrl.startsWith('http')
+          ? apiAgent.profilePictureUrl
+          : `${process.env.NEXT_PUBLIC_BACKEND_API_URL}${apiAgent.profilePictureUrl}`
         : undefined,
       abi: contractAbi,
       // Additional data that might be useful for components
