@@ -232,6 +232,7 @@ export interface Agent {
   creator: string;
   createdAt: string;
   lore?: string;
+  description?: string;
   creativityIndex: number;
   performanceIndex: number;
   contractAddress: `0x${string}`;
