@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Inter } from 'next/font/google';
+import { Cabin_Sketch, Patrick_Hand } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import { LayoutSkeleton } from '@/components/layout-skeleton';
 import { NavigationWrapper } from '@/components/navigation-wrapper';
@@ -8,7 +9,28 @@ import { ProvidersWrapper } from './providers-wrapper';
 import './globals.css';
 import { Metadata } from 'next';
 
-const inter = Inter({ subsets: ['latin'] });
+// Import Inter font
+const inter = Inter({ 
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
+
+// Import Cabin Sketch for titles
+const cabinSketch = Cabin_Sketch({
+  weight: ['400', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-cabin-sketch',
+});
+
+// Import Patrick Hand for text
+const patrickHand = Patrick_Hand({
+  weight: ['400'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-patrick-hand',
+});
 
 export const metadata: Metadata = {
   title: 'Leftcurve - Trading Agent Arena',
@@ -60,7 +82,12 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/degen.png" />
       </head>
       <body
-        className={cn('relative h-full font-sans antialiased', inter.className)}
+        className={cn(
+          'relative h-full font-sans antialiased',
+          inter.variable,
+          cabinSketch.variable,
+          patrickHand.variable
+        )}
       >
         <Providers>
           <ProvidersWrapper>
