@@ -10,11 +10,10 @@ import {
   Copy,
   ChevronRight,
   InfoIcon,
-  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Agent } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -26,7 +25,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getAgentInfo } from '@/actions/agents/token/getTokenInfo';

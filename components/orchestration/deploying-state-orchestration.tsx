@@ -92,10 +92,7 @@ export function DeployingStateWithOrchestration({
     useState<DeploymentState>('initializing');
   const [countdown, setCountdown] = useState(5);
   const [currentStep, setCurrentStep] = useState(0);
-  const [orchestrationData, setOrchestrationData] = useState<{
-    creatorWallet?: string;
-    transactionHash?: string;
-  }>({});
+
   const [agentInfo, setAgentInfo] = useState<{ id?: string; name?: string }>(
     {},
   );
@@ -243,7 +240,7 @@ export function DeployingStateWithOrchestration({
       isMounted = false;
       clearIntervals();
     };
-  }, [orchestrationId, onError, agentInfo.id, router]);
+  },);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center">

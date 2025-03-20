@@ -1,7 +1,7 @@
 'use client';
 
 import { memo } from 'react';
-import { motion } from 'framer-motion';
+
 import { Trophy, BarChart3, GitFork, ArrowUp, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AgentType } from '@/lib/types';
@@ -25,7 +25,7 @@ const PortfolioStats = memo(
     forkingRevenue,
     agentType,
   }: PortfolioStatsProps) => {
-    const isLeftCurve = agentType === 'leftcurve';
+
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -116,7 +116,7 @@ const PortfolioStats = memo(
               className="flex items-center gap-1.5 text-sm bg-white hover:bg-gray-100 text-gray-800 border-gray-200"
             >
               <GitFork className="h-3.5 w-3.5" />
-              <span className="font-patrick">See 17 forkers</span>
+              <span className="font-patrick blur-sm">See 17 forkers</span>
             </Button>
           </div>
         </div>

@@ -94,7 +94,7 @@ export default function SimpleAgentCard({ agent, created, by }: SimpleAgentCardP
                   <TooltipTrigger asChild>
                     <Button 
                       size="sm"
-                      className="bg-gradient-to-r cursor-not-allowed from-orange-500 to-purple-500 text-white hover:opacity-90 flex items-center border border-white opacity-80"
+                      className="bg-gradient-to-r cursor-not-allowed hover:from-orange-500 hover:to-purple-500 text-white hover:opacity-90 flex items-center border border-white opacity-80"
                     >
                       <GitFork className="mr-2 h-4 w-4" />
                       Fork Agent

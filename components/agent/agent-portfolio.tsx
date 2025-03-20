@@ -58,7 +58,7 @@ interface AgentPortfolioProps {
 }
 
 export const AgentPortfolio = memo(
-  ({ agent, trades, portfolio, useSimplifiedView = false }: AgentPortfolioProps) => {
+  ({ agent,  portfolio, useSimplifiedView = false }: AgentPortfolioProps) => {
     // Format the creation date for display
     const createdDate = new Date(agent.createdAt || Date.now());
     const formattedDate = new Intl.DateTimeFormat('en-US', {

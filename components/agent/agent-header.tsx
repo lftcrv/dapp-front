@@ -4,7 +4,7 @@ import { memo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import {
-  UserCircle,
+
   GitFork,
   ExternalLink,
   ArrowDownToLine,
@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Agent } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
+
 
 interface AgentHeaderProps {
   agent: Agent;
@@ -257,7 +257,7 @@ const AgentHeader = memo(({ agent, simplified = false }: AgentHeaderProps) => {
                 onClick={() => window.open(`https://starkscan.co/contract/${agent.contractAddress}`, '_blank')}
               >
                 <ExternalLink className="w-4 h-4" />
-                <span className="font-patrick">View on Starkscan</span>
+                <span className="font-patrick">View on Starkscans</span>
               </Button>
 
               <Button
@@ -265,12 +265,12 @@ const AgentHeader = memo(({ agent, simplified = false }: AgentHeaderProps) => {
                 className={cn(
                   'flex items-center gap-1.5 text-white',
                   isLeftCurve
-                    ? 'bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600'
-                    : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600',
+                    ? 'bg-gradient-to-r hover:from-orange-600 hover:to-yellow-600'
+                    : 'hover:bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600',
                 )}
               >
                 <GitFork className="w-4 h-4" />
-                <span className="font-patrick">Fork Agent</span>
+                <span className="font-patrick">Forksss Agent</span>
               </Button>
 
               <Button

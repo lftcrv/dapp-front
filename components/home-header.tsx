@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
+
 import { useRouter } from 'next/navigation';
 import { Rocket, Flame } from 'lucide-react';
 import { memo } from 'react';

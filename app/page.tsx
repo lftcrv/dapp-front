@@ -131,9 +131,9 @@ export default function HomePage() {
               <Image
                 src="/Group 5726.png"
                 alt="Left Character"
-                width={200}
-                height={300}
-                className="opacity-90"
+                width={300}
+                height={400}
+                className="w-32 h-auto md:w-40 lg:w-48 xl:w-64 2xl:w-80 opacity-90"
               />
             </motion.div>
           </div>
@@ -148,9 +148,9 @@ export default function HomePage() {
               <Image
                 src="/Group 5724.png"
                 alt="Right Character"
-                width={200}
-                height={300}
-                className="opacity-90"
+                width={300}
+                height={400}
+                className="w-32 h-auto md:w-40 lg:w-48 xl:w-64 2xl:w-80 opacity-90"
               />
             </motion.div>
           </div>

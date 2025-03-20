@@ -16,7 +16,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         "⚠️ NEXT_PUBLIC_PRIVY_APP_ID is not defined! Make sure it's set in your environment.",
       );
     }
-  }, []);
+  });
 
   return (
     <QueryClientProvider client={new QueryClient()}>

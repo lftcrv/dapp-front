@@ -54,27 +54,6 @@ const AgentsContainer = dynamic(
   },
 );
 
-const DockerMessageCard = dynamic(
-  () => {
-    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-      window.requestIdleCallback(() => {
-        import('@/components/send-agent-message');
-      });
-    }
-    return import('@/components/send-agent-message').then((mod) => {
-      const Component = mod.default as FC; // Removed agent prop type
-      Component.displayName = 'DockerMessageCard';
-      return Component;
-    });
-  },
-  {
-    loading: () => (
-      <div className="h-[400px] bg-white/5 rounded animate-pulse" />
-    ),
-    ssr: false,
-  },
-);
-
 interface HomeContentProps {
   agents: Agent[];
   isLoading?: boolean;

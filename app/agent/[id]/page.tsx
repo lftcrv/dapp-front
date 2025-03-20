@@ -95,18 +95,23 @@ const getCachedPageData = unstable_cache(
   },
 );
 
-interface PageProps {
-  params: { id: string };
-  searchParams?: { simplified?: string };
-}
+type PageProps = {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
 
-export default async function AgentPortfolioPage({ params, searchParams }: PageProps) {
-  if (!params.id) {
+export default async function AgentPortfolioPage(props: PageProps) {
+  const { params, searchParams } = props;
+  
+  const resolvedParams = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  
+  if (!resolvedParams.id) {
     notFound();
   }
 
   const { agent, trades, portfolio, error } = await getCachedPageData(
-    params.id,
+    resolvedParams.id,
   );
 
   if (error || !agent) {
@@ -114,21 +119,22 @@ export default async function AgentPortfolioPage({ params, searchParams }: PageP
   }
 
   // Check if simplified view is requested via URL param
-  const useSimplifiedView = searchParams?.simplified === 'true';
+  const simplified = resolvedSearchParams?.simplified;
+  const useSimplifiedView = simplified === 'true' || (Array.isArray(simplified) && simplified[0] === 'true');
 
   return (
     <main className="flex min-h-screen flex-col relative">
       {/* Background image */}
       <div className="fixed inset-0 z-0 w-screen h-screen">
-        <Image 
-          src="/Group 5749-min.jpg" 
-          alt="Background Pattern" 
-          fill 
+        <Image
+          src="/Group 5749-min.jpg"
+          alt="Background Pattern"
+          fill
           className="object-cover"
           priority
         />
       </div>
-      
+
       {/* Gradient overlay */}
       <div className="fixed inset-0 z-0 bg-gradient-to-br from-orange-600/30 via-transparent to-purple-600/30 pointer-events-none" />
 
@@ -141,11 +147,11 @@ export default async function AgentPortfolioPage({ params, searchParams }: PageP
             </div>
           }
         >
-          <AgentPortfolio 
-            agent={agent} 
-            trades={trades} 
-            portfolio={portfolio} 
-            useSimplifiedView={useSimplifiedView} 
+          <AgentPortfolio
+            agent={agent}
+            trades={trades}
+            portfolio={portfolio}
+            useSimplifiedView={useSimplifiedView}
           />
         </Suspense>
       </div>
