@@ -10,3 +10,8 @@ export interface User {
   // Track how the user was created
   type: 'derived' | 'starknet_native';
 }
+
+export enum WalletAddressType {
+  NATIVE = 'NATIVE',
+  DERIVED = 'DERIVED',
+}
