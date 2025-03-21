@@ -75,7 +75,7 @@ export const WalletConnectModal = memo(
           return;
         }
         
-        await connect({ connector });
+        connect({ connector });
         await onStarknetConnect();
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to connect wallet';
