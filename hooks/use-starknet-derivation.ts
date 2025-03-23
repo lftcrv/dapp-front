@@ -1,100 +1,100 @@
-import { useState } from 'react';
-import type { ConnectedWallet } from '@privy-io/react-auth';
+import { useState, useEffect, useCallback } from 'react';
+import { useWallet } from '@/app/context/wallet-context';
 import { useWallets } from '@privy-io/react-auth';
-import { deriveStarknetAccount } from '@/actions/shared/derive-starknet-account';
-import type { User } from '@/lib/types';
+import { deriveAccount } from '@/actions/shared/derive-starknet-account';
+import { getUserByEvmAddress } from '@/actions/users';
 
-// DEBUG LOGS: Prefix for easy removal
-const DEBUG = {
-  log: (message: string, ...args: unknown[]) =>
-    console.log('[Starknet Hook]:', message, ...args),
-  error: (message: string, ...args: unknown[]) =>
-    console.error('[Starknet Hook Error]:', message, ...args),
-};
-
-export function useStarknetDerivation(): {
-  derivedAccount: User | null;
-  isDerivingAccount: boolean;
-  deriveAccount: (evmAddress: string) => Promise<User | null>;
-} {
-  const [isDerivingAccount, setIsDerivingAccount] = useState(false);
-  const [derivedAccount, setDerivedAccount] = useState<User | null>(null);
+/**
+ * Hook to derive a Starknet account from an EVM wallet
+ * @returns Starknet derivation state
+ */
+export function useStarknetDerivation() {
+  const { privyAuthenticated, privyAddress } = useWallet();
   const { wallets } = useWallets();
+  const [derivedAccount, setDerivedAccount] = useState<{ starknetAddress: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  async function deriveAccount(evmAddress: string): Promise<User | null> {
+  const derive = useCallback(async () => {
+    if (!privyAuthenticated || !privyAddress) {
+      return null;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
     try {
-      DEBUG.log('Starting account derivation process');
-      setIsDerivingAccount(true);
+      // First check if user already exists with this EVM address
+      const existingUser = await getUserByEvmAddress(privyAddress);
 
-      // First check if user already exists with both addresses
-      const response = await fetch('/api/users');
-      if (!response.ok) {
-        throw new Error('Failed to fetch users');
+      if (existingUser.success && existingUser.data) {
+        // User already exists with a derived account
+        setDerivedAccount({
+          starknetAddress: existingUser.data.starknetAddress as string,
+        });
+        return existingUser.data;
       }
 
-      const data = await response.json();
-      if (data?.users?.length > 0) {
-        const existingUser = data.users.find(
-          (u: User) =>
-            u.evmAddress?.toLowerCase() === evmAddress.toLowerCase() &&
-            u.starknetAddress &&
-            u.type === 'derived',
-        );
-
-        if (existingUser) {
-          DEBUG.log('Found existing derived user:', existingUser);
-          setDerivedAccount(existingUser);
-          return existingUser;
-        } else {
-          DEBUG.log(
-            'No existing derived user found, proceeding with derivation',
-          );
-        }
-      }
-
-      // Find the connected EVM wallet
+      // Find the wallet that matches the EVM address
       const evmWallet = wallets.find(
-        (w: ConnectedWallet) =>
-          w.address.toLowerCase() === evmAddress.toLowerCase(),
+        (w) => w.address.toLowerCase() === privyAddress.toLowerCase()
       );
+
       if (!evmWallet) {
-        DEBUG.error('No matching EVM wallet found');
+        setError('Wallet not found');
         return null;
       }
 
-      // If no existing derived user, proceed with derivation
-      DEBUG.log('Requesting signature from wallet:', evmAddress);
-      const account = await deriveStarknetAccount(
-        evmAddress,
-        async (message: string) => {
-          DEBUG.log('Requesting signature for message:', message);
-          try {
-            const signature = await evmWallet.sign(message);
-            DEBUG.log('Signature received:', signature);
-            return signature;
-          } catch (err) {
-            DEBUG.error('Failed to get signature:', err);
-            throw err;
-          }
-        },
+      // Derive account using the centralized function
+      const account = await deriveAccount(
+        privyAddress,
+        async (message) => {
+          return evmWallet.sign(message);
+        }
       );
 
       if (account) {
-        setDerivedAccount(account);
+        setDerivedAccount({
+          starknetAddress: account.starknetAddress,
+        });
       }
+
       return account;
     } catch (err) {
-      DEBUG.error('Failed to derive account:', err);
+      // Ignore 409 conflicts as they're expected when user already exists
+      if (err instanceof Error && !err.message.includes('409')) {
+        setError(err.message);
+      } else {
+        // If there's a 409 conflict, try to get the existing user
+        try {
+          const existingUser = await getUserByEvmAddress(privyAddress);
+          if (existingUser.success && existingUser.data) {
+            setDerivedAccount({
+              starknetAddress: existingUser.data.starknetAddress as string,
+            });
+            return existingUser.data;
+          }
+        } catch (fetchError) {
+          console.error('Failed to fetch existing user:', fetchError);
+          setError('Failed to fetch existing user');
+        }
+      }
       return null;
     } finally {
-      setIsDerivingAccount(false);
-      DEBUG.log('Derivation process completed');
+      setIsLoading(false);
     }
-  }
+  }, [privyAuthenticated, privyAddress, wallets]);
+
+  useEffect(() => {
+    if (privyAuthenticated && privyAddress && !derivedAccount && !isLoading) {
+      derive();
+    }
+  }, [privyAuthenticated, privyAddress, derivedAccount, isLoading, derive]);
 
   return {
     derivedAccount,
-    isDerivingAccount,
-    deriveAccount,
+    isLoading,
+    error,
+    derive,
   };
 }

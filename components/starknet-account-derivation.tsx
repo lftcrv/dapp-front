@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, memo } from 'react';
 import { useWallet } from '@/app/context/wallet-context';
-import { deriveStarknetAccount } from '@/actions/shared/derive-starknet-account';
+import { deriveAccount } from '@/actions/shared/derive-starknet-account';
 import { showToast } from '@/lib/toast';
 import type { ConnectedWallet } from '@privy-io/react-auth';
 import { useWallets } from '@privy-io/react-auth';
@@ -11,7 +11,7 @@ export const StarknetAccountDerivation = memo(
     const { wallets } = useWallets();
     const attemptRef = useRef<Record<string, boolean>>({});
 
-    const deriveAccount = useCallback(async () => {
+    const deriveStarknetAccount = useCallback(async () => {
       if (!privyAddress) return null;
 
       // Find the wallet that matches the EVM address
@@ -25,7 +25,7 @@ export const StarknetAccountDerivation = memo(
       }
 
       try {
-        const account = await deriveStarknetAccount(
+        const account = await deriveAccount(
           privyAddress,
           async (message) => {
             return evmWallet.sign(message);
@@ -50,12 +50,12 @@ export const StarknetAccountDerivation = memo(
       if (!privyAuthenticated || !evmAddress) return;
       if (attemptRef.current[evmAddress]) return;
 
-      deriveAccount().then((account) => {
+      deriveStarknetAccount().then((account) => {
         if (account) {
           attemptRef.current[evmAddress] = true;
         }
       });
-    }, [privyAuthenticated, privyAddress, deriveAccount]);
+    }, [privyAuthenticated, privyAddress, deriveStarknetAccount]);
 
     useEffect(() => {
       return () => {
