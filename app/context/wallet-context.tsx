@@ -8,8 +8,9 @@ import {
   useEffect,
   useMemo,
   type ReactNode,
+  useRef,
 } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
 import { StarknetAccountDerivation } from '@/components/starknet-account-derivation';
 import { handleStarknetConnection } from '@/actions/shared/handle-starknet-connection';
@@ -62,6 +63,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   });
   const [hasValidReferral, setHasValidReferral] = useState(false);
   const [isCheckingReferral, setIsCheckingReferral] = useState(false);
+  
+  // Add a state to track addresses we've already checked
+  const [addressesChecked, setAddressesChecked] = useState<Record<string, boolean>>({});
+  // Add a ref to track check attempts to persist between renders
+  const referralCheckAttemptsRef = useRef<Record<string, number>>({});
+  // Maximum number of times to check for a referral per address
+  const MAX_CHECK_ATTEMPTS = 3;
 
   // 2. All router and params hooks
   const searchParams = useSearchParams();
@@ -85,8 +93,27 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   // Check if user has a valid referral (either from URL or from database)
   const checkUserReferralStatus = useCallback(async (address: string) => {
+    // Skip if we're already checking
+    if (isCheckingReferral) return hasValidReferral;
+    
+    // Skip if we've already checked this address
+    if (addressesChecked[address]) return hasValidReferral;
+    
+    // Check attempt count to avoid excessive API calls
+    const attempts = referralCheckAttemptsRef.current[address] || 0;
+    if (attempts >= MAX_CHECK_ATTEMPTS) {
+      console.log(`Maximum referral check attempts (${MAX_CHECK_ATTEMPTS}) reached for address ${address}`);
+      return hasValidReferral;
+    }
+    
+    // Increment the attempt counter
+    referralCheckAttemptsRef.current[address] = attempts + 1;
+    
     setIsCheckingReferral(true);
     try {
+      // Mark this address as checked to prevent future checks
+      setAddressesChecked(prev => ({ ...prev, [address]: true }));
+      
       // First, check if the user already exists
       const existingUser = await getUserByStarknetAddress(address);
       
@@ -120,7 +147,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsCheckingReferral(false);
     }
-  }, [referralCode]);
+  }, [referralCode, hasValidReferral, addressesChecked, isCheckingReferral]);
 
   // 3. All useCallback hooks
   const clearStarknetState = useCallback(() => {
@@ -190,6 +217,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       await disconnect();
       clearStarknetState();
       setHasValidReferral(false);
+      // Reset the checked addresses when disconnecting
+      setAddressesChecked({});
+      referralCheckAttemptsRef.current = {};
     } catch (err) {
       console.warn('Failed to disconnect wallet:', err);
     }
@@ -215,6 +245,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
       await logout();
       setHasValidReferral(false);
+      // Reset the checked addresses when logging out
+      setAddressesChecked({});
+      referralCheckAttemptsRef.current = {};
     } catch (err) {
       console.error('Failed to logout from Privy:', err);
     }
@@ -223,10 +256,24 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // 4. All useEffect hooks
   // Effect to check referral when starknet wallet connects
   useEffect(() => {
-    if (isStarknetConnected && starknetAddress && !isCheckingReferral && !hasValidReferral) {
+    if (
+      isStarknetConnected && 
+      starknetAddress && 
+      !isCheckingReferral && 
+      !hasValidReferral && 
+      !addressesChecked[starknetAddress] &&
+      (referralCheckAttemptsRef.current[starknetAddress] || 0) < MAX_CHECK_ATTEMPTS
+    ) {
       checkUserReferralStatus(starknetAddress);
     }
-  }, [isStarknetConnected, starknetAddress, checkUserReferralStatus, isCheckingReferral, hasValidReferral]);
+  }, [
+    isStarknetConnected, 
+    starknetAddress, 
+    checkUserReferralStatus, 
+    isCheckingReferral, 
+    hasValidReferral, 
+    addressesChecked
+  ]);
 
   useEffect(() => {
     if (isStarknetConnected && starknetAddress) {
@@ -308,6 +355,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     connect,
     connectors,
   ]);
+
+  // Clear the referral check attempts when component unmounts
+  useEffect(() => {
+    return () => {
+      referralCheckAttemptsRef.current = {};
+    };
+  }, []);
 
   // 5. All useMemo hooks
   const activeWalletType = useMemo((): 'starknet' | 'privy' | null => {
