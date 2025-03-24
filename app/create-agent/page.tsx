@@ -31,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue 
 } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+
 
 // Type definitions for the new form structure
 type AgentType = 'leftcurve' | 'rightcurve';
@@ -56,7 +56,7 @@ const initialFormData: FormData = {
   riskTolerance: 50,
   analysisPeriod: 2.5,
   interval: 30,
-  internal_plugins: ['rpc', 'paradex'],
+  internal_plugins: ['rpc', 'paradex', 'leftcurve'],
   bio: '',
 };
 
@@ -133,12 +133,20 @@ export default function CreateAgentPage() {
     const hasKeywords = formData.keywords.every(kw => kw.trim() !== '');
     setIsFormValid(hasName && hasKeywords);
     
+    // Always ensure leftcurve plugin is included
+    if (!formData.internal_plugins.includes('leftcurve')) {
+      setFormData(prev => ({
+        ...prev, 
+        internal_plugins: [...prev.internal_plugins, 'leftcurve']
+      }));
+    }
+    
     // Generate bio based on keywords (placeholder for actual generation)
     if (hasKeywords && hasName) {
       const generatedBio = `${formData.name} is a ${agentType === 'leftcurve' ? 'degen' : 'calculated'} trader focusing on ${formData.keywords.join(', ')}. Has a ${formData.riskTolerance > 70 ? 'high' : formData.riskTolerance > 40 ? 'moderate' : 'conservative'} risk tolerance and prefers ${formData.analysisPeriod > 3 ? 'long-term' : formData.analysisPeriod > 1.5 ? 'medium-term' : 'short-term'} market analysis.`;
       setFormData(prev => ({...prev, bio: generatedBio}));
     }
-  }, [formData.name, formData.keywords, formData.riskTolerance, formData.analysisPeriod, agentType]);
+  }, [formData.name, formData.keywords, formData.riskTolerance, formData.analysisPeriod, agentType, formData.internal_plugins]);
 
   const updateKeyword = (index: number, value: string) => {
     const newKeywords = [...formData.keywords];
@@ -517,72 +525,6 @@ export default function CreateAgentPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-                  
-                  {/* Plugins */}
-                  <div className="p-4 border rounded-lg space-y-3">
-                    <Label className="text-base font-medium">Internal Plugins</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Select the plugins your agent will use for trading and on-chain interactions.
-                    </p>
-                    <div className="grid gap-4 pt-2">
-                      {['rpc', 'leftcurve', 'paradex'].map((plugin) => {
-                        const isSelected = formData.internal_plugins.includes(plugin);
-                        const pluginLabels = {
-                          'rpc': 'RPC (Blockchain Data Access)',
-                          'leftcurve': 'Avnu (DEX Integration)',
-                          'paradex': 'Paradex (Perpetual Trading)'
-                        };
-                        const pluginDescriptions = {
-                          'rpc': 'Allows the agent to query on-chain data and blockchain state',
-                          'leftcurve': 'Enables trading on Avnu DEX for onchain swap',
-                          'paradex': 'Provides perpetual futures trading capabilities'
-                        };
-                        
-                        const handlePluginToggle = () => {
-                          if (plugin === 'avnu') return; // Don't allow toggling "avnu"
-                          
-                          setFormData(prev => {
-                            if (isSelected) {
-                              return {
-                                ...prev, 
-                                internal_plugins: prev.internal_plugins.filter(p => p !== plugin)
-                              };
-                            } else {
-                              return {
-                                ...prev,
-                                internal_plugins: [...prev.internal_plugins, plugin]
-                              };
-                            }
-                          });
-                        };
-                        
-                        return (
-                          <div
-                            key={plugin}
-                            className="flex items-start space-x-3 p-3 rounded-md border hover:bg-muted/50 transition-colors"
-                          >
-                            <Checkbox
-                              id={`plugin-${plugin}`}
-                              checked={isSelected}
-                              onCheckedChange={handlePluginToggle}
-                              className="mt-1"
-                            />
-                            <div className="space-y-1">
-                              <Label
-                                htmlFor={`plugin-${plugin}`}
-                                className="font-medium cursor-pointer"
-                              >
-                                {pluginLabels[plugin as keyof typeof pluginLabels]}
-                              </Label>
-                              <p className="text-sm text-muted-foreground">
-                                {pluginDescriptions[plugin as keyof typeof pluginDescriptions]}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
                   </div>
                 </div>
 
