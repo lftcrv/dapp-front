@@ -1,26 +1,19 @@
 'use server';
 
+import { User } from '@privy-io/react-auth';
 import { validateApiConfig, validateApiResponse } from '../shared/validation';
 
 interface UpdateUserResponse {
   status: string;
   data: {
-    user: {
-      id: string;
-      starknetAddress: string;
-      evmAddress?: string;
-      addressType: string;
-      twitterHandle?: string;
-      lastConnection: string;
-      createdAt: string;
-      updatedAt: string;
-    };
+    user: User;
   };
 }
 
 interface UpdateUserParams {
   evmAddress?: string;
   twitterHandle?: string;
+  accessCode?: string;
 }
 
 /**
