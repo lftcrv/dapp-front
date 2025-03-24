@@ -115,6 +115,8 @@ export function DeployingStateWithOrchestration({
 
   // Status checking effect
   useEffect(() => {
+    if (!orchestrationId) return;
+    
     let isMounted = true;
     let checkInterval: NodeJS.Timeout | null = null;
     let countdownInterval: NodeJS.Timeout | null = null;
@@ -240,7 +242,7 @@ export function DeployingStateWithOrchestration({
       isMounted = false;
       clearIntervals();
     };
-  },);
+  }, [orchestrationId]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center">
