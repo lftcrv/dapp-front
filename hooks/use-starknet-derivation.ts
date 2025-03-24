@@ -55,7 +55,7 @@ export function useStarknetDerivation() {
 
       if (account) {
         setDerivedAccount({
-          starknetAddress: account.starknetAddress,
+          starknetAddress: account.starknetAddress as string,
         });
       }
 

@@ -1,21 +1,12 @@
 'use server';
 
-import { WalletAddressType } from '@/types/user';
+import { User, WalletAddressType } from '@/types/user';
 import { validateApiConfig, validateApiResponse } from '../shared/validation';
 
 interface CreateUserResponse {
   status: string;
   data: {
-    user: {
-      id: string;
-      starknetAddress: string;
-      evmAddress?: string;
-      addressType: string;
-      twitterHandle?: string;
-      lastConnection: string;
-      createdAt: string;
-      updatedAt: string;
-    };
+    user: User;
   };
 }
 
