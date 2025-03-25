@@ -1,19 +1,26 @@
 import { useEffect, useRef, useCallback, memo } from 'react';
 import { useWallet } from '@/app/context/wallet-context';
-import { deriveStarknetAccount } from '@/actions/shared/derive-starknet-account';
+import { deriveAccount } from '@/actions/shared/derive-starknet-account';
 import { showToast } from '@/lib/toast';
+import { useSearchParams } from 'next/navigation';
 import type { ConnectedWallet } from '@privy-io/react-auth';
 import { useWallets } from '@privy-io/react-auth';
 
+interface StarknetAccountDerivationProps {
+  onReferralCheck: (address: string) => Promise<boolean>;
+}
+
 export const StarknetAccountDerivation = memo(
-  function StarknetAccountDerivation() {
+  function StarknetAccountDerivation({ onReferralCheck }: StarknetAccountDerivationProps) {
     const { privyAuthenticated, privyAddress } = useWallet();
     const { wallets } = useWallets();
     const attemptRef = useRef<Record<string, boolean>>({});
+    const searchParams = useSearchParams();
+    const referralCode = searchParams.get('ref') || '';
 
-    const deriveAccount = useCallback(async () => {
+    const deriveStarknetAccount = useCallback(async () => {
       if (!privyAddress) return null;
-
+    
       // Find the wallet that matches the EVM address
       const evmWallet = wallets.find(
         (w: ConnectedWallet) =>
@@ -23,16 +30,21 @@ export const StarknetAccountDerivation = memo(
         // This is an expected case when wallet is not ready yet
         return null;
       }
-
+    
       try {
-        const account = await deriveStarknetAccount(
+        // Always derive the account with the referral code, which will create
+        // the user regardless of whether the referral is valid
+        const account = await deriveAccount(
           privyAddress,
           async (message) => {
             return evmWallet.sign(message);
           },
+          referralCode // Pass referral code to derive account function
         );
-
+    
         if (account?.starknetAddress) {
+          // Check referral status for the UI blurring, but don't block account creation
+          await onReferralCheck(account.starknetAddress);
           showToast('DEPLOYED', 'success');
         }
         return account;
@@ -43,19 +55,19 @@ export const StarknetAccountDerivation = memo(
         }
         return null;
       }
-    }, [privyAddress, wallets]);
+    }, [privyAddress, wallets, referralCode, onReferralCheck]);
 
     useEffect(() => {
       const evmAddress = privyAddress;
       if (!privyAuthenticated || !evmAddress) return;
       if (attemptRef.current[evmAddress]) return;
 
-      deriveAccount().then((account) => {
+      deriveStarknetAccount().then((account) => {
         if (account) {
           attemptRef.current[evmAddress] = true;
         }
       });
-    }, [privyAuthenticated, privyAddress, deriveAccount]);
+    }, [privyAuthenticated, privyAddress, deriveStarknetAccount]);
 
     useEffect(() => {
       return () => {

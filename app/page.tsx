@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useCallback, useRef, useEffect } from 'react';
+import { Suspense, useState, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { useAgents } from '@/hooks/use-agents';

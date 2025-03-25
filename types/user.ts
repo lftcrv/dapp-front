@@ -7,6 +7,11 @@ export interface User {
   lastConnection: string;
   createdAt: string;
   updatedAt: string;
-  // Track how the user was created
-  type: 'derived' | 'starknet_native';
+  addressType: WalletAddressType;
+  usedReferralCode?: string;
+}
+
+export enum WalletAddressType {
+  NATIVE = 'NATIVE',
+  DERIVED = 'DERIVED',
 }

@@ -32,7 +32,12 @@ const MESSAGES = {
   AGENT_ERROR: { text: '🤔 Fill in all agent details ser', icon: 'error', type: 'error' },
   INVALID_FILE_TYPE: { text: '🚫 Only JPG, PNG and GIF files are allowed', icon: 'error', type: 'error' },
   FILE_TOO_LARGE: { text: '🐋 File too large ser, max 20MB', icon: 'error', type: 'error' },
-  DEFAULT_ERROR: { text: '💩 Ngmi... Something went wrong', icon: 'error', type: 'error' }
+  DEFAULT_ERROR: { text: '💩 Ngmi... Something went wrong', icon: 'error', type: 'error' },
+  REFERRAL_REQUIRED: { text: '🔒 Access restricted ser', icon: 'error', type: 'error' },
+  REFERRAL_VALIDATING: { text: '🧐 Checking your referral ser', icon: 'loader', type: 'loading' },
+  REFERRAL_SUCCESS: { text: '💎 Referral confirmed! LFG!', icon: 'rocket', type: 'success' },
+  REFERRAL_ERROR: { text: '😢 Ngmi... Referral invalid', icon: 'error', type: 'error' },
+  
 } as const;
 
 // Keep track of toast IDs by message type

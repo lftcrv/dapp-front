@@ -1,202 +1,148 @@
-import { type User } from '@/lib/types';
+'use server';
 
-// DEBUG LOGS: Prefix for easy removal
-// const DEBUG = {
-//   log: (...args: any[]) => console.log('[Starknet Derivation]:', ...args),
-//   error: (...args: any[]) => console.error('[Starknet Derivation Error]:', ...args),
-//   signature: (...args: any[]) => console.log('[Signature Storage]:', ...args)
-// }
+import { getUserByEvmAddress, createUser } from '@/actions/users';
+import { WalletAddressType } from '@/types/user';
+import { validateAccessCode } from '@/actions/access-codes/validate';
+import { updateUser } from '@/actions/users/update';
 
-// Simple helper to manage signatures in localStorage
-export const signatureStorage = {
-  getSignature: async (evmAddress: string): Promise<string | null> => {
-    try {
+/**
+ * The message to be signed by the EVM wallet for Starknet derivation
+ */
+const SIGNATURE_MESSAGE = 
+  'Sign this message to derive your Starknet account from your EVM address. ' +
+  'This signature will not trigger any blockchain transaction or cost any gas fees.';
 
-      const signature = localStorage.getItem(`signature_${evmAddress.toLowerCase()}`)
-      // DEBUG.log(`[Signature Storage] Retrieved signature for ${evmAddress}:`, signature ? 'Found' : 'Not found')
-      return signature
-    } catch {
-      // DEBUG.error('[Signature Storage] Failed to get signature:')
-      return null
-    }
-  },
+// In-memory storage for signatures (note: this will be cleared on server restarts)
+// Since we can't export this directly, we keep it as a module-level variable
+const signatures = new Map<string, { signature: string; timestamp: number }>();
+
+/**
+ * Gets a stored signature for an address if it exists and is not expired
+ */
+export async function getSignature(evmAddress: string): Promise<string | null> {
+  const normalizedAddress = evmAddress.toLowerCase();
+  const entry = signatures.get(normalizedAddress);
   
-  saveSignature: async (evmAddress: string, signature: string): Promise<boolean> => {
-    try {
-      localStorage.setItem(`signature_${evmAddress.toLowerCase()}`, signature)
-      // DEBUG.log(`[Signature Storage] Saved signature for ${evmAddress}`)
-      return true
-    } catch {
-      // DEBUG.error('[Signature Storage] Failed to save signature:')
-      return false
+  if (!entry) return null;
 
-    }
-  },
-
-  verifySignature: async (
-    evmAddress: string,
-    expectedSignature?: string
-  ): Promise<boolean> => {
-    try {
-      const savedSig = localStorage.getItem(
-        `signature_${evmAddress.toLowerCase()}`,
-      );
-      if (!savedSig) {
-
-        // DEBUG.signature('No signature found for', evmAddress)
-        return false
-
-      }
-
-      if (expectedSignature && savedSig !== expectedSignature) {
-
-        // DEBUG.signature('Signature mismatch for', evmAddress)
-        // DEBUG.signature('Expected:', expectedSignature)
-        // DEBUG.signature('Found:', savedSig)
-        return false
-      }
-      
-      // DEBUG.signature('Signature verified for', evmAddress)
-      return true
-    } catch {
-      // DEBUG.error('Failed to verify signature')
-      return false
-
-    }
-  },
-
-  clearSignature: async (evmAddress: string): Promise<boolean> => {
-    try {
-
-      localStorage.removeItem(`signature_${evmAddress.toLowerCase()}`)
-      // DEBUG.log(`[Signature Storage] Cleared signature for ${evmAddress}`)
-      return true
-    } catch {
-      // DEBUG.error('[Signature Storage] Failed to clear signature:')
-      return false
-
-    }
-  },
-};
-
-// Helper to generate a random hex string of specified length
-function generateRandomHex(length: number): string {
-  const bytes = new Uint8Array(Math.ceil(length / 2));
-  crypto.getRandomValues(bytes);
-  return (
-    '0x' +
-    Array.from(bytes)
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('')
-      .slice(0, length)
-  );
+  // Check if signature is expired (1 hour)
+  const isExpired = Date.now() - entry.timestamp > 60 * 60 * 1000;
+  return isExpired ? null : entry.signature;
 }
 
-export async function deriveStarknetAccount(
+/**
+ * Saves a signature for an address
+ */
+export async function saveSignature(evmAddress: string, signature: string): Promise<void> {
+  const normalizedAddress = evmAddress.toLowerCase();
+  signatures.set(normalizedAddress, {
+    signature,
+    timestamp: Date.now(),
+  });
+}
+
+/**
+ * Clears a stored signature for an address
+ */
+export async function clearSignature(evmAddress: string): Promise<void> {
+  const normalizedAddress = evmAddress.toLowerCase();
+  signatures.delete(normalizedAddress);
+}
+
+/**
+ * Derives a Starknet account from an EVM address
+ * - Handles account creation in backend
+ * - Processes referral code if provided
+ * 
+ * @param evmAddress The EVM wallet address
+ * @param signer Function to sign messages with the EVM wallet
+ * @param referralCode Optional referral code
+ * @returns The derived account information or null if derivation fails
+ */
+export async function deriveAccount(
   evmAddress: string,
-  signMessage: (message: string) => Promise<string>,
-): Promise<User | null> {
+  signer: (message: string) => Promise<string>,
+  referralCode?: string
+): Promise<{
+  starknetAddress: string;
+  evmAddress: string;
+  newUser: boolean;
+  referralApplied: boolean;
+} | null> {
   try {
-
-    // DEBUG.log('Starting derivation process for:', evmAddress)
+    // Step 1: Check if user already exists in our system by EVM address
+    const existingUserResult = await getUserByEvmAddress(evmAddress);
     
-
-    // Check if user already exists
-    const response = await fetch('/api/users');
-
-    if (!response.ok) {
-
-      // DEBUG.error('Failed to fetch users:', response.status)
-      return null
-
+    // If user exists and already has a derived Starknet address, return it
+    if (existingUserResult.success && existingUserResult.data?.starknetAddress) {
+      const hasReferral = !!existingUserResult.data.usedReferralCode;
+      return {
+        starknetAddress: existingUserResult.data.starknetAddress,
+        evmAddress,
+        newUser: false,
+        referralApplied: hasReferral
+      };
     }
 
-    const data = await response.json();
-
-    // Check for existing signature first
-
-    const savedSignature = await signatureStorage.getSignature(evmAddress)
-    // DEBUG.log('Saved signature check:', savedSignature ? 'Found' : 'Not found')
+    // Step 2: Get cached signature or request a new one
+    let signature = await getSignature(evmAddress);
     
-
-    // Safely check if users array exists
-    if (data?.users?.length > 0) {
-      const existingUser = data.users.find(
-        (u: User) =>
-          u.evmAddress?.toLowerCase() === evmAddress.toLowerCase() &&
-          u.type === 'derived',
-      );
-
-      if (existingUser) {
-        // DEBUG.log('Found existing derived user:', existingUser.starknetAddress)
-        
-        // Request signature if not saved
-        if (!savedSignature) {
-          // DEBUG.log('No saved signature found, requesting new one')
-          const message = `Sign this message to derive your Starknet account.\n\nEVM Address: ${evmAddress}`
-          const signature = await signMessage(message)
-          await signatureStorage.saveSignature(evmAddress, signature)
-          // DEBUG.log('New signature saved for existing user')
-        }
-
-        return existingUser;
-      }
+    if (!signature) {
+      // Request user to sign the message
+      signature = await signer(SIGNATURE_MESSAGE);
+      
+      // Cache the signature for future use
+      await saveSignature(evmAddress, signature);
     }
-
-    // Only proceed with derivation if no existing user was found
-
-    // DEBUG.log('No existing derived user found, starting derivation')
-    const message = `Sign this message to derive your Starknet account.\n\nEVM Address: ${evmAddress}`
     
-    // Get signature from wallet (only if we don't have it saved)
-    const signature = savedSignature || (await signMessage(message));
-    if (!savedSignature) {
-      await signatureStorage.saveSignature(evmAddress, signature)
+    // Step 3: Handle referral code validation
+    let referralIsValid = false;
+    
+    if (referralCode) {
+      const validationResult = await validateAccessCode(referralCode, evmAddress);
+      referralIsValid = validationResult.isValid || false;
     }
-
-    // Generate a random Starknet address for simulation
-
-    const randomStarknetAddress = generateRandomHex(64)
-    // DEBUG.log('Generated new Starknet address:', randomStarknetAddress)
-
-    // Create timestamp for all date fields
-    const timestamp = new Date().toISOString();
-
-    // Create user object
-    const user: User = {
-      id: `user_${Date.now()}`,
-      evmAddress: evmAddress.toLowerCase(),
-      starknetAddress: randomStarknetAddress,
-      type: 'derived',
-      lastConnection: timestamp,
-      createdAt: timestamp,
-      updatedAt: timestamp,
+    
+    // Step 4: Use the EVM signature to derive a Starknet address
+    // This is a placeholder for the actual derivation logic
+    // In a real implementation, this would use cryptographic functions
+    // to derive a deterministic Starknet address from the EVM signature
+    const derivedStarknetAddress = `0x${Buffer.from(signature.slice(2), 'hex')
+      .subarray(0, 31)
+      .toString('hex')
+      .padStart(64, '0')}`;
+    
+    // Step 5: Create a new user or update existing one
+    const userParams = {
+      evmAddress,
+      starknetAddress: derivedStarknetAddress,
+      addressType: WalletAddressType.DERIVED,
+      ...(referralIsValid ? { usedReferralCode: referralCode } : {})
     };
-
-    // Save user to database
-    const saveResponse = await fetch('/api/users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(user),
-    });
-
-    if (!saveResponse.ok) {
-      // If user already exists (409), just return null without throwing
-      if (saveResponse.status === 409) {
-        // DEBUG.log('User creation failed - already exists')
-        return null
-
-      }
-      const error = await saveResponse.json();
-      throw new Error(error.error || 'Failed to save user');
+    
+    // If user exists but doesn't have a Starknet address, update the user
+    // Otherwise create a new user
+    const userResult = await createUser(userParams);
+    
+    if (!userResult.success || !userResult.data) {
+      console.error('Failed to create or update user:', userResult.error);
+      return null;
     }
-
-    const savedUser = await saveResponse.json()
-    // DEBUG.log('Successfully created new user with address:', savedUser.starknetAddress)
-    return savedUser
-
-  } catch {
-    // DEBUG.error('Derivation failed:')
-    return null
+    
+    // Step 6: If referral code is valid but wasn't included in user creation,
+    // apply it separately by updating the user
+    if (referralCode && referralIsValid && !userResult.data.usedReferralCode) {
+      await updateUser(userResult.data.id, { accessCode: referralCode });
+    }
+    
+    return {
+      starknetAddress: derivedStarknetAddress,
+      evmAddress,
+      newUser: !existingUserResult.success || !existingUserResult.data,
+      referralApplied: referralIsValid
+    };
+  } catch (error) {
+    console.error('Error deriving Starknet account:', error);
+    return null;
   }
 }
