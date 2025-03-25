@@ -25,6 +25,7 @@ export async function validateReferralCode(code: string, user: User): Promise<{
 
     // 1. Validate the code
     const validationResult = await validateAccessCode(code, user.id);
+    console.log('validationResult', validationResult);
     if (!validationResult.isValid) {
       return {
         success: false,
