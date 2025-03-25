@@ -9,7 +9,7 @@ import {
   ReactNode,
 } from 'react';
 import { useWallet } from '@/app/context/wallet-context';
-import { useReferralCode } from '@/hooks/use-referal-code';
+import { useReferralCode } from '@/hooks/use-referral-code';
 
 interface BlurContextType {
   isBlurred: boolean;
@@ -29,7 +29,7 @@ export function BlurProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { starknetWallet, privyAuthenticated } = useWallet();
+  const { starknetWallet, privyAuthenticated, hasValidReferral } = useWallet();
   const { referralCode, isValidating } = useReferralCode();
 
   const resetError = useCallback(() => {
@@ -39,8 +39,10 @@ export function BlurProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const isWalletConnected = starknetWallet.isConnected || privyAuthenticated;
     
+    // If the wallet is connected and has valid referral or referral code exists,
+    // unblur the app. Otherwise, show the referral message.
     if (isWalletConnected) {
-      if (referralCode) {
+      if (hasValidReferral || referralCode) {
         setIsBlurred(false);
         setShouldShowReferralMessage(false);
       } else {
@@ -51,7 +53,7 @@ export function BlurProvider({ children }: { children: ReactNode }) {
       setIsBlurred(true);
       setShouldShowReferralMessage(false);
     }
-  }, [starknetWallet.isConnected, privyAuthenticated, referralCode]);
+  }, [starknetWallet.isConnected, privyAuthenticated, hasValidReferral, referralCode]);
 
   const contextValue = {
     isBlurred,

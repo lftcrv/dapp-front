@@ -14,7 +14,7 @@ interface UseReferralCodeReturn {
   removeReferralFromUrl: () => void;
 }
 
-export function useReferralCode(): UseReferralCodeReturn {
+export function useReferralCode(refreshTrigger = 0): UseReferralCodeReturn {
   // State
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
@@ -26,17 +26,17 @@ export function useReferralCode(): UseReferralCodeReturn {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Extract referral code from URL when component mounts or URL changes
+  // Extract referral code from URL when component mounts, URL changes, or refresh is triggered
   useEffect(() => {
     const code = searchParams.get('referral');
     setReferralCode(code);
 
-    // Reset validation state when referral code changes
+    // Reset validation state when referral code changes or refresh is triggered
     if (code) {
       setIsValid(null);
       setError(null);
     }
-  }, [searchParams]);
+  }, [searchParams, refreshTrigger]); // Add refreshTrigger to dependencies
 
   // Validate referral code with userId
   const validateReferral = useCallback(async (userId: string): Promise<boolean> => {

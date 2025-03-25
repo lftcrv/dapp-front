@@ -20,6 +20,7 @@ import { useStarknetkitConnectModal, type StarknetkitConnector } from "starknetk
 import { validateAccessCode } from '@/actions/access-codes/validate';
 import { getUserByStarknetAddress } from '@/actions/users/get';
 import { showToast } from '@/lib/toast';
+import { User } from '@/types/user';
 
 interface StarknetWalletState {
   wallet: any | null;
@@ -31,6 +32,7 @@ interface StarknetWalletState {
 interface WalletContextType {
   // Starknet state
   starknetWallet: StarknetWalletState;
+  user: User | null;
   connectStarknet: () => Promise<void>;
   disconnectStarknet: () => Promise<void>;
 
@@ -63,6 +65,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   });
   const [hasValidReferral, setHasValidReferral] = useState(false);
   const [isCheckingReferral, setIsCheckingReferral] = useState(false);
+  const [userData, setUserData] = useState<User | null>(null);
   
   // Add a state to track addresses we've already checked
   const [addressesChecked, setAddressesChecked] = useState<Record<string, boolean>>({});
@@ -79,7 +82,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const {
     ready: privyReady,
     authenticated: privyAuthenticated,
-    user,
+    user: privyUser,
     login,
     logout,
   } = usePrivy();
@@ -90,6 +93,27 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const { starknetkitConnectModal } = useStarknetkitConnectModal({
     connectors: connectors as unknown as StarknetkitConnector[]
   });
+
+  // Function to fetch user data from API
+  const fetchUserData = useCallback(async (address: string) => {
+    try {
+      const result = await getUserByStarknetAddress(address);
+      if (result.success && result.data) {
+        setUserData(result.data);
+        // If the user has a referral code, mark it as valid
+        if (result.data.usedReferralCode) {
+          setHasValidReferral(true);
+        }
+        return result.data;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      return null;
+    }
+  }, []);
+
+  console.log('userData:', userData);
 
   // Check if user has a valid referral (either from URL or from database)
   const checkUserReferralStatus = useCallback(async (address: string) => {
@@ -114,12 +138,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // Mark this address as checked to prevent future checks
       setAddressesChecked(prev => ({ ...prev, [address]: true }));
       
-      // First, check if the user already exists
-      const existingUser = await getUserByStarknetAddress(address);
+      // First, check if the user already exists and fetch user data
+      const existingUser = await fetchUserData(address);
       
-      if (existingUser.success && existingUser.data) {
+      if (existingUser) {
         // User exists, check if they've used a referral code before
-        if (existingUser.data.usedReferralCode) {
+        if (existingUser.usedReferralCode) {
           // User has already used a referral code
           setHasValidReferral(true);
           return true;
@@ -147,7 +171,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsCheckingReferral(false);
     }
-  }, [referralCode, hasValidReferral, addressesChecked, isCheckingReferral]);
+  }, [referralCode, hasValidReferral, addressesChecked, isCheckingReferral, fetchUserData]);
 
   // 3. All useCallback hooks
   const clearStarknetState = useCallback(() => {
@@ -155,6 +179,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       wallet: null,
       isConnected: false,
     });
+    setUserData(null); // Clear user data when clearing wallet state
     localStorage.removeItem('starknet_wallet');
     sessionStorage.removeItem('starknet_wallet_cache');
   }, []);
@@ -182,7 +207,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           if (hasValidRef || referralCode) {
             // Only proceed with user registration if they have a valid referral
             // or there's a referral code (even if invalid, we'll create the user but keep blur)
-            await handleStarknetConnection(starknetAddress, referralCode);
+            const result = await handleStarknetConnection(starknetAddress, referralCode);
+            
+            // Fetch updated user data after connection
+            await fetchUserData(starknetAddress);
           } else {
             // No referral code, show notification to user
             showToast('REFERRAL_REQUIRED', 'error');
@@ -191,6 +219,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           // Ignore 409 conflicts as they're expected when user already exists
           if (err instanceof Error && !err.message.includes('409')) {
             console.error('Failed to save user data:', err);
+          } else {
+            // If it was a 409, user exists, so fetch their data
+            await fetchUserData(starknetAddress);
           }
         }
       }
@@ -210,6 +241,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     starknetAddress,
     checkUserReferralStatus,
     referralCode,
+    fetchUserData,
   ]);
 
   const disconnectStarknet = useCallback(async () => {
@@ -240,18 +272,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     if (!privyAuthenticated) return;
     try {
       // Clear signature if there is one
-      if (user?.wallet?.address) {
-        await clearSignature(user.wallet.address);
+      if (privyUser?.wallet?.address) {
+        await clearSignature(privyUser.wallet.address);
       }
       await logout();
       setHasValidReferral(false);
+      setUserData(null); // Clear user data on logout
       // Reset the checked addresses when logging out
       setAddressesChecked({});
       referralCheckAttemptsRef.current = {};
     } catch (err) {
       console.error('Failed to logout from Privy:', err);
     }
-  }, [logout, privyAuthenticated, user?.wallet?.address]);
+  }, [logout, privyAuthenticated, privyUser?.wallet?.address]);
 
   // 4. All useEffect hooks
   // Effect to check referral when starknet wallet connects
@@ -274,6 +307,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     hasValidReferral, 
     addressesChecked
   ]);
+
+  // Effect to fetch user data when starknet address changes
+  useEffect(() => {
+    if (isStarknetConnected && starknetAddress && !userData) {
+      fetchUserData(starknetAddress);
+    }
+  }, [isStarknetConnected, starknetAddress, userData, fetchUserData]);
 
   useEffect(() => {
     if (isStarknetConnected && starknetAddress) {
@@ -332,6 +372,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
               
               if (previousConnector?.available()) {
                 await connect({ connector: previousConnector });
+                
+                // If we have an address from cache, try to fetch user data
+                if (data.address) {
+                  await fetchUserData(data.address);
+                }
               }
               return;
             }
@@ -354,6 +399,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     clearStarknetState,
     connect,
     connectors,
+    fetchUserData,
   ]);
 
   // Clear the referral check attempts when component unmounts
@@ -372,26 +418,27 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const currentAddress = useMemo(() => {
     if (starknetWallet.isConnected) return starknetWallet.address;
-    if (privyAuthenticated) return user?.wallet?.address;
+    if (privyAuthenticated) return privyUser?.wallet?.address;
     return undefined;
   }, [
     starknetWallet.isConnected,
     starknetWallet.address,
     privyAuthenticated,
-    user?.wallet?.address,
+    privyUser?.wallet?.address,
   ]);
 
   const contextValue = useMemo(
     () => ({
       // Starknet state
       starknetWallet,
+      user: userData,
       connectStarknet,
       disconnectStarknet,
 
       // Privy state
       privyReady,
       privyAuthenticated,
-      privyAddress: user?.wallet?.address,
+      privyAddress: privyUser?.wallet?.address,
       loginWithPrivy,
       logoutFromPrivy,
 
@@ -406,11 +453,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }),
     [
       starknetWallet,
+      userData,
       connectStarknet,
       disconnectStarknet,
       privyReady,
       privyAuthenticated,
-      user?.wallet?.address,
+      privyUser?.wallet?.address,
       loginWithPrivy,
       logoutFromPrivy,
       isLoadingWallet,
