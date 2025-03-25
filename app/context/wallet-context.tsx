@@ -182,6 +182,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem('starknet_wallet_cache');
   }, []);
 
+  // Phase 1: Connect wallet (keep this function simple)
   const connectStarknet = useCallback(async () => {
     if (isLoadingWallet || privyAuthenticated) return;
 
@@ -195,32 +196,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
 
       await connect({ connector });
-      // Save/update user in database only if we have an address
-      if (starknetAddress) {
-        try {
-          // Check referral status for UI blurring purposes
-          const hasValidRef = await checkUserReferralStatus(starknetAddress);
-          
-          // Always create/update the user, regardless of referral status
-          const result = await handleStarknetConnection(starknetAddress, referralCode);
-          
-          // Fetch updated user data after connection
-          await fetchUserData(starknetAddress);
-          
-          // If no valid referral, still show the notification
-          if (!hasValidRef && !referralCode) {
-            showToast('REFERRAL_REQUIRED', 'error');
-          }
-        } catch (err) {
-          // Ignore 409 conflicts as they're expected when user already exists
-          if (err instanceof Error && !err.message.includes('409')) {
-            console.error('Failed to save user data:', err);
-          } else {
-            // If it was a 409, user exists, so fetch their data
-            await fetchUserData(starknetAddress);
-          }
-        }
-      }
+      // Don't do anything with starknetAddress here - let the useEffect handle it
     } catch (_error) {
       console.error('Failed to connect wallet:', _error);
       clearStarknetState();
@@ -234,11 +210,49 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     clearStarknetState,
     connect,
     starknetkitConnectModal,
-    starknetAddress,
-    checkUserReferralStatus,
-    referralCode,
-    fetchUserData,
+    // REMOVE starknetAddress from dependencies!
   ]);
+
+  // Phase 2: Create user when wallet connected (in a useEffect)
+  useEffect(() => {
+    const createUserAfterConnection = async () => {
+      // Only proceed if wallet is connected and we have an address
+      if (!isStarknetConnected || !starknetAddress || userData) {
+        return;
+      }
+
+      try {
+        console.log('Address is available, creating user for:', starknetAddress);
+        
+        // Check referral status for UI blurring purposes
+        const hasValidRef = await checkUserReferralStatus(starknetAddress);
+        
+        console.log('before handleStarknetConnection');
+        // Always create/update the user, regardless of referral status
+        const result = await handleStarknetConnection(starknetAddress, referralCode);
+        console.log('after handleStarknetConnection', result);
+        
+        // Fetch updated user data after connection
+        await fetchUserData(starknetAddress);
+        
+        // If no valid referral, still show the notification
+        if (!hasValidRef && !referralCode) {
+          showToast('REFERRAL_REQUIRED', 'error');
+        }
+      } catch (err) {
+        console.error('Error creating user:', err);
+        // Ignore 409 conflicts as they're expected when user already exists
+        if (err instanceof Error && !err.message.includes('409')) {
+          console.error('Failed to save user data:', err);
+        } else {
+          // If it was a 409, user exists, so fetch their data
+          await fetchUserData(starknetAddress);
+        }
+      }
+    };
+    
+    createUserAfterConnection();
+  }, [isStarknetConnected, starknetAddress, userData]);
 
   const disconnectStarknet = useCallback(async () => {
     try {

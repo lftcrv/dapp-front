@@ -30,10 +30,11 @@ export async function handleStarknetConnection(
   try {
     // Step 1: Check if user already exists
     const existingUser = await getUserByStarknetAddress(starknetAddress);
+    console.log('existingUser', existingUser);
     if (existingUser.success && existingUser.data) {
       // User exists - update last connection time
       const updateResult = await connectUser(starknetAddress);
-      
+      console.log('updateResult', updateResult);
       // Check if they already have a referral code
       const hasReferral = !!existingUser.data.usedReferralCode;
       
@@ -54,8 +55,6 @@ export async function handleStarknetConnection(
     }
     
     // Step 3: Create new user
-    // Always create the user, even if referral is invalid - the UI will remain blurred
-    // until a valid referral is provided
     const newUser = await createUser({
       starknetAddress,
       addressType: WalletAddressType.NATIVE,
