@@ -113,8 +113,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  console.log('userData:', userData);
-
   // Check if user has a valid referral (either from URL or from database)
   const checkUserReferralStatus = useCallback(async (address: string) => {
     // Skip if we're already checking
@@ -197,7 +195,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
 
       await connect({ connector });
-
       // Save/update user in database only if we have an address
       if (starknetAddress) {
         try {
