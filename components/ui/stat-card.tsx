@@ -1,14 +1,20 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { TrendingUp } from 'lucide-react';
 import { memo } from 'react';
+import { Cabin_Sketch } from 'next/font/google';
+
+const cabinSketch = Cabin_Sketch({
+  weight: '400',
+  subsets: ['latin'],
+  display: 'swap',
+});
 
 interface StatCardProps {
   title: string;
   value: string;
   change: string;
-  icon: React.ReactNode;
+  icon: string;
   isPositive?: boolean;
 }
 
@@ -27,12 +33,12 @@ const StatCard = ({
       transition={{ duration: 0.5 }}
     >
       <div className="flex justify-between items-start mb-2">
-        <h3 className="text-xs text-muted-foreground font-mono">{title}</h3>
-        <div className="p-2 bg-white/5 rounded-lg">{icon}</div>
+        <h3 className={`${cabinSketch.className} text-2xl text-muted-foreground`}>{title}</h3>
+        <div className="p-2 bg-white/5 rounded-lg text-3xl">{icon}</div>
       </div>
       <div className="font-mono text-2xl font-bold mb-1">{value}</div>
       <div className={`text-xs font-mono flex items-center ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
-        <TrendingUp className={`h-3 w-3 mr-1 ${!isPositive && 'rotate-180'}`} />
+        <span className="mr-1">{isPositive ? '↑' : '↓'}</span>
         {change}
       </div>
     </motion.div>
