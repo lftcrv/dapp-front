@@ -29,7 +29,7 @@ export async function validateAccessCode(
 
     const data = await response.json();
 
-    if (!response.ok || !data.isValid) {
+    if (!response.ok || !data.data.result.isValid) {
       return {
         isValid: false,
         error: data.error || 'Failed to validate access code',
@@ -38,7 +38,7 @@ export async function validateAccessCode(
 
     return {
       isValid: true,
-      accessCode: data.accessCode,
+      accessCode: data.data.result.accessCode,
     };
   } catch (error) {
     console.error('Error validating access code:', error);
