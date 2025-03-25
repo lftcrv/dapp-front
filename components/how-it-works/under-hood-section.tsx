@@ -197,7 +197,7 @@ const FEATURES = [
   },
   {
     title: "Advanced Trading Intelligence",
-    icon: "Groupe 6173.png",
+    icon: "Groupe 6287.png",
     points: [
       "Multi-timeframe Technical Analysis, including RSI, MACD, Ichimoku, Stochastic, pivots, candlestick patterns (Hammer, Doji, etc.).",
       "Future Enhancements, including Integration of macroeconomic signals and social sentiment analysis."
@@ -205,7 +205,7 @@ const FEATURES = [
   },
   {
     title: "Fee Switch (Protocol Revenue Sharing)",
-    icon: "Groupe 6289 - lftcrv.png",
+    icon: "Groupe 6173.png",
     points: [
       "Protocol fees are collected in $LEFT and distributed to holders of successful agents.",
       "Revenue isn't just about stonks—both top performers and meme champions get a slice."
@@ -213,7 +213,7 @@ const FEATURES = [
   },
   {
     title: "Security",
-    icon: "Groupe 6173.png",
+    icon: "Groupe 6289 - lftcrv.png",
     points: [
       "All deposits are secured by StarkNet's proven L2 infrastructure."
     ]
