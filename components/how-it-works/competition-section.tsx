@@ -1,6 +1,6 @@
 'use client';
 
-import { memo } from 'react';
+import { useState, Suspense } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { TopAgents } from '@/components/top-agents';
@@ -10,9 +10,15 @@ import { TopAgentsSkeleton } from '@/components/home-skeleton';
 
 export function CompetitionSection() {
   const { data: agents, isLoading, error, refetch } = useAgents();
+  const [isRefetching, setIsRefetching] = useState(false);
   
   const handleRetry = async () => {
-    await refetch();
+    setIsRefetching(true);
+    try {
+      await refetch();
+    } finally {
+      setIsRefetching(false);
+    }
   };
 
   return (
@@ -65,27 +71,27 @@ export function CompetitionSection() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="md:col-span-2"
         >
-          {isLoading ? (
-            <TopAgentsSkeleton />
-          ) : error ? (
-            <EmptyState
-              title="Couldn't Load Agents"
-              description="We encountered an issue while fetching the agents data."
-              icon="agents"
-              onRetry={handleRetry}
-              isLoading={false}
-            />
-          ) : !agents || agents.length === 0 ? (
-            <EmptyState
-              title="No Agents Found"
-              description="Be the first to create an agent and start competing!"
-              icon="agents"
-              onRetry={handleRetry}
-              isLoading={false}
-            />
-          ) : (
-            <TopAgents agents={agents} isLoading={isLoading} error={error} />
-          )}
+          <Suspense fallback={<TopAgentsSkeleton />}>
+            {error ? (
+              <EmptyState
+                title="Couldn't Load Agents"
+                description="We encountered an issue while fetching the agents data."
+                icon="agents"
+                onRetry={handleRetry}
+                isLoading={isRefetching}
+              />
+            ) : !agents || agents.length === 0 ? (
+              <EmptyState
+                title="No Agents Found"
+                description="Be the first to create an agent and start competing!"
+                icon="agents"
+                onRetry={handleRetry}
+                isLoading={isRefetching}
+              />
+            ) : (
+              <TopAgents agents={agents} isLoading={isLoading} error={error} />
+            )}
+          </Suspense>
         </motion.div>
 
         {/* Right Column - Sigma Image (1/4) */}
