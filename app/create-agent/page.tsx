@@ -12,7 +12,6 @@ import { useWallet } from '@/app/context/wallet-context';
 import {
   useAccount,
   useContract,
-  useNetwork,
   useSendTransaction,
   useTransactionReceipt,
 } from '@starknet-react/core';
@@ -24,15 +23,7 @@ import { WalletConnectionOverlay } from '@/components/create-agent/WalletConnect
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
-// Type definitions for the new form structure
 type AgentType = 'leftcurve' | 'rightcurve';
 
 interface FormData {
@@ -42,7 +33,7 @@ interface FormData {
   analysisPeriod: number;
   interval: number;
   internal_plugins: string[];
-  bio: string; // Will be generated based on keywords
+  bio: string;
   objectives: string[];
   lore: string;
   knowledge: string;
@@ -76,18 +67,36 @@ export default function CreateAgentPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [bioGenAttempted, setBioGenAttempted] = useState(false);
+  const [degenScoreLLM, setDegenScoreLLM] = useState(5);
+  const [curveValue, setCurveValue] = useState(50);
 
-  // Calculate agent type based on risk tolerance
   useEffect(() => {
-    if (formData.riskTolerance > 60) {
+    if (formData.degenScore) {
+      setDegenScoreLLM(formData.degenScore);
+    }
+  }, [formData.degenScore]);
+
+  useEffect(() => {
+    const analysisPeriodWeight = (formData.analysisPeriod / 5) * 100;
+
+    const degenScoreWeight = (degenScoreLLM / 10) * 100;
+    // using all three components:
+    // - riskTolerance (50%)
+    // - inverse analysisPeriod (20%) - shorter periods are more "degen"
+    // - degenScore (30%) - more creative/original bios are more "degen"
+    const weightedCurveValue =
+      formData.riskTolerance * 0.5 +
+      (100 - analysisPeriodWeight) * 0.2 +
+      degenScoreWeight * 0.3;
+
+    setCurveValue(Math.round(weightedCurveValue));
+
+    if (weightedCurveValue > 60) {
       setAgentType('leftcurve');
     } else {
       setAgentType('rightcurve');
     }
-  }, [formData.riskTolerance]);
-
-  // Dynamic curve value for the indicator (0-100)
-  const curveValue = formData.riskTolerance;
+  }, [formData.riskTolerance, formData.analysisPeriod, degenScoreLLM]);
 
   const {
     connectStarknet,
@@ -99,7 +108,6 @@ export default function CreateAgentPage() {
     currentAddress,
   } = useWallet();
 
-  // Move hooks to component level
   const { address } = useAccount();
   const { contract } = useContract({
     abi: [
@@ -120,22 +128,21 @@ export default function CreateAgentPage() {
     address: process.env.NEXT_PUBLIC_ETH_TOKEN_ADDRESS as `0x${string}`,
   });
 
-  // Transaction hooks
   const { sendAsync } = useSendTransaction({
     calls: undefined,
   });
 
   const cleanResponseText = (text: string) => {
-    // First, remove the DEGEN SCORE
     let cleaned = text.replace(/\|\|\|DEGEN SCORE: \d+\|\|\|/g, '').trim();
-    
-    // Then remove the input parameters section
-    cleaned = cleaned.replace(/\*\*Agent Name:\*\*.*?\*\*Three Additional Words:\*\*.*?(?=### Biography)/s, '');
-    
+
+    cleaned = cleaned.replace(
+      /\*\*Agent Name:\*\*.*?\*\*Three Additional Words:\*\*.*?(?=### Biography)/s,
+      '',
+    );
+
     return cleaned.trim();
   };
 
-  // Compute wallet connection state
   const isWalletConnected = React.useMemo(() => {
     if (isLoading || !privyReady) return false;
     return starknetWallet.isConnected || privyAuthenticated;
@@ -151,9 +158,7 @@ export default function CreateAgentPage() {
     return match ? parseInt(match[1]) : null;
   };
 
-  // Updated generateAgentProfile function with DEGEN SCORE extraction
   const generateAgentProfile = useCallback(async () => {
-    // Check if we have enough info to generate a profile
     const hasName = formData.name.trim() !== '';
     const hasKeywords = formData.keywords.every((kw) => kw.trim() !== '');
 
@@ -164,7 +169,7 @@ export default function CreateAgentPage() {
 
       // Calculate seriousness level based on risk tolerance (inverse relationship)
       // 0 risk = 10 seriousness, 100 risk = 0 seriousness
-      const seriousnessLevel = 1;
+      const seriousnessLevel = Math.floor(Math.random() * 11);
 
       const prompt = `You are an expert in creating unique, personality-driven crypto trading agents. Given the following inputs:
     
@@ -200,7 +205,6 @@ export default function CreateAgentPage() {
   Score based primarily on character originality and creative concept rather than just risk appetite. Let the seriousness level guide how absurd or grounded the character's uniqueness appears.
   Ensure that the generated agent is **cohesive, entertaining, and functional**, aligning with the given inputs in tone and personality.`;
 
-      // Make the actual API call to Gemini
       const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
       const GEMINI_API_URL =
         'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent';
@@ -231,16 +235,15 @@ export default function CreateAgentPage() {
 
       const data = await response.json();
 
-      // Extract the text from the response
       const responseText = data.candidates[0].content.parts[0].text;
       console.log(responseText);
 
-      // Extract the DEGEN SCORE
       const degenScore = extractDegenScore(responseText);
       console.log('DEGEN SCORE:', degenScore);
+      setDegenScoreLLM(degenScore || 5);
 
       const cleanedResponseText = cleanResponseText(responseText);
-      console.log("Cleaned response:", cleanedResponseText);
+      console.log('Cleaned response:', cleanedResponseText);
 
       setresponseTextLLM(cleanedResponseText);
       setFormData((prev) => ({
@@ -252,7 +255,6 @@ export default function CreateAgentPage() {
       setBioGenAttempted(true);
     } catch (error) {
       console.error('Error generating agent profile:', error);
-      // Fallback to simple bio generation
       const simpleBio = `${formData.name} is a ${
         agentType === 'leftcurve' ? 'degen' : 'calculated'
       } trader focusing on ${formData.keywords.join(', ')}. Has a ${
@@ -285,21 +287,17 @@ export default function CreateAgentPage() {
     isGenerating,
   ]);
 
-  // Trigger biography generation when inputs change
   useEffect(() => {
     const hasName = formData.name.trim() !== '';
     const hasKeywords = formData.keywords.every((kw) => kw.trim() !== '');
     setIsFormValid(hasName && hasKeywords);
 
-    // Always ensure leftcurve plugin is included
     if (!formData.internal_plugins.includes('leftcurve')) {
       setFormData((prev) => ({
         ...prev,
         internal_plugins: [...prev.internal_plugins, 'leftcurve'],
       }));
     }
-
-    // Removed auto-generation logic to only trigger on button click
   }, [formData.name, formData.keywords, formData.internal_plugins]);
 
   const handleDeploy = async (e: React.FormEvent) => {
@@ -331,15 +329,10 @@ export default function CreateAgentPage() {
         throw new Error('Contract or address not available');
       }
 
-      // Call transfer directly
       const transferCall = {
         contractAddress: contract.address,
         entrypoint: 'transfer',
-        calldata: [
-          recipientAddress,
-          BigInt(amountToSend).toString(),
-          '0', // For uint256, we need low and high parts
-        ],
+        calldata: [recipientAddress, BigInt(amountToSend).toString(), '0'],
       };
 
       showToast('TX_PENDING', 'loading');
@@ -351,7 +344,6 @@ export default function CreateAgentPage() {
         setTransactionHash(response.transaction_hash);
         showToast('TX_SUCCESS', 'success', response.transaction_hash);
 
-        // Create agent immediately after getting transaction hash
         await createAgentWithTxHash(response.transaction_hash);
       }
     } catch (error) {
@@ -361,7 +353,6 @@ export default function CreateAgentPage() {
     }
   };
 
-  // Function to create agent with transaction hash
   const createAgentWithTxHash = async (txHash: string) => {
     if (!txHash || !currentAddress) {
       console.error('❌ Missing transaction hash or address');
@@ -379,7 +370,6 @@ export default function CreateAgentPage() {
 
       showToast('AGENT_CREATING', 'loading');
 
-      // Convert keywords to knowledge and objectives
       const tradingBehavior = `Risk profile: ${
         formData.riskTolerance
       }/100. Analysis timeframe: ${
@@ -400,7 +390,7 @@ export default function CreateAgentPage() {
       const agentConfig: AgentConfig = {
         name: formData.name,
         bio: formData.bio,
-        lore: formData.lore ? [formData.lore] : [], // Convert lore to array format
+        lore: formData.lore ? [formData.lore] : [],
         objectives: objectives,
         knowledge: knowledge,
         interval: formData.interval,
@@ -422,7 +412,6 @@ export default function CreateAgentPage() {
         console.log('🔵 Agent Creation Initiated:', result);
         showToast('AGENT_CREATING', 'success');
 
-        // Redirect to deploying state page with orchestration ID
         setTimeout(() => {
           console.log('🔄 Redirecting to deployment status page...');
           router.push(
@@ -453,7 +442,6 @@ export default function CreateAgentPage() {
     watch: true,
   });
 
-  // Monitor transaction status
   React.useEffect(() => {
     if (isLoading || !transactionHash) return;
 
@@ -465,7 +453,6 @@ export default function CreateAgentPage() {
     if (receiptData) {
       console.log('🔵 Transaction Receipt:', receiptData);
 
-      // Check if it's an invoke transaction
       if (
         'finality_status' in receiptData &&
         'execution_status' in receiptData
@@ -483,7 +470,6 @@ export default function CreateAgentPage() {
     }
   }, [receiptData, receiptError, isLoading, transactionHash]);
 
-  // Effect to redirect if no address
   useEffect(() => {
     if (!currentAddress && !isLoading && privyReady) {
       router.push('/');
@@ -493,7 +479,6 @@ export default function CreateAgentPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-start pt-24">
       <div className="container max-w-2xl mx-auto px-4 pb-24 relative">
-        {/* Wallet Connection Overlay */}
         <WalletConnectionOverlay
           isVisible={!isWalletConnected}
           connectStarknet={connectStarknet}
@@ -515,7 +500,6 @@ export default function CreateAgentPage() {
             Back to Home
           </Button>
 
-          {/* Curve Indicator */}
           <div className="w-full bg-gray-100 h-12 rounded-lg relative overflow-hidden">
             <div
               className={`h-full transition-all duration-300 ${
@@ -548,7 +532,6 @@ export default function CreateAgentPage() {
                   Deploy Your Agent
                 </h1>
 
-                {/* Agent Name */}
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-base font-medium">
                     Agent Name
@@ -577,13 +560,11 @@ export default function CreateAgentPage() {
                   />
                 </div>
 
-                {/* Profile Picture */}
                 <ProfilePictureUpload
                   onFileSelect={setProfilePicture}
                   agentType={agentType}
                 />
 
-                {/* Keywords */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <Label className="text-base font-medium">
@@ -654,7 +635,6 @@ export default function CreateAgentPage() {
                   </div>
                 </div>
 
-                {/* Risk Tolerance Slider */}
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <Label
@@ -692,7 +672,6 @@ export default function CreateAgentPage() {
                   </div>
                 </div>
 
-                {/* Analysis Period Slider */}
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <Label
@@ -730,7 +709,6 @@ export default function CreateAgentPage() {
                   </div>
                 </div>
 
-                {/* Generated Bio Preview */}
                 <div className="space-y-2 bg-muted/50 p-4 rounded-lg relative">
                   <div className="flex justify-between items-center">
                     <Label className="text-base font-medium">
@@ -773,7 +751,6 @@ export default function CreateAgentPage() {
                   )}
                 </div>
 
-                {/* Deploy Button */}
                 <Button
                   type="submit"
                   size="lg"
