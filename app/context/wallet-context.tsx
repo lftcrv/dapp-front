@@ -182,7 +182,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem('starknet_wallet_cache');
   }, []);
 
-  // Phase 1: Connect wallet (keep this function simple)
   const connectStarknet = useCallback(async () => {
     if (isLoadingWallet || privyAuthenticated) return;
 
@@ -196,7 +195,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
 
       await connect({ connector });
-      // Don't do anything with starknetAddress here - let the useEffect handle it
     } catch (_error) {
       console.error('Failed to connect wallet:', _error);
       clearStarknetState();
@@ -210,10 +208,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     clearStarknetState,
     connect,
     starknetkitConnectModal,
-    // REMOVE starknetAddress from dependencies!
   ]);
 
-  // Phase 2: Create user when wallet connected (in a useEffect)
   useEffect(() => {
     const createUserAfterConnection = async () => {
       // Only proceed if wallet is connected and we have an address
@@ -222,15 +218,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        console.log('Address is available, creating user for:', starknetAddress);
-        
         // Check referral status for UI blurring purposes
         const hasValidRef = await checkUserReferralStatus(starknetAddress);
         
-        console.log('before handleStarknetConnection');
         // Always create/update the user, regardless of referral status
         const result = await handleStarknetConnection(starknetAddress, referralCode);
-        console.log('after handleStarknetConnection', result);
         
         // Fetch updated user data after connection
         await fetchUserData(starknetAddress);
