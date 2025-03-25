@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useState, Suspense } from 'react';
+import { useState, Suspense } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { TopAgents } from '@/components/top-agents';
