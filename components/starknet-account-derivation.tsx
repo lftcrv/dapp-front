@@ -20,7 +20,7 @@ export const StarknetAccountDerivation = memo(
 
     const deriveStarknetAccount = useCallback(async () => {
       if (!privyAddress) return null;
-
+    
       // Find the wallet that matches the EVM address
       const evmWallet = wallets.find(
         (w: ConnectedWallet) =>
@@ -30,8 +30,10 @@ export const StarknetAccountDerivation = memo(
         // This is an expected case when wallet is not ready yet
         return null;
       }
-
+    
       try {
+        // Always derive the account with the referral code, which will create
+        // the user regardless of whether the referral is valid
         const account = await deriveAccount(
           privyAddress,
           async (message) => {
@@ -39,9 +41,9 @@ export const StarknetAccountDerivation = memo(
           },
           referralCode // Pass referral code to derive account function
         );
-
+    
         if (account?.starknetAddress) {
-          // Check referral status for the newly derived Starknet address
+          // Check referral status for the UI blurring, but don't block account creation
           await onReferralCheck(account.starknetAddress);
           showToast('DEPLOYED', 'success');
         }

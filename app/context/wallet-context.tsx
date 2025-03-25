@@ -201,18 +201,17 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // Save/update user in database only if we have an address
       if (starknetAddress) {
         try {
-          // Check referral status before attempting to create/update user
+          // Check referral status for UI blurring purposes
           const hasValidRef = await checkUserReferralStatus(starknetAddress);
           
-          if (hasValidRef || referralCode) {
-            // Only proceed with user registration if they have a valid referral
-            // or there's a referral code (even if invalid, we'll create the user but keep blur)
-            const result = await handleStarknetConnection(starknetAddress, referralCode);
-            
-            // Fetch updated user data after connection
-            await fetchUserData(starknetAddress);
-          } else {
-            // No referral code, show notification to user
+          // Always create/update the user, regardless of referral status
+          const result = await handleStarknetConnection(starknetAddress, referralCode);
+          
+          // Fetch updated user data after connection
+          await fetchUserData(starknetAddress);
+          
+          // If no valid referral, still show the notification
+          if (!hasValidRef && !referralCode) {
             showToast('REFERRAL_REQUIRED', 'error');
           }
         } catch (err) {
