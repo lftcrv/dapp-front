@@ -600,8 +600,8 @@ export default function CreateAgentPage() {
                     </Button>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Enter 3 keywords that define your agent's trading identity
-                    and expertise
+                    Enter 3 keywords that define your agent&apos;s trading
+                    identity and expertise
                   </p>
                   <div className="grid grid-cols-3 gap-3">
                     {[0, 1, 2].map((index) => (
