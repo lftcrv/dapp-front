@@ -28,6 +28,11 @@ const navigation = [
     segment: null,
   },
   {
+    name: 'How It Works',
+    href: '/how-it-works',
+    segment: 'how-it-works',
+  },
+  {
     name: 'Create Agent',
     href: '/create-agent',
     segment: 'create-agent',
