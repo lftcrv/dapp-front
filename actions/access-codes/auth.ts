@@ -20,7 +20,7 @@ console.log('Admin wallet addresses raw:', process.env.ADMIN_WALLET_ADDRESSES);
  * - Converts to lowercase
  * - Ensures it has 0x prefix
  */
-function normalizeAddress(address: string): string {
+export function normalizeAddress(address: string): string {
   if (!address) return '';
   
   // Convert to lowercase

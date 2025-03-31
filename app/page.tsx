@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { Suspense, useState, useCallback, useRef } from 'react';
+import Image from 'next/image';
+import { motion } from 'framer-motion';
 import { useAgents } from '@/hooks/use-agents';
 import Background from '@/components/ui/background';
-
 // Import home components without Background
 import {
   HeroSection,

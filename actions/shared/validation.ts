@@ -86,3 +86,25 @@ export function validateApiResponse(response: Response): void {
     }
   }
 }
+
+/**
+ * Normalizes a wallet address to a consistent format
+ * - Converts to lowercase
+ * - Ensures it has 0x prefix
+ * 
+ * @param address The wallet address to normalize
+ * @returns The normalized address
+ */
+export function normalizeAddress(address: string): string {
+  if (!address) return '';
+  
+  // Convert to lowercase
+  let normalized = address.trim().toLowerCase();
+  
+  // Ensure 0x prefix
+  if (!normalized.startsWith('0x')) {
+    normalized = `0x${normalized}`;
+  }
+  
+  return normalized;
+}
