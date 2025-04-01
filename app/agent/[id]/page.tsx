@@ -223,10 +223,8 @@ function getAssetColor(symbol: string): string {
     ARB: '#28A0F0',
     OP: '#FF0420',
   };
-
-  return (
-    colorMap[symbol] || `#${Math.floor(Math.random() * 16777215).toString(16)}`
-  );
+  
+  return colorMap[symbol] || `#${Math.floor(Math.random()*16777215).toString(16)}`;
 }
 
 type PageProps = {
