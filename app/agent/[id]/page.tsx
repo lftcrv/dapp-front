@@ -5,13 +5,24 @@ import { getCompleteAgentData } from '@/actions/agents/token/getTokenInfo';
 import { tradeService } from '@/lib/services/api/trades';
 import { AgentPortfolio } from '@/components/agent/agent-portfolio';
 import Image from 'next/image';
-import { getAgentTradeCount } from '@/actions/metrics/agent/getAgentTradeCount';
-import { getPortfolioValue } from '@/actions/agents/portfolio/getPortfolioValue';
-import { getAssetAllocation } from '@/actions/agents/portfolio/getAssetAllocation';
-import { getPerformanceMetrics } from '@/actions/agents/portfolio/getPerformanceMetrics';
-import { getPortfolioHistory } from '@/actions/agents/portfolio/getPortfolioHistory';
-import { getBalanceHistory } from '@/actions/agents/portfolio/getBalanceHistory';
-import { getCurrentBalance } from '@/actions/agents/portfolio/getCurrentBalance';
+import { getAgentTradeCount } from '@/actions/metrics/agent';
+import {
+  getPortfolioValue,
+  getAssetAllocation,
+  getPerformanceMetrics,
+  getPortfolioHistory,
+  getBalanceHistory,
+  getCurrentBalance,
+} from '@/actions/agents/portfolio';
+import {
+  AssetAllocation,
+  AgentTradeCount as AgentTradeCountType,
+  CurrentBalance,
+  PnLResponse,
+  PerformanceMetrics as PerformanceMetricsType,
+  PerformanceHistory,
+  BalanceHistory,
+} from '@/lib/types';
 
 // Mark this page as dynamic to skip static build
 export const dynamic = 'force-dynamic';
@@ -46,7 +57,7 @@ const getCachedPageData = unstable_cache(
       performanceMetricsResult,
       portfolioHistoryResult,
       balanceHistoryResult,
-      currentBalanceResult
+      currentBalanceResult,
     ] = await Promise.all([
       getAgentTradeCount(agentId),
       getPortfolioValue(agentId),
@@ -54,59 +65,138 @@ const getCachedPageData = unstable_cache(
       getPerformanceMetrics(agentId),
       getPortfolioHistory(agentId, { interval: 'daily' }),
       getBalanceHistory(agentId),
-      getCurrentBalance(agentId)
+      getCurrentBalance(agentId),
     ]);
+
+    // Helper function to get values safely
+    const getSafeValue = <T, K>(
+      result: { success: boolean; data?: T },
+      valueGetter: (data: T) => K,
+      defaultValue: K,
+    ): K => {
+      if (!result.success || !result.data) return defaultValue;
+      try {
+        return valueGetter(result.data);
+      } catch {
+        return defaultValue;
+      }
+    };
 
     // Build real portfolio data from API responses
     const portfolioData = {
-      totalValue: currentBalanceResult.success && currentBalanceResult.data?.currentBalance ? currentBalanceResult.data.currentBalance : 0,
-      change24h: performanceMetricsResult.success && performanceMetricsResult.data?.dailyPnL ? performanceMetricsResult.data.dailyPnL : 0,
-      changeValue24h: portfolioValueResult.success && portfolioValueResult.data?.pnl ? portfolioValueResult.data.pnl : 0,
-      
+      totalValue: getSafeValue<CurrentBalance, number>(
+        currentBalanceResult,
+        (data) => data.currentBalance,
+        0,
+      ),
+
+      change24h: getSafeValue<PerformanceMetricsType, number>(
+        performanceMetricsResult,
+        (data) => data.dailyPnL,
+        0,
+      ),
+
+      changeValue24h: getSafeValue<PnLResponse, number>(
+        portfolioValueResult,
+        (data) => data.pnl,
+        0,
+      ),
+
       // Asset allocation data
-      allocation: assetAllocationResult.success && assetAllocationResult.data?.assets 
-        ? assetAllocationResult.data.assets.map(asset => ({
+      allocation: getSafeValue<
+        AssetAllocation,
+        Array<{
+          asset: string;
+          value: number;
+          percentage: number;
+          color: string;
+        }>
+      >(
+        assetAllocationResult,
+        (data) =>
+          data.assets.map((asset) => ({
             asset: asset.symbol,
             value: asset.value,
             percentage: asset.percentage,
-            color: getAssetColor(asset.symbol) // Helper function to assign colors
-          }))
-        : [],
-      
+            color: getAssetColor(asset.symbol),
+          })),
+        [],
+      ),
+
       // Historical data from portfolio history
-      historicalData: portfolioHistoryResult.success && portfolioHistoryResult.data?.snapshots
-        ? portfolioHistoryResult.data.snapshots.map(snapshot => ({
-            date: snapshot.timestamp.split('T')[0],
-            value: snapshot.balanceInUSD
-          }))
-        : [],
-      
+      historicalData: getSafeValue<
+        BalanceHistory,
+        Array<{ date: string; value: number }>
+      >(
+        balanceHistoryResult,
+        (data) =>
+          data.balances.map((item) => ({
+            date: item.createdAt.split('T')[0],
+            value: item.balanceInUSD,
+          })),
+        // Fall back to performance history if balance history not available
+        getSafeValue<
+          PerformanceHistory,
+          Array<{ date: string; value: number }>
+        >(
+          portfolioHistoryResult,
+          (data) =>
+            data.snapshots.map((snapshot) => ({
+              date: snapshot.timestamp.split('T')[0],
+              value: snapshot.balanceInUSD,
+            })),
+          [],
+        ),
+      ),
+
       // PnL data
       pnlData: {
-        total: portfolioValueResult.success && portfolioValueResult.data?.pnl ? portfolioValueResult.data.pnl : 0,
-        percentage: portfolioValueResult.success && portfolioValueResult.data?.pnlPercentage ? portfolioValueResult.data.pnlPercentage : 0,
-        monthly: portfolioHistoryResult.success && portfolioHistoryResult.data?.snapshots
-          ? portfolioHistoryResult.data.snapshots.map(snapshot => ({
+        total: getSafeValue<PnLResponse, number>(
+          portfolioValueResult,
+          (data) => data.pnl,
+          0,
+        ),
+
+        percentage: getSafeValue<PnLResponse, number>(
+          portfolioValueResult,
+          (data) => data.pnlPercentage,
+          0,
+        ),
+
+        monthly: getSafeValue<
+          PerformanceHistory,
+          Array<{ date: string; value: number }>
+        >(
+          portfolioHistoryResult,
+          (data) =>
+            data.snapshots.map((snapshot) => ({
               date: snapshot.timestamp.split('T')[0],
-              value: snapshot.pnl
-            }))
-          : [],
+              value: snapshot.pnl,
+            })),
+          [],
+        ),
       },
-      
+
       // Other metrics (some still mocked until API endpoints are available)
       ranking: {
         global: 17, // Mock data - API doesn't provide this yet
         category: 5, // Mock data - API doesn't provide this yet
-        change: 3,  // Mock data - API doesn't provide this yet
+        change: 3, // Mock data - API doesn't provide this yet
       },
-      
-      totalTrades: tradeCountResult.success && tradeCountResult.data?.tradeCount ? tradeCountResult.data.tradeCount : 0,
+
+      totalTrades: getSafeValue<AgentTradeCountType, number>(
+        tradeCountResult,
+        (data) => data.tradeCount,
+        0,
+      ),
+
       forkingRevenue: 1258.42, // Mock data - API doesn't provide this yet
     };
 
     return {
       agent: agentResult.data,
-      trades: tradesResult.success && tradesResult.data ? tradesResult.data : [],
+      trades:
+        tradesResult.success && tradesResult.data ? tradesResult.data : [],
       portfolio: portfolioData,
     };
   },
@@ -120,21 +210,23 @@ const getCachedPageData = unstable_cache(
 // Helper function to assign colors to assets
 function getAssetColor(symbol: string): string {
   const colorMap: Record<string, string> = {
-    'ETH': '#627EEA',
-    'WETH': '#627EEA',
-    'BTC': '#F7931A',
-    'WBTC': '#F7931A',
-    'USDC': '#2775CA',
-    'USDT': '#26A17B',
-    'DAI': '#F5AC37',
-    'STRK': '#FF4C8B',
-    'PEPE': '#52B788',
-    'SHIB': '#FFA409',
-    'ARB': '#28A0F0',
-    'OP': '#FF0420'
+    ETH: '#627EEA',
+    WETH: '#627EEA',
+    BTC: '#F7931A',
+    WBTC: '#F7931A',
+    USDC: '#2775CA',
+    USDT: '#26A17B',
+    DAI: '#F5AC37',
+    STRK: '#FF4C8B',
+    PEPE: '#52B788',
+    SHIB: '#FFA409',
+    ARB: '#28A0F0',
+    OP: '#FF0420',
   };
-  
-  return colorMap[symbol] || `#${Math.floor(Math.random()*16777215).toString(16)}`;
+
+  return (
+    colorMap[symbol] || `#${Math.floor(Math.random() * 16777215).toString(16)}`
+  );
 }
 
 type PageProps = {
@@ -144,10 +236,10 @@ type PageProps = {
 
 export default async function AgentPortfolioPage(props: PageProps) {
   const { params, searchParams } = props;
-  
+
   const resolvedParams = await params;
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  
+
   if (!resolvedParams.id) {
     notFound();
   }
@@ -162,7 +254,9 @@ export default async function AgentPortfolioPage(props: PageProps) {
 
   // Check if simplified view is requested via URL param
   const simplified = resolvedSearchParams?.simplified;
-  const useSimplifiedView = simplified === 'true' || (Array.isArray(simplified) && simplified[0] === 'true');
+  const useSimplifiedView =
+    simplified === 'true' ||
+    (Array.isArray(simplified) && simplified[0] === 'true');
 
   return (
     <main className="flex min-h-screen flex-col relative">

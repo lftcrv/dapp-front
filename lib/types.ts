@@ -456,3 +456,114 @@ export interface TokenMarketData {
   bondingStatus: 'BONDING' | 'LIVE';
   holders: number | null;
 }
+
+// Metrics types
+export interface TotalAgentCount {
+  totalAgentCount: number;
+}
+
+export interface TotalTradeCount {
+  totalTradeCount: number;
+}
+
+export interface TotalTVL {
+  totalTVL: number;
+}
+
+export interface TotalBalance {
+  totalBalance: number;
+}
+
+export interface AgentTradeCount {
+  agentId: string;
+  name: string;
+  tradeCount: number;
+}
+
+export interface GlobalMetrics {
+  totalAgentCount: number;
+  totalTradeCount: number;
+  totalTVL: number;
+  totalBalance: number;
+}
+
+// Portfolio types
+export interface AssetAllocation {
+  agentId: string;
+  assets: {
+    symbol: string;
+    name: string;
+    value: number;
+    percentage: number;
+  }[];
+  timestamp: string;
+}
+
+export interface PnLResponse {
+  agentId: string;
+  runtimeAgentId: string;
+  name: string;
+  pnl: number;
+  pnlPercentage: number;
+  firstBalanceDate: string;
+  latestBalanceDate: string;
+  firstBalance: number;
+  latestBalance: number;
+}
+
+export interface PerformanceSnapshot {
+  id?: string;
+  agentId: string;
+  timestamp: string;
+  balanceInUSD: number;
+  pnl: number;
+  pnlPercentage: number;
+  pnl24h: number;
+  pnlCycle: number;
+  tradeCount: number;
+  tvl: number;
+  price: number;
+  marketCap: number;
+  dataPoints?: number;
+}
+
+export interface PerformanceHistory {
+  agentId: string;
+  interval: 'hourly' | 'daily' | 'weekly';
+  snapshots: PerformanceSnapshot[];
+}
+
+export interface PerformanceHistoryParams {
+  interval?: 'hourly' | 'daily' | 'weekly';
+  from?: string;
+  to?: string;
+}
+
+export interface PerformanceMetrics {
+  agentId: string;
+  dailyPnL: number;
+  weeklyPnL: number;
+  monthlyPnL: number;
+  sharpeRatio?: number;
+  maxDrawdown?: number;
+  winRate?: number;
+  averageTradeSize?: number;
+  tradeFrequency?: number;
+}
+
+export interface BalanceHistoryItem {
+  id: string;
+  balanceInUSD: number;
+  createdAt: string;
+}
+
+export interface BalanceHistory {
+  agentId: string;
+  balances: BalanceHistoryItem[];
+}
+
+export interface CurrentBalance {
+  agentId: string;
+  currentBalance: number;
+  timestamp: string;
+}
