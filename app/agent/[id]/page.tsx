@@ -134,7 +134,7 @@ function getAssetColor(symbol: string): string {
     'OP': '#FF0420'
   };
   
-  return colorMap[symbol] || `#${Math.floor(Math.random()*16777215).toString(16)}`;
+  return colorMap[symbol] || `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`;
 }
 
 type PageProps = {
