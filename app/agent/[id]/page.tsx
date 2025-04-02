@@ -8,12 +8,14 @@ import Image from 'next/image';
 import { getAgentTradeCount } from '@/actions/metrics/agent';
 import {
   getPortfolioValue,
+  getAssetAllocation,
   getPerformanceMetrics,
   getPortfolioHistory,
   getBalanceHistory,
   getCurrentBalance,
 } from '@/actions/agents/portfolio';
 import {
+  AssetAllocation,
   AgentTradeCount as AgentTradeCountType,
   CurrentBalance,
   PnLResponse,
@@ -51,6 +53,7 @@ const getCachedPageData = unstable_cache(
     const [
       tradeCountResult,
       portfolioValueResult,
+      assetAllocationResult,
       performanceMetricsResult,
       portfolioHistoryResult,
       balanceHistoryResult,
@@ -58,6 +61,7 @@ const getCachedPageData = unstable_cache(
     ] = await Promise.all([
       getAgentTradeCount(agentId),
       getPortfolioValue(agentId),
+      getAssetAllocation(agentId),
       getPerformanceMetrics(agentId),
       getPortfolioHistory(agentId, { interval: 'daily' }),
       getBalanceHistory(agentId),
@@ -97,9 +101,27 @@ const getCachedPageData = unstable_cache(
         (data) => data.pnl,
         0,
       ),
-      
-      // Empty allocation array since we're using a dedicated component now
-      allocation: [],
+
+      // Asset allocation data
+      allocation: getSafeValue<
+        AssetAllocation,
+        Array<{
+          asset: string;
+          value: number;
+          percentage: number;
+          color: string;
+        }>
+      >(
+        assetAllocationResult,
+        (data) =>
+          data.assets.map((asset) => ({
+            asset: asset.symbol,
+            value: asset.value,
+            percentage: asset.percentage,
+            color: getAssetColor(asset.symbol),
+          })),
+        [],
+      ),
 
       // Historical data from portfolio history
       historicalData: getSafeValue<
@@ -185,6 +207,26 @@ const getCachedPageData = unstable_cache(
   },
 );
 
+// Helper function to assign colors to assets
+function getAssetColor(symbol: string): string {
+  const colorMap: Record<string, string> = {
+    ETH: '#627EEA',
+    WETH: '#627EEA',
+    BTC: '#F7931A',
+    WBTC: '#F7931A',
+    USDC: '#2775CA',
+    USDT: '#26A17B',
+    DAI: '#F5AC37',
+    STRK: '#FF4C8B',
+    PEPE: '#52B788',
+    SHIB: '#FFA409',
+    ARB: '#28A0F0',
+    OP: '#FF0420',
+  };
+  
+  return colorMap[symbol] || `#${Math.floor(Math.random()*16777215).toString(16)}`;
+}
+
 type PageProps = {
   params: Promise<{ id: string }>;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -208,35 +250,45 @@ export default async function AgentPortfolioPage(props: PageProps) {
     notFound();
   }
 
-  // Check if a simplified view is requested
-  const minimalView =
-    resolvedSearchParams && resolvedSearchParams.minimal === 'true';
+  // Check if simplified view is requested via URL param
+  const simplified = resolvedSearchParams?.simplified;
+  const useSimplifiedView =
+    simplified === 'true' ||
+    (Array.isArray(simplified) && simplified[0] === 'true');
 
   return (
-    <div className="container mx-auto px-4 md:mt-6 pb-16">
-      <Suspense
-        fallback={
-          <div className="flex justify-center items-center h-64">
-            <div className="relative w-16 h-16">
-              <Image
-                src="/logo.svg"
-                alt="Loading..."
-                fill
-                className="animate-pulse"
-              />
+    <main className="flex min-h-screen flex-col relative">
+      {/* Background image */}
+      <div className="fixed inset-0 z-0 w-screen h-screen">
+        <Image
+          src="/Group 5749-min.jpg"
+          alt="Background Pattern"
+          fill
+          className="object-cover"
+          priority
+        />
+      </div>
+
+      {/* Gradient overlay */}
+      <div className="fixed inset-0 z-0 bg-gradient-to-br from-orange-600/30 via-transparent to-purple-600/30 pointer-events-none" />
+
+      <div className="container max-w-7xl mx-auto px-4 py-6 pt-28 relative z-10">
+        {/* Display the portfolio components */}
+        <Suspense
+          fallback={
+            <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-500"></div>
             </div>
-          </div>
-        }
-      >
-        <div className="grid grid-cols-1 gap-6">
+          }
+        >
           <AgentPortfolio
             agent={agent}
             trades={trades}
             portfolio={portfolio}
-            useSimplifiedView={minimalView}
+            useSimplifiedView={useSimplifiedView}
           />
-        </div>
-      </Suspense>
-    </div>
+        </Suspense>
+      </div>
+    </main>
   );
 }

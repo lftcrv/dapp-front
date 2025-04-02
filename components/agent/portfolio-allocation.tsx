@@ -41,7 +41,7 @@ const CustomTooltip = ({ active, payload }: any) => {
       <div className="bg-[#232229] p-3 rounded-lg shadow-lg border border-gray-700 text-white">
         <div className="font-medium text-white">{data.name}</div>
         <div className="font-mono text-white">
-          ${data.value.toLocaleString(undefined, {
+          Ξ{data.value.toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           })}
@@ -161,7 +161,7 @@ const PortfolioAllocation = memo(({ allocation }: PortfolioAllocationProps) => {
                       <span className="font-medium text-white">{item.asset}</span>
                     </td>
                     <td className="py-3 text-right font-mono text-white">
-                      ${formatValue(item.value)}
+                      Ξ{formatValue(item.value)}
                     </td>
                     <td className="py-3 text-right">
                       <div className="flex items-center justify-end">
@@ -186,7 +186,7 @@ const PortfolioAllocation = memo(({ allocation }: PortfolioAllocationProps) => {
                 <tr className="border-t border-gray-700">
                   <td className="pt-3 font-medium text-white">Total</td>
                   <td className="pt-3 text-right font-mono font-medium text-white">
-                    ${formatValue(
+                    Ξ{formatValue(
                       allocation.reduce((sum, item) => sum + item.value, 0)
                     )}
                   </td>
