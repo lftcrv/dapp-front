@@ -1,7 +1,6 @@
 'use server';
 
-import { callApi } from './api-utils';
-import { PerformanceHistory, PerformanceHistoryParams } from '@/lib/types/portfolio';
+import { PerformanceHistory, PerformanceHistoryParams } from '@/lib/types';
 
 /**
  * Fetches portfolio history for a specific agent with optional filtering
@@ -11,6 +10,9 @@ export async function getPortfolioHistory(
   params?: PerformanceHistoryParams
 ) {
   try {
+    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://127.0.0.1:8080';
+    const apiKey = process.env.API_KEY || 'secret';
+    
     // Default to hourly if not specified
     const interval = params?.interval || 'hourly';
     
@@ -27,16 +29,26 @@ export async function getPortfolioHistory(
       queryParams.to = params.to;
     }
 
-    const response = await callApi<PerformanceHistory>(
-      `/api/performance/${agentId}/history`,
-      'GET',
-      undefined,
-      queryParams
-    );
+    // Build query string
+    const queryString = new URLSearchParams(queryParams).toString();
+    
+    const response = await fetch(`${apiUrl}/api/performance/${agentId}/history?${queryString}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+      },
+      next: { revalidate: 10 }
+    });
 
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+
+    const data = await response.json() as PerformanceHistory;
     return {
       success: true,
-      data: response
+      data
     };
   } catch (error) {
     console.error('Error fetching portfolio history:', error);

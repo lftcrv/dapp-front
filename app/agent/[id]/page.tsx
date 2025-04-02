@@ -5,6 +5,24 @@ import { getCompleteAgentData } from '@/actions/agents/token/getTokenInfo';
 import { tradeService } from '@/lib/services/api/trades';
 import { AgentPortfolio } from '@/components/agent/agent-portfolio';
 import Image from 'next/image';
+import { getAgentTradeCount } from '@/actions/metrics/agent';
+import {
+  getPortfolioValue,
+  getAssetAllocation,
+  getPerformanceMetrics,
+  getPortfolioHistory,
+  getBalanceHistory,
+  getCurrentBalance,
+} from '@/actions/agents/portfolio';
+import {
+  AssetAllocation,
+  AgentTradeCount as AgentTradeCountType,
+  CurrentBalance,
+  PnLResponse,
+  PerformanceMetrics as PerformanceMetricsType,
+  PerformanceHistory,
+  BalanceHistory,
+} from '@/lib/types';
 
 // Mark this page as dynamic to skip static build
 export const dynamic = 'force-dynamic';
@@ -31,54 +49,148 @@ const getCachedPageData = unstable_cache(
     // Get trades separately as they're not part of the agent endpoint
     const tradesResult = await tradeService.getByAgent(agentId);
 
-    // Mock portfolio data (in real implementation this would come from an API)
+    // Fetch agent-specific metrics and portfolio data
+    const [
+      tradeCountResult,
+      portfolioValueResult,
+      assetAllocationResult,
+      performanceMetricsResult,
+      portfolioHistoryResult,
+      balanceHistoryResult,
+      currentBalanceResult,
+    ] = await Promise.all([
+      getAgentTradeCount(agentId),
+      getPortfolioValue(agentId),
+      getAssetAllocation(agentId),
+      getPerformanceMetrics(agentId),
+      getPortfolioHistory(agentId, { interval: 'daily' }),
+      getBalanceHistory(agentId),
+      getCurrentBalance(agentId),
+    ]);
+
+    // Helper function to get values safely
+    const getSafeValue = <T, K>(
+      result: { success: boolean; data?: T },
+      valueGetter: (data: T) => K,
+      defaultValue: K,
+    ): K => {
+      if (!result.success || !result.data) return defaultValue;
+      try {
+        return valueGetter(result.data);
+      } catch {
+        return defaultValue;
+      }
+    };
+
+    // Build real portfolio data from API responses
     const portfolioData = {
-      totalValue: 42689.75,
-      change24h: 8.25, // Percentage
-      changeValue24h: 3248.92, // Absolute value
-      allocation: [
-        { asset: 'ETH', value: 18450.25, percentage: 43.2, color: '#627EEA' },
-        { asset: 'USDC', value: 12500.0, percentage: 29.3, color: '#2775CA' },
-        { asset: 'WBTC', value: 8950.5, percentage: 21.0, color: '#F7931A' },
-        { asset: 'STRK', value: 2789.0, percentage: 6.5, color: '#FF4C8B' },
-      ],
-      historicalData: Array.from({ length: 30 }).map((_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - (29 - i));
+      totalValue: getSafeValue<CurrentBalance, number>(
+        currentBalanceResult,
+        (data) => data.currentBalance,
+        0,
+      ),
 
-        // Generate semi-realistic looking chart data with some volatility
-        const baseValue = 35000;
-        const trend = Math.sin(i / 5) * 3000; // General trend
-        const noise = (Math.random() - 0.5) * 2000; // Random noise
+      change24h: getSafeValue<PerformanceMetricsType, number>(
+        performanceMetricsResult,
+        (data) => data.dailyPnL,
+        0,
+      ),
 
-        return {
-          date: date.toISOString().split('T')[0],
-          value: baseValue + trend + noise + i * 300, // Slightly upward trend
-        };
-      }),
+      changeValue24h: getSafeValue<PnLResponse, number>(
+        portfolioValueResult,
+        (data) => data.pnl,
+        0,
+      ),
+
+      // Asset allocation data
+      allocation: getSafeValue<
+        AssetAllocation,
+        Array<{
+          asset: string;
+          value: number;
+          percentage: number;
+          color: string;
+        }>
+      >(
+        assetAllocationResult,
+        (data) =>
+          data.assets.map((asset) => ({
+            asset: asset.symbol,
+            value: asset.value,
+            percentage: asset.percentage,
+            color: getAssetColor(asset.symbol),
+          })),
+        [],
+      ),
+
+      // Historical data from portfolio history
+      historicalData: getSafeValue<
+        BalanceHistory,
+        Array<{ date: string; value: number }>
+      >(
+        balanceHistoryResult,
+        (data) =>
+          data.balances.map((item) => ({
+            date: item.createdAt.split('T')[0],
+            value: item.balanceInUSD,
+          })),
+        // Fall back to performance history if balance history not available
+        getSafeValue<
+          PerformanceHistory,
+          Array<{ date: string; value: number }>
+        >(
+          portfolioHistoryResult,
+          (data) =>
+            data.snapshots.map((snapshot) => ({
+              date: snapshot.timestamp.split('T')[0],
+              value: snapshot.balanceInUSD,
+            })),
+          [],
+        ),
+      ),
+
+      // PnL data
       pnlData: {
-        total: 12450.25,
-        percentage: 41.2,
-        monthly: Array.from({ length: 30 }).map((_, i) => {
-          const date = new Date();
-          date.setDate(date.getDate() - (29 - i));
+        total: getSafeValue<PnLResponse, number>(
+          portfolioValueResult,
+          (data) => data.pnl,
+          0,
+        ),
 
-          const isProfitable = Math.random() > 0.3; // 70% chance of profit
-          const value = Math.random() * 500 * (isProfitable ? 1 : -1);
+        percentage: getSafeValue<PnLResponse, number>(
+          portfolioValueResult,
+          (data) => data.pnlPercentage,
+          0,
+        ),
 
-          return {
-            date: date.toISOString().split('T')[0],
-            value,
-          };
-        }),
+        monthly: getSafeValue<
+          PerformanceHistory,
+          Array<{ date: string; value: number }>
+        >(
+          portfolioHistoryResult,
+          (data) =>
+            data.snapshots.map((snapshot) => ({
+              date: snapshot.timestamp.split('T')[0],
+              value: snapshot.pnl,
+            })),
+          [],
+        ),
       },
+
+      // Other metrics (some still mocked until API endpoints are available)
       ranking: {
-        global: 17,
-        category: 5,
-        change: 3, // Moved up 3 places
+        global: 17, // Mock data - API doesn't provide this yet
+        category: 5, // Mock data - API doesn't provide this yet
+        change: 3, // Mock data - API doesn't provide this yet
       },
-      totalTrades: 237,
-      forkingRevenue: 1258.42,
+
+      totalTrades: getSafeValue<AgentTradeCountType, number>(
+        tradeCountResult,
+        (data) => data.tradeCount,
+        0,
+      ),
+
+      forkingRevenue: 1258.42, // Mock data - API doesn't provide this yet
     };
 
     return {
@@ -95,6 +207,26 @@ const getCachedPageData = unstable_cache(
   },
 );
 
+// Helper function to assign colors to assets
+function getAssetColor(symbol: string): string {
+  const colorMap: Record<string, string> = {
+    ETH: '#627EEA',
+    WETH: '#627EEA',
+    BTC: '#F7931A',
+    WBTC: '#F7931A',
+    USDC: '#2775CA',
+    USDT: '#26A17B',
+    DAI: '#F5AC37',
+    STRK: '#FF4C8B',
+    PEPE: '#52B788',
+    SHIB: '#FFA409',
+    ARB: '#28A0F0',
+    OP: '#FF0420',
+  };
+  
+  return colorMap[symbol] || `#${Math.floor(Math.random()*16777215).toString(16)}`;
+}
+
 type PageProps = {
   params: Promise<{ id: string }>;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -102,10 +234,10 @@ type PageProps = {
 
 export default async function AgentPortfolioPage(props: PageProps) {
   const { params, searchParams } = props;
-  
+
   const resolvedParams = await params;
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  
+
   if (!resolvedParams.id) {
     notFound();
   }
@@ -120,7 +252,9 @@ export default async function AgentPortfolioPage(props: PageProps) {
 
   // Check if simplified view is requested via URL param
   const simplified = resolvedSearchParams?.simplified;
-  const useSimplifiedView = simplified === 'true' || (Array.isArray(simplified) && simplified[0] === 'true');
+  const useSimplifiedView =
+    simplified === 'true' ||
+    (Array.isArray(simplified) && simplified[0] === 'true');
 
   return (
     <main className="flex min-h-screen flex-col relative">

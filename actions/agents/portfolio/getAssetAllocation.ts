@@ -1,7 +1,6 @@
 'use server';
 
-import { callApi } from './api-utils';
-import { AssetAllocation } from '@/lib/types/portfolio';
+import { AssetAllocation } from '@/lib/types';
 
 /**
  * Fetches asset allocation data for a specific agent
@@ -11,18 +10,27 @@ import { AssetAllocation } from '@/lib/types/portfolio';
  */
 export async function getAssetAllocation(agentId: string) {
   try {
-    // Assuming the endpoint might be something like /api/performance/{agentId}/assets
-    // or we might need to derive this from portfolio or trade history
+    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://127.0.0.1:8080';
+    const apiKey = process.env.API_KEY || 'secret';
     
-    // For now, we'll implement a placeholder that makes a call to a hypothetical endpoint
-    const response = await callApi<AssetAllocation>(
-      `/api/performance/${agentId}/assets`,
-      'GET'
-    );
+    // Assuming the endpoint might be something like /api/performance/{agentId}/assets
+    const response = await fetch(`${apiUrl}/api/performance/${agentId}/assets`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+      },
+      next: { revalidate: 10 }
+    });
 
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+
+    const data = await response.json() as AssetAllocation;
     return {
       success: true,
-      data: response
+      data
     };
   } catch (error) {
     console.error('Error fetching asset allocation:', error);

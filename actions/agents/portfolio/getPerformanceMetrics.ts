@@ -1,7 +1,10 @@
 'use server';
 
-import { callApi } from './api-utils';
-import { PerformanceMetrics, PerformanceHistory, PerformanceSnapshot } from '@/lib/types/portfolio';
+import {
+  PerformanceMetrics,
+  PerformanceHistory,
+  PerformanceSnapshot,
+} from '@/lib/types';
 
 /**
  * Fetches the latest performance metrics for a specific agent
@@ -10,33 +13,63 @@ import { PerformanceMetrics, PerformanceHistory, PerformanceSnapshot } from '@/l
  */
 export async function getPerformanceMetrics(agentId: string) {
   try {
+    const apiUrl =
+      process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://127.0.0.1:8080';
+    const apiKey = process.env.API_KEY || 'secret';
+
     try {
       // First try the direct endpoint
-      const response = await callApi<PerformanceMetrics>(
-        `/api/performance/${agentId}`,
-        'GET'
-      );
+      const response = await fetch(`${apiUrl}/api/performance/${agentId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+        },
+        next: { revalidate: 10 },
+      });
 
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+
+      const data = (await response.json()) as PerformanceMetrics;
       return {
         success: true,
-        data: response
+        data,
       };
-    } catch (directEndpointError) {
-      console.log('Direct metrics endpoint not available, falling back to history endpoint');
-      
-      // If the direct endpoint fails, try to get the latest snapshot from history
-      const historyResponse = await callApi<PerformanceHistory>(
-        `/api/performance/${agentId}/history?interval=hourly`,
-        'GET'
+    } catch {
+      console.log(
+        'Direct metrics endpoint not available, falling back to history endpoint',
       );
 
-      if (historyResponse?.snapshots?.length > 0) {
+      // If the direct endpoint fails, try to get the latest snapshot from history
+      const historyResponse = await fetch(
+        `${apiUrl}/api/performance/${agentId}/history?interval=hourly`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+          },
+          next: { revalidate: 10 },
+        },
+      );
+
+      if (!historyResponse.ok) {
+        throw new Error(
+          `History API request failed with status ${historyResponse.status}`,
+        );
+      }
+
+      const historyData = (await historyResponse.json()) as PerformanceHistory;
+
+      if (historyData?.snapshots?.length > 0) {
         // Get the most recent snapshot
-        const latestSnapshot = historyResponse.snapshots
-          .sort((a: PerformanceSnapshot, b: PerformanceSnapshot) => 
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-          )[0];
-        
+        const latestSnapshot = historyData.snapshots.sort(
+          (a: PerformanceSnapshot, b: PerformanceSnapshot) =>
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+        )[0];
+
         // Convert to the expected format
         const metrics: PerformanceMetrics = {
           agentId: latestSnapshot.agentId,
@@ -48,24 +81,26 @@ export async function getPerformanceMetrics(agentId: string) {
           maxDrawdown: undefined,
           winRate: undefined,
           averageTradeSize: undefined,
-          tradeFrequency: latestSnapshot.tradeCount > 0 ? 
-            latestSnapshot.tradeCount / 24 : // assuming hourly data for 24 hours
-            0
+          tradeFrequency:
+            latestSnapshot.tradeCount > 0
+              ? latestSnapshot.tradeCount / 24 // assuming hourly data for 24 hours
+              : 0,
         };
 
         return {
           success: true,
-          data: metrics
+          data: metrics,
         };
       }
-      
+
       throw new Error('No performance data available');
     }
   } catch (error) {
     console.error('Error fetching performance metrics:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'An unexpected error occurred',
+      error:
+        error instanceof Error ? error.message : 'An unexpected error occurred',
     };
   }
-} 
+}
