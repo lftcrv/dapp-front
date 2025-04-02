@@ -91,6 +91,7 @@ export default function RootLayout({
       >
         <Providers>
           <ProvidersWrapper>
+            {/* Always render the main application structure */}
             <div className="relative flex min-h-screen flex-col">
               <div className="glow" />
               <React.Suspense fallback={<LayoutSkeleton />}>

@@ -4,27 +4,32 @@ import { validateAccessCode } from '../access-codes/validate';
 import { User } from '@/types/user';
 
 /**
- * Validates a referral code and registers/updates a user with it
+ * Validates a referral code via the backend.
+ * Assumes the backend API sets the necessary cookie upon success.
  * 
  * @param code The referral code to validate
- * @param userId The id of the user
- * @returns Result of the operation
+ * @param user The user object (optional, depends on backend validation logic)
+ * @returns Result of the validation operation
  */
-export async function validateReferralCode(code: string, user: User): Promise<{
+export async function validateReferralCode(code: string, user?: User): Promise<{
   success: boolean;
   message?: string;
   error?: string;
 }> {
   try {
-    if (!code || !user.id) {
+    // Use user.id if available, otherwise pass an identifier if required by backend
+    // Adjust "anonymous" or remove userId entirely if your backend doesn't need it for initial validation
+    const userIdForValidation = user?.id || 'anonymous'; 
+
+    if (!code) {
       return {
         success: false,
-        error: 'Missing referral code or wallet address'
+        error: 'Missing referral code'
       };
     }
 
-    // 1. Validate the code
-    const validationResult = await validateAccessCode(code, user.id);
+    // Validate the code via backend
+    const validationResult = await validateAccessCode(code, userIdForValidation);
     console.log('validationResult', validationResult);
     if (!validationResult.isValid) {
       return {
@@ -33,9 +38,11 @@ export async function validateReferralCode(code: string, user: User): Promise<{
       };
     }
 
+    // Backend is assumed to set the cookie here
+
     return {
       success: true,
-      message: 'User created successfully with referral code'
+      message: 'Referral code validated successfully'
     };
 
   } catch (error) {
