@@ -5,9 +5,20 @@
  */
 export async function checkAdminAccessDirectly(privyWalletAddress?: string, starknetWalletAddress?: string) {
   try {
-    // Get the authorized wallet addresses from environment variables
-    const adminWalletAddresses = process.env.ADMIN_WALLET_ADDRESSES
-      ? process.env.ADMIN_WALLET_ADDRESSES.split(',').map(addr => addr.trim().toLowerCase())
+    // Debug server environment variables
+    console.log('Server: Environment variables available:');
+    console.log('ADMIN_WALLET_ADDRESSES:', process.env.ADMIN_WALLET_ADDRESSES?.substring(0, 10) + '...');
+    console.log('NEXT_PUBLIC_ADMIN_WALLET_ADDRESSES:', process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESSES?.substring(0, 10) + '...');
+    
+    // CRITICAL FIX: There's a mismatch between the two environment variables!
+    // The client uses NEXT_PUBLIC_ADMIN_WALLET_ADDRESSES, but the server was using only ADMIN_WALLET_ADDRESSES
+    // This means client-side checks passed but server-side checks failed
+    // We'll now prioritize the NEXT_PUBLIC value for consistency
+    
+    const adminWalletString = process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESSES || process.env.ADMIN_WALLET_ADDRESSES || '';
+    
+    const adminWalletAddresses = adminWalletString
+      ? adminWalletString.split(',').map(addr => addr.trim().toLowerCase())
       : [];
     
     console.log('Server: Admin wallet addresses:', adminWalletAddresses);

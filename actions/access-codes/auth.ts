@@ -3,8 +3,8 @@ const API_BASE_URL = '/api/access-code';
 // Get the list of authorized admin wallet addresses from environment variables
 // This will only work on the server side, so we'll need to use this in a server action
 const ADMIN_WALLET_ADDRESSES = 
-  typeof window === 'undefined' && process.env.ADMIN_WALLET_ADDRESSES
-    ? process.env.ADMIN_WALLET_ADDRESSES.split(',').map(addr => {
+  typeof window === 'undefined' && (process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESSES || process.env.ADMIN_WALLET_ADDRESSES)
+    ? ((process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESSES || process.env.ADMIN_WALLET_ADDRESSES) ?? '').split(',').map(addr => {
         // Normalize the address: lowercase and ensure 0x prefix
         const normalized = addr.trim().toLowerCase();
         return normalized.startsWith('0x') ? normalized : `0x${normalized}`;
@@ -14,6 +14,7 @@ const ADMIN_WALLET_ADDRESSES =
 // Debug log for admin wallet addresses
 console.log('Admin wallet addresses:', ADMIN_WALLET_ADDRESSES);
 console.log('Admin wallet addresses raw:', process.env.ADMIN_WALLET_ADDRESSES);
+console.log('NEXT_PUBLIC_ADMIN_WALLET_ADDRESSES raw:', process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESSES);
 
 /**
  * Normalizes a wallet address to a consistent format

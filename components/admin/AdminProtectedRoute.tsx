@@ -9,9 +9,13 @@ import { checkAdminAccessDirectly } from './admin-actions';
 
 interface AdminProtectedRouteProps {
   children: React.ReactNode;
+  skipRedirect?: boolean; // New prop to skip redirect when used in layouts
 }
 
-const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ children }) => {
+const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ 
+  children,
+  skipRedirect = false // Default to false for backward compatibility
+}) => {
   const router = useRouter();
   const { toast } = useToast();
   const { user, ready } = usePrivy();
@@ -33,6 +37,12 @@ const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ children }) =
 
   // Separate effect to watch for wallet changes
   useEffect(() => {
+    // Add debug logging for environment variables
+    console.log('AdminProtectedRoute: Environment variables check');
+    console.log('Client-side env var:', process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESSES);
+    console.log('Skip redirect setting:', skipRedirect);
+    // Note: Non-NEXT_PUBLIC_ variables won't be available on the client
+    
     if (ready && (starknetWallet.address || currentAddress)) {
       verifyAdminAccess();
     }
@@ -50,7 +60,8 @@ const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ children }) =
         privyWalletAddress: user?.wallet?.address,
         starknetWalletExists: !!starknetWallet.address,
         starknetWalletAddress: starknetWallet.address,
-        currentAddress
+        currentAddress,
+        skipRedirect
       });
 
       // Check if we have any wallet address to use
@@ -86,22 +97,32 @@ const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ children }) =
         setIsAuthorized(true);
       } else {
         setIsAuthorized(false);
-        toast({
-          title: 'Access Denied',
-          description: 'You do not have permission to access this page.',
-          variant: 'destructive',
-        });
-        router.push('/');
+        
+        // Only show toast and redirect if skipRedirect is false
+        if (!skipRedirect) {
+          toast({
+            title: 'Access Denied',
+            description: 'You do not have permission to access this page.',
+            variant: 'destructive',
+          });
+          router.push('/');
+        } else {
+          console.log('Access denied but skipRedirect is true, not redirecting');
+        }
       }
     } catch (error) {
       console.error('Error checking admin access:', error);
       setIsAuthorized(false);
-      toast({
-        title: 'Error',
-        description: 'Failed to verify admin access.',
-        variant: 'destructive',
-      });
-      router.push('/');
+      
+      // Only show toast and redirect if skipRedirect is false
+      if (!skipRedirect) {
+        toast({
+          title: 'Error',
+          description: 'Failed to verify admin access.',
+          variant: 'destructive',
+        });
+        router.push('/');
+      }
     } finally {
       setIsLoading(false);
     }

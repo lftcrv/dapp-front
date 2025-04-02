@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import AdminProtectedRoute from '../../../components/admin/AdminProtectedRoute';
+import AdminProtectedRoute from '../../components/admin/AdminProtectedRoute';
 import { useWallet } from '@/app/context/wallet-context';
 import { WalletButton } from '@/components/wallet-button';
 
@@ -23,7 +23,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const walletAddress = starknetWallet.address?.toLowerCase() || '';
     const isAdmin = adminWallets.includes(walletAddress);
     
-    console.log('Admin layout check:', {
+    console.log('Main Admin layout check:', {
       walletAddress,
       isAdmin,
       adminWallets

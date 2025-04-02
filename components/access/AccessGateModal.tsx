@@ -3,7 +3,13 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWallet } from '@/app/context/wallet-context';
-import { AlertCircle, ArrowRight, CheckCircle, Wallet, LockKeyhole } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowRight,
+  CheckCircle,
+  Wallet,
+  LockKeyhole,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { validateReferralCode } from '@/actions/users/validate-referral-code';
@@ -11,18 +17,21 @@ import { showToast } from '@/lib/toast';
 
 type AccessStep = 'welcome' | 'connect' | 'referral' | 'success';
 
-export function AccessGateModal({ 
-  isConnected, 
-  onClose 
-}: { 
+export function AccessGateModal({
+  isConnected,
+  onClose,
+}: {
   isConnected: boolean;
   onClose: () => void;
 }) {
-  const { user, starknetWallet, privyAuthenticated, connectStarknet } = useWallet();
+  const { user, starknetWallet, privyAuthenticated, connectStarknet } =
+    useWallet();
   const [referralCode, setReferralCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentStep, setCurrentStep] = useState<AccessStep>(isConnected ? 'referral' : 'welcome');
+  const [currentStep, setCurrentStep] = useState<AccessStep>(
+    isConnected ? 'referral' : 'welcome',
+  );
   const walletAddress = starknetWallet.address || '';
 
   const handleConnect = useCallback(async () => {
@@ -35,46 +44,53 @@ export function AccessGateModal({
     }
   }, [connectStarknet]);
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
 
-    if (!referralCode.trim()) {
-      setError('Please enter a referral code');
-      return;
-    }
-    
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
-      const result = await validateReferralCode(referralCode, user ?? undefined);
-      
-      if (!result.success) {
-        setError(result.error || 'Invalid referral code');
-        showToast('REFERRAL_ERROR', 'error');
+      if (!referralCode.trim()) {
+        setError('Please enter a referral code');
         return;
       }
 
-      if (isConnected && walletAddress) {
-        console.log('Storing authorized wallet address:', walletAddress);
-        localStorage.setItem('access_authorized_address', walletAddress);
+      setIsSubmitting(true);
+      setError(null);
+
+      try {
+        const result = await validateReferralCode(
+          referralCode,
+          user ?? undefined,
+        );
+
+        if (!result.success) {
+          setError(result.error || 'Invalid referral code');
+          showToast('REFERRAL_ERROR', 'error');
+          return;
+        }
+
+        if (isConnected && walletAddress) {
+          console.log('Storing authorized wallet address:', walletAddress);
+          localStorage.setItem('access_authorized_address', walletAddress);
+        }
+
+        setCurrentStep('success');
+        showToast('REFERRAL_SUCCESS', 'success');
+
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } catch (err) {
+        console.error('Error submitting referral code:', err);
+        setError(
+          err instanceof Error ? err.message : 'An unknown error occurred',
+        );
+        showToast('REFERRAL_ERROR', 'error');
+      } finally {
+        setIsSubmitting(false);
       }
-
-      setCurrentStep('success');
-      showToast('REFERRAL_SUCCESS', 'success');
-      
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-
-    } catch (err) {
-      console.error('Error submitting referral code:', err);
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
-      showToast('REFERRAL_ERROR', 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [referralCode, user, isConnected, walletAddress]);
+    },
+    [referralCode, user, isConnected, walletAddress],
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
@@ -104,10 +120,11 @@ export function AccessGateModal({
                     Exclusive Access Required
                   </h2>
                   <p className="text-gray-300 mb-8">
-                    This application requires an access code or an existing account connection.
+                    This application requires an access code or an existing
+                    account connection.
                   </p>
                   <div className="space-y-4">
-                    <Button 
+                    <Button
                       onClick={() => setCurrentStep('connect')}
                       className="w-full bg-gradient-to-r from-orange-500 to-purple-500 rounded-md py-3 px-4 text-white font-medium hover:from-orange-600 hover:to-purple-600 transition-all duration-200 flex items-center justify-center"
                     >
@@ -123,7 +140,7 @@ export function AccessGateModal({
                         <span className="px-2 bg-black text-gray-400">or</span>
                       </div>
                     </div>
-                    <Button 
+                    <Button
                       onClick={() => setCurrentStep('referral')}
                       className="w-full bg-transparent border border-orange-500/50 hover:border-orange-500 rounded-md py-3 px-4 text-white font-medium transition-all duration-200"
                     >
@@ -150,17 +167,18 @@ export function AccessGateModal({
                     Connect Your Wallet
                   </h2>
                   <p className="text-gray-300 mb-8">
-                    Connect your wallet to access the application. If you've used the app before, you'll get immediate access.
+                    Connect your wallet to access the application. If you've
+                    used the app before, you'll get immediate access.
                   </p>
                   <div className="space-y-4">
-                    <Button 
+                    <Button
                       onClick={handleConnect}
                       className="w-full bg-gradient-to-r from-orange-500 to-purple-500 rounded-md py-3 px-4 text-white font-medium hover:from-orange-600 hover:to-purple-600 transition-all duration-200 flex items-center justify-center"
                     >
                       <Wallet className="w-4 h-4 mr-2" />
                       Connect Wallet
                     </Button>
-                    <Button 
+                    <Button
                       onClick={() => setCurrentStep('welcome')}
                       className="w-full bg-transparent hover:bg-gray-900 rounded-md py-3 px-4 text-gray-400 font-medium transition-all duration-200"
                     >
@@ -187,11 +205,11 @@ export function AccessGateModal({
                     Enter Access Code
                   </h2>
                   <p className="text-gray-300 mb-6">
-                    {isConnected 
-                      ? "Your wallet is connected but you need an access code to continue."
-                      : "Enter an access code to unlock the application."}
+                    {isConnected
+                      ? 'Your wallet is connected but you need an access code to continue.'
+                      : 'Enter an access code to unlock the application.'}
                   </p>
-                  
+
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                       <Input
@@ -203,10 +221,12 @@ export function AccessGateModal({
                         disabled={isSubmitting}
                       />
                       {error && (
-                        <p className="mt-2 text-sm text-red-500 text-center">{error}</p>
+                        <p className="mt-2 text-sm text-red-500 text-center">
+                          {error}
+                        </p>
                       )}
                     </div>
-                    
+
                     <Button
                       type="submit"
                       disabled={isSubmitting || !referralCode.trim()}
@@ -214,20 +234,22 @@ export function AccessGateModal({
                     >
                       {isSubmitting ? 'Validating...' : 'Submit Code'}
                     </Button>
-                    
+
                     {!isConnected && (
                       <div className="relative mt-6">
                         <div className="absolute inset-0 flex items-center">
                           <div className="w-full border-t border-gray-700"></div>
                         </div>
                         <div className="relative flex justify-center text-sm">
-                          <span className="px-2 bg-black text-gray-400">or</span>
+                          <span className="px-2 bg-black text-gray-400">
+                            or
+                          </span>
                         </div>
                       </div>
                     )}
-                    
+
                     {!isConnected ? (
-                      <Button 
+                      <Button
                         onClick={() => setCurrentStep('connect')}
                         className="w-full bg-transparent border border-orange-500/50 hover:border-orange-500 rounded-md py-3 px-4 text-white font-medium transition-all duration-200 flex items-center justify-center"
                       >
@@ -235,7 +257,7 @@ export function AccessGateModal({
                         Connect Wallet Instead
                       </Button>
                     ) : (
-                      <Button 
+                      <Button
                         onClick={() => onClose()}
                         className="w-full bg-transparent hover:bg-gray-900 rounded-md py-3 px-4 text-gray-400 font-medium transition-all duration-200 mt-2"
                       >
@@ -245,7 +267,7 @@ export function AccessGateModal({
                   </form>
                 </motion.div>
               )}
-              
+
               {currentStep === 'success' && (
                 <motion.div
                   key="success"
@@ -276,4 +298,4 @@ export function AccessGateModal({
       </motion.div>
     </div>
   );
-} 
+}
