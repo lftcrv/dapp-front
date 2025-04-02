@@ -4,15 +4,16 @@ import { AssetAllocation } from '@/lib/types';
 
 /**
  * Fetches asset allocation data for a specific agent
- * 
- * Endpoint: GET /api/performance/:agentId/assets
- * Returns asset allocation data including symbols, values, percentages
+ * Note: This is a placeholder implementation as the specific endpoint
+ * for asset allocation is not specified in the API documentation.
+ * This might need to be updated once the actual endpoint is available.
  */
 export async function getAssetAllocation(agentId: string) {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://127.0.0.1:8080';
     const apiKey = process.env.API_KEY || 'secret';
     
+    // Assuming the endpoint might be something like /api/performance/{agentId}/assets
     const response = await fetch(`${apiUrl}/api/performance/${agentId}/assets`, {
       method: 'GET',
       headers: {
@@ -26,44 +27,10 @@ export async function getAssetAllocation(agentId: string) {
       throw new Error(`API request failed with status ${response.status}`);
     }
 
-    const apiResponse = await response.json();
-    
-    // Log for debugging
-    console.log('Asset allocation API response:', apiResponse);
-    
-    // Check if the response has the expected structure
-    if (apiResponse.status !== 'success' || !apiResponse.data || !apiResponse.data.assets) {
-      console.error('Unexpected API response structure:', apiResponse);
-      throw new Error('Unexpected API response structure');
-    }
-    
-    // Extract the relevant data
-    const { assets, totalBalance, timestamp } = apiResponse.data;
-    
-    // Define the expected API asset type
-    interface ApiAsset {
-      symbol: string;
-      allocation: number;
-      balance: number;
-      price: number;
-      valueUsd: number;
-    }
-    
-    // Transform the API response to match the expected AssetAllocation type
-    const transformedData: AssetAllocation = {
-      agentId,
-      timestamp,
-      assets: assets.map((asset: ApiAsset) => ({
-        symbol: asset.symbol,
-        name: asset.symbol, // Using symbol as name if name isn't provided
-        value: asset.valueUsd,
-        percentage: asset.allocation * 100, // Convert from decimal to percentage
-      }))
-    };
-    
+    const data = await response.json() as AssetAllocation;
     return {
       success: true,
-      data: transformedData
+      data
     };
   } catch (error) {
     console.error('Error fetching asset allocation:', error);
