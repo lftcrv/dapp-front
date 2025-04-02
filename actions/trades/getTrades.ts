@@ -9,6 +9,30 @@ import {
   CancelOrderTradeInfo,
 } from '@/lib/types';
 
+// Add an interface for the simple trade format from the API
+interface SimpleTradeInfo {
+  asset: string;
+  price: number;
+  amount: number;
+  reasoning?: string;
+  timestamp: string;
+  totalCost: number;
+  tradeType: 'BUY' | 'SELL';
+}
+
+// Type guard for simple trade format
+function isSimpleTrade(info: any): info is SimpleTradeInfo {
+  return (
+    info &&
+    typeof info === 'object' &&
+    typeof info.tradeType === 'string' &&
+    (info.tradeType === 'BUY' || info.tradeType === 'SELL') &&
+    typeof info.asset === 'string' &&
+    info.amount !== undefined &&
+    info.price !== undefined
+  );
+}
+
 export async function getTrades(agentId?: string) {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
@@ -68,7 +92,34 @@ export async function getTrades(agentId?: string) {
           };
         }
 
-        // Determine the trade type based on the information structure
+        // Check for simple trade format first
+        if (isSimpleTrade(trade.information)) {
+          const info = trade.information;
+          const simpleTradeType = info.tradeType.toLowerCase() as TradeType;
+
+          return {
+            ...commonTrade,
+            type: simpleTradeType,
+            amount: info.amount,
+            price: info.price,
+            summary:
+              info.reasoning ||
+              `${info.tradeType} ${info.amount} ${info.asset} at $${info.price}`,
+            information: {
+              ...info,
+              // Add normalized trade property for UI display
+              trade: {
+                side: info.tradeType,
+                size: String(info.amount),
+                market: `${info.asset}-USD`,
+                price: String(info.price),
+                explanation: info.reasoning || '',
+              },
+            },
+          };
+        }
+
+        // Handle other trade formats (paradex, etc.)
         if ('tradeType' in trade.information) {
           // Handle Paradex trades
           if (trade.information.tradeType === 'paradexPlaceOrderMarket') {
@@ -109,7 +160,7 @@ export async function getTrades(agentId?: string) {
           }
         }
         // Legacy format handling
-        else if (trade.information.trade) {
+        else if ('trade' in trade.information) {
           const legacyInfo = trade.information;
           return {
             ...commonTrade,
@@ -124,6 +175,7 @@ export async function getTrades(agentId?: string) {
             information: trade.information,
           };
         }
+
         // Default case for unknown formats
         return {
           ...commonTrade,
