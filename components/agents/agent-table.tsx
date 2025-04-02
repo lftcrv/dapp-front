@@ -77,41 +77,31 @@ const AgentRow = memo(({ agent, index }: AgentRowProps) => {
   const isBonding = agentMarketData?.bondingStatus === 'BONDING' || isInBondingPhase(agent.price, agent.holders);
   const isLeftCurve = agent.type === 'leftcurve';
 
-  // Helper function to safely format ETH values from Wei with bold non-zero digits
-  const formatEthValue = (value: string | number | undefined | null) => {
-    if (value === undefined || value === null) return '0';
-    
-    // Convert to number and then to ETH (1 ETH = 10^18 Wei)
-    const weiValue = typeof value === 'string' ? parseFloat(value) : value;
-    const ethValue = weiValue / 1e18;
-    
-    // Format with scientific notation for small numbers
-    let formattedValue;
-    if (ethValue < 0.000001) {
-      formattedValue = ethValue.toExponential(2);
-    } else {
-      // Format with exactly 6 decimal places for larger numbers
-      formattedValue = ethValue.toLocaleString('en-US', {
-        minimumFractionDigits: 6,
-        maximumFractionDigits: 6,
-        useGrouping: true,
-      });
-    }
-
-    // Split the string into characters and wrap non-zero digits in strong tags
-    return formattedValue.split('').map((char) => {
-      if (char >= '1' && char <= '9') {
-        return `<strong>${char}</strong>`;
-      }
-      return char;
-    }).join('');
+  // Helper function to format currency values
+  const formatCurrency = (value: number | undefined | null) => {
+    if (value === undefined || value === null) return 'N/A';
+    return `$${value.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}`;
   };
 
-  // Helper function to safely format regular numbers (like holders count)
-  const formatNumber = (value: string | number | undefined | null) => {
-    if (value === undefined || value === null) return '0';
-    const num = typeof value === 'string' ? parseFloat(value) : value;
-    return num.toLocaleString();
+  // Helper function to format percentages
+  const formatPercentage = (value: number | undefined | null) => {
+    if (value === undefined || value === null) return 'N/A';
+    const formattedValue = (value * 100).toFixed(2);
+    const isPositive = value > 0;
+    return (
+      <span className={isPositive ? 'text-green-500' : 'text-red-500'}>
+        {isPositive ? '+' : ''}{formattedValue}%
+      </span>
+    );
+  };
+
+  // Helper function to safely format numbers (like trade count)
+  const formatNumber = (value: number | undefined | null) => {
+    if (value === undefined || value === null) return 'N/A';
+    return value.toLocaleString();
   };
 
   return (
@@ -166,25 +156,19 @@ const AgentRow = memo(({ agent, index }: AgentRowProps) => {
         </span>
       </TableCell>
       <TableCell className="text-right font-mono text-xs py-2">
-        <span className="font-medium">Ξ</span>
-        <span 
-          className="tabular-nums" 
-          dangerouslySetInnerHTML={{ __html: formatEthValue(agentMarketData?.price || agent.price) }}
-        />
+        <span className="font-medium">#{formatNumber(agent.cycleRanking || 0)}</span>
       </TableCell>
       <TableCell className="text-right py-2">
-        {typeof agentMarketData?.priceChange24h === 'number' ? (
-          <PriceChange initialValue={agentMarketData.priceChange24h} />
-        ) : (
-          <span className="text-xs text-muted-foreground font-mono">N/A</span>
-        )}
+        {formatPercentage(agent.pnl24h || agentMarketData?.priceChange24h || 0)}
       </TableCell>
       <TableCell className="text-right font-mono text-xs py-2">
-        <span className="font-medium">Ξ</span>
-        <span 
-          className="tabular-nums"
-          dangerouslySetInnerHTML={{ __html: formatEthValue(agentMarketData?.marketCap || agent.marketCap) }}
-        />
+        {formatPercentage(agent.pnlCycle || 0)}
+      </TableCell>
+      <TableCell className="text-right font-mono text-xs py-2">
+        {formatNumber(agent.tradeCount || 0)}
+      </TableCell>
+      <TableCell className="text-right font-mono text-xs py-2">
+        {formatCurrency(agent.tvl || 0)}
       </TableCell>
       <TableCell className="text-right font-mono text-[10px] py-2">
         <div
@@ -195,29 +179,7 @@ const AgentRow = memo(({ agent, index }: AgentRowProps) => {
           )}
         >
           <Users className="w-2.5 h-2.5" />
-          {(agentMarketData?.holders || agent.holders) > 0 ? 
-            formatNumber(agentMarketData?.holders || agent.holders) : 
-            'N/A'
-          }
-        </div>
-      </TableCell>
-      <TableCell className="text-right py-2">
-        <div className="flex flex-col items-end">
-          <div
-            className={cn(
-              'font-mono text-xs',
-              isLeftCurve ? 'text-orange-500' : 'text-purple-500',
-            )}
-          >
-            {isLeftCurve
-              ? `DEGEN ${(agent.creativityIndex * 100).toFixed(0)}%`
-              : `WIN ${(agent.performanceIndex * 100).toFixed(0)}%`}
-          </div>
-          <div className="text-[10px] text-muted-foreground">
-            {isLeftCurve
-              ? `win ${(agent.performanceIndex * 100).toFixed(0)}%`
-              : `degen ${(agent.creativityIndex * 100).toFixed(0)}%`}
-          </div>
+          {formatNumber(agent.forkerCount || 0)}
         </div>
       </TableCell>
       <TableCell className="py-2">
@@ -324,50 +286,73 @@ export function AgentTable({
             <TableHead className="text-right text-xs py-2">
               {showSortControls ? (
                 <TableHeaderCell
-                  label="Price"
-                  sortKey="price"
+                  label="Cycle Ranking"
+                  sortKey="cycleRanking"
                   currentSort={sortConfig}
                   onSort={onSort}
                 />
               ) : (
-                'Price'
-              )}
-            </TableHead>
-            <TableHead className="text-right text-xs py-2">24h</TableHead>
-            <TableHead className="text-right text-xs py-2">
-              {showSortControls ? (
-                <TableHeaderCell
-                  label="Market Cap"
-                  sortKey="marketCap"
-                  currentSort={sortConfig}
-                  onSort={onSort}
-                />
-              ) : (
-                'Market Cap'
+                'Cycle Ranking'
               )}
             </TableHead>
             <TableHead className="text-right text-xs py-2">
               {showSortControls ? (
                 <TableHeaderCell
-                  label="Holders"
-                  sortKey="holders"
+                  label="PnL (24h)"
+                  sortKey="pnl24h"
                   currentSort={sortConfig}
                   onSort={onSort}
                 />
               ) : (
-                'Holders'
+                'PnL (24h)'
               )}
             </TableHead>
             <TableHead className="text-right text-xs py-2">
               {showSortControls ? (
                 <TableHeaderCell
-                  label="Score"
-                  sortKey="performanceIndex"
+                  label="PnL (Cycle)"
+                  sortKey="pnlCycle"
                   currentSort={sortConfig}
                   onSort={onSort}
                 />
               ) : (
-                'Score'
+                'PnL (Cycle)'
+              )}
+            </TableHead>
+            <TableHead className="text-right text-xs py-2">
+              {showSortControls ? (
+                <TableHeaderCell
+                  label="#Trades"
+                  sortKey="tradeCount"
+                  currentSort={sortConfig}
+                  onSort={onSort}
+                />
+              ) : (
+                '#Trades'
+              )}
+            </TableHead>
+            <TableHead className="text-right text-xs py-2">
+              {showSortControls ? (
+                <TableHeaderCell
+                  label="TVL"
+                  sortKey="tvl"
+                  currentSort={sortConfig}
+                  onSort={onSort}
+                />
+              ) : (
+                'TVL'
+              )}
+            </TableHead>
+            <TableHead className="text-right text-xs py-2">
+              {showSortControls ? (
+                <TableHeaderCell
+                  label="#Forkers"
+                  sortKey="forkerCount"
+                  currentSort={sortConfig}
+                  onSort={onSort}
+                />
+              ) : (
+                '#Forkers'
               )}
             </TableHead>
             <TableHead className="text-right text-xs py-2">

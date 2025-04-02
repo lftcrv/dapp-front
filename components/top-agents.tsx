@@ -30,6 +30,17 @@ const AgentItem = memo(
     // Debug log agent data
     React.useEffect(() => {}, [agent]);
 
+    // Format percentage for PnL display
+    const formatPnL = (value: number | undefined) => {
+      if (value === undefined) return "N/A";
+      const isPositive = value > 0;
+      return (
+        <span className={isPositive ? "text-green-500" : "text-red-500"}>
+          {isPositive ? "+" : ""}{(value * 100).toFixed(1)}%
+        </span>
+      );
+    };
+
     return (
       <Link href={`/agent/${agent.id}`}>
         <motion.div
@@ -103,31 +114,15 @@ const AgentItem = memo(
                     </span>
                   </div>
                   <div className="text-[10px] text-muted-foreground font-mono">
-                    {agent.holders.toLocaleString()} holders
+                    {agent.tradeCount || 0} trades
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="font-mono text-[10px]">
-                    {agent.contractAddress
-                      ? `Ξ${(agent.price / 1e18)
-                          .toFixed(14)
-                          .replace(/\.?0+$/, '')}`
-                      : 'Initializing...'}
+                    PnL (Cycle): {formatPnL(agent.pnlCycle)}
                   </div>
-                  <div
-                    className={cn(
-                      'font-mono text-[10px] font-bold',
-                      type === 'leftcurve'
-                        ? 'text-orange-500'
-                        : 'text-purple-500',
-                    )}
-                  >
-                    {(
-                      (type === 'leftcurve'
-                        ? agent.creativityIndex
-                        : agent.performanceIndex) * 100
-                    ).toFixed(0)}
-                    %
+                  <div className="font-mono text-[10px]">
+                    PnL (24h): {formatPnL(agent.pnl24h || agent.priceChange24h)}
                   </div>
                 </div>
               </div>

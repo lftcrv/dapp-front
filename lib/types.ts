@@ -242,6 +242,12 @@ export interface Agent {
   buyTax?: number;
   sellTax?: number;
   priceChange24h?: number;
+  cycleRanking?: number;
+  pnl24h?: number;
+  pnlCycle?: number;
+  tradeCount?: number;
+  tvl?: number;
+  forkerCount?: number;
   characterConfig?: CharacterConfig;
   latestMarketData?: {
     price: number;
