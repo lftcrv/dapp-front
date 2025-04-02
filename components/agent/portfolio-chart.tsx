@@ -282,7 +282,7 @@ const PortfolioChart = memo(
             
             // For missing dates, estimate value by using the most recent previous value
             let estimatedValue = 0;
-            let currentDate = new Date(date);
+            const currentDate = new Date(date);
             currentDate.setDate(currentDate.getDate() - 1);
             
             while (currentDate >= startDate) {
