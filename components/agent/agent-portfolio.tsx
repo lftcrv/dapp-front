@@ -6,7 +6,7 @@ import SimpleAgentCard from '@/components/agent/simple-agent-card';
 import PortfolioStats from '@/components/agent/portfolio-stats';
 import PortfolioChart from '@/components/agent/portfolio-chart';
 import PortfolioPnL from '@/components/agent/portfolio-pnl';
-import AgentAssetAllocation from '@/components/agent/agent-asset-allocation';
+import PortfolioAllocation from '@/components/agent/portfolio-allocation';
 import dynamic from 'next/dynamic';
 
 // Dynamically import AgentTrades to prevent hydration issues
@@ -23,7 +23,7 @@ interface PortfolioData {
   totalValue: number;
   change24h: number;
   changeValue24h: number;
-  allocation?: Array<{
+  allocation: Array<{
     asset: string;
     value: number;
     percentage: number;
@@ -71,7 +71,7 @@ export const AgentPortfolio = memo(
     }).format(createdDate);
 
     return (
-      <div className="space-y-6 pt-20">
+      <div className="space-y-6">
         {/* Agent Card */}
         <SimpleAgentCard 
           agent={agent} 
@@ -93,7 +93,6 @@ export const AgentPortfolio = memo(
                 totalTrades={portfolio.totalTrades}
                 forkingRevenue={portfolio.forkingRevenue}
                 agentType={agent.type}
-                agentId={agent.id}
               />
             </div>
 
@@ -110,7 +109,6 @@ export const AgentPortfolio = memo(
                   totalValue={portfolio.totalValue}
                   change24h={portfolio.change24h}
                   changeValue24h={portfolio.changeValue24h}
-                  agentId={agent.id}
                 />
               </div>
 
@@ -120,21 +118,17 @@ export const AgentPortfolio = memo(
                   <span className="mr-2">Profit & Loss</span>
                   <span className="text-blue-600">💰</span>
                 </h2>
-                <PortfolioPnL data={{
-                  ...portfolio.pnlData,
-                  monthly: portfolio.pnlData?.monthly || [],
-                  agentId: agent.id
-                }} />
+                <PortfolioPnL data={portfolio.pnlData} />
               </div>
             </div>
 
-            {/* Asset Allocation */}
+            {/* Portfolio Allocation */}
             <div className="bg-[#F6ECE7] rounded-xl p-6 shadow-sm">
               <h2 className="font-sketch text-2xl mb-4 flex items-center justify-center text-gray-800">
                 <span className="mr-2">Asset Allocation</span>
                 <span className="text-purple-600">🧩</span>
               </h2>
-              <AgentAssetAllocation agentId={agent.id} />
+              <PortfolioAllocation allocation={portfolio.allocation} />
             </div>
 
             {/* Trade History */}
