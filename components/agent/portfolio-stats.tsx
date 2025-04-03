@@ -1,12 +1,11 @@
 'use client';
 
-import { memo, useEffect, useState } from 'react';
+import { memo } from 'react';
 
 import { Trophy, BarChart3, GitFork, ArrowUp, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AgentType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { getAgentTradeCount } from '@/actions/metrics/agent/getAgentTradeCount';
 
 interface PortfolioStatsProps {
   ranking: {
@@ -17,47 +16,16 @@ interface PortfolioStatsProps {
   totalTrades: number;
   forkingRevenue: number;
   agentType: AgentType;
-  agentId?: string; // Optional agent ID for API calls
 }
 
 const PortfolioStats = memo(
   ({
     ranking,
-    totalTrades: initialTotalTrades,
+    totalTrades,
     forkingRevenue,
     agentType,
-    agentId
   }: PortfolioStatsProps) => {
-    const [tradeCount, setTradeCount] = useState<number>(initialTotalTrades);
-    const [isLoading, setIsLoading] = useState<boolean>(false);
-    
-    // Fetch trade count from API when agentId is available
-    useEffect(() => {
-      if (!agentId) return;
-      
-      const fetchTradeCount = async () => {
-        setIsLoading(true);
-        try {
-          // Use the server action to fetch trade count
-          const result = await getAgentTradeCount(agentId);
-          
-          if (result.success && result.data) {
-            const apiTradeCount = result.data.tradeCount || 0;
-            console.log('Trade count from server action:', apiTradeCount);
-            setTradeCount(apiTradeCount);
-          } else {
-            console.error('Failed to fetch trade count:', result.error);
-          }
-        } catch (error) {
-          console.error('Error fetching trade count:', error);
-          // Keep using the initial value if the API call fails
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      
-      fetchTradeCount();
-    }, [agentId, initialTotalTrades]);
+
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -116,15 +84,8 @@ const PortfolioStats = memo(
             <h3 className="text-sm text-gray-600 font-sketch">
               Total Trades
             </h3>
-            <div className="text-2xl font-bold font-patrick text-gray-900 flex items-center">
-              {isLoading ? (
-                <span className="text-sm text-gray-500 italic flex items-center">
-                  <span className="w-3 h-3 mr-2 rounded-full border-2 border-blue-600 border-t-transparent animate-spin"></span>
-                  Loading...
-                </span>
-              ) : (
-                tradeCount.toLocaleString()
-              )}
+            <div className="text-2xl font-bold font-patrick text-gray-900">
+              {totalTrades.toLocaleString()}
             </div>
           </div>
         </div>
@@ -140,7 +101,7 @@ const PortfolioStats = memo(
             </h3>
             <div className="flex items-end ">
               <span className="text-2xl font-bold font-patrick text-gray-900 blur-sm">
-                $
+                Ξ
                 {forkingRevenue.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,

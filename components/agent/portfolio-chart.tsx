@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useState, useEffect } from 'react';
+import { memo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUp, ArrowDown, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -18,8 +18,6 @@ import {
 interface ChartData {
   date: string;
   value: number;
-  isActualData?: boolean;
-  isEstimated?: boolean;
 }
 
 interface PortfolioChartProps {
@@ -27,7 +25,6 @@ interface PortfolioChartProps {
   totalValue: number;
   change24h: number;
   changeValue24h: number;
-  agentId?: string;
 }
 
 // Custom tooltip for the chart
@@ -37,7 +34,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       <div className="bg-[#232229] p-3 rounded-lg shadow-lg border border-gray-700 text-white">
         <p className="font-mono text-sm font-semibold text-gray-300">{label}</p>
         <p className="font-mono text-lg text-white">
-          ${payload[0].value.toLocaleString(undefined, {
+          Ξ{payload[0].value.toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           })}
@@ -55,65 +52,11 @@ const formatDate = (dateStr: string) => {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
-// Generate dates between start and end
-const generateDatesBetween = (startDate: Date, endDate: Date) => {
-  const dates = [];
-  const currentDate = new Date(startDate);
-  
-  while (currentDate <= endDate) {
-    dates.push(new Date(currentDate));
-    currentDate.setDate(currentDate.getDate() + 1);
-  }
-  
-  return dates;
-};
-
 // Time range options
 type TimeRange = '1W' | '1M' | '3M' | 'ALL';
 
-// Generate test data for when API call fails
-const generateTestData = (timeRange: TimeRange) => {
-  const now = new Date();
-  let startDate;
-  let baseValue = 1000; // Starting portfolio value
-  
-  switch (timeRange) {
-    case '1W':
-      startDate = new Date(now);
-      startDate.setDate(now.getDate() - 7);
-      break;
-    case '1M':
-      startDate = new Date(now);
-      startDate.setMonth(now.getMonth() - 1);
-      break;
-    case '3M':
-      startDate = new Date(now);
-      startDate.setMonth(now.getMonth() - 3);
-      break;
-    case 'ALL':
-    default:
-      startDate = new Date(now);
-      startDate.setFullYear(now.getFullYear() - 1);
-  }
-  
-  const dates = generateDatesBetween(startDate, now);
-  
-  // Create cumulative portfolio values with some randomness
-  return dates.map((date, index) => {
-    // Add some randomness to the portfolio value
-    const change = (Math.random() * 40) - 10; // Random change between -10 and +30
-    baseValue += change;
-    if (baseValue < 100) baseValue = 100; // Ensure minimum value
-    
-    return {
-      date: date.toISOString().split('T')[0],
-      value: Math.round(baseValue * 100) / 100
-    };
-  });
-};
-
 const PortfolioChart = memo(
-  ({ data, totalValue, change24h, changeValue24h, agentId }: PortfolioChartProps) => {
+  ({ data, totalValue, change24h, changeValue24h }: PortfolioChartProps) => {
     const [timeRange, setTimeRange] = useState<TimeRange>('1M');
     const [chartData, setChartData] = useState<ChartData[]>([]);
     const [apiResponse, setApiResponse] = useState<any>(null);
@@ -327,41 +270,30 @@ const PortfolioChart = memo(
       
       const now = new Date();
       
-      switch (range) {
+      switch (timeRange) {
         case '1W':
           const oneWeekAgo = new Date();
           oneWeekAgo.setDate(now.getDate() - 7);
-          return inputData.filter(item => new Date(item.date) >= oneWeekAgo);
+          return data.filter(item => new Date(item.date) >= oneWeekAgo);
         
         case '1M':
           const oneMonthAgo = new Date();
           oneMonthAgo.setMonth(now.getMonth() - 1);
-          return inputData.filter(item => new Date(item.date) >= oneMonthAgo);
+          return data.filter(item => new Date(item.date) >= oneMonthAgo);
         
         case '3M':
           const threeMonthsAgo = new Date();
           threeMonthsAgo.setMonth(now.getMonth() - 3);
-          return inputData.filter(item => new Date(item.date) >= threeMonthsAgo);
+          return data.filter(item => new Date(item.date) >= threeMonthsAgo);
         
         case 'ALL':
         default:
-          return [...inputData];
+          return data;
       }
     };
-    
-    // Calculate appropriate domain for Y axis
-    const calculateDomain = () => {
-      if (!chartData || chartData.length === 0) return ['dataMin', 'dataMax'];
-      
-      const values = chartData.map(item => item.value);
-      const min = Math.min(...values);
-      const max = Math.max(...values);
-      
-      // Add padding for better visualization
-      const padding = (max - min) * 0.1;
-      return [Math.max(0, min - padding), max + padding];
-    };
 
+    const chartData = filteredData();
+    
     return (
       <div className="space-y-4">
         {/* Total Value Display */}
@@ -381,7 +313,7 @@ const PortfolioChart = memo(
                 Total Portfolio Value
               </h3>
               <div className="text-2xl font-bold font-mono text-white">
-                ${portfolioValues.totalValue.toLocaleString(undefined, {
+                Ξ{totalValue.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
@@ -399,10 +331,10 @@ const PortfolioChart = memo(
             <div
               className={cn(
                 'p-3 rounded-lg mr-4',
-                portfolioValues.change24h >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'
+                change24h >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'
               )}
             >
-              {portfolioValues.change24h >= 0 ? (
+              {change24h >= 0 ? (
                 <ArrowUp
                   className="h-6 w-6 text-green-400"
                   strokeWidth={2.5}
@@ -416,27 +348,27 @@ const PortfolioChart = memo(
             </div>
             <div>
               <h3 className="text-sm text-gray-400 font-mono">
-                Total Change
+                24h Change
               </h3>
               <div className="flex items-baseline gap-2">
                 <span
                   className={cn(
                     'text-2xl font-bold font-mono',
-                    portfolioValues.change24h >= 0 ? 'text-green-400' : 'text-red-400'
+                    change24h >= 0 ? 'text-green-400' : 'text-red-400'
                   )}
                 >
-                  {portfolioValues.change24h >= 0 ? '+' : ''}
-                  {portfolioValues.change24h.toFixed(2)}%
+                  {change24h >= 0 ? '+' : ''}
+                  {change24h.toFixed(2)}%
                 </span>
                 <span
                   className={cn(
                     'text-sm font-mono',
-                    portfolioValues.change24h >= 0 ? 'text-green-400/70' : 'text-red-400/70'
+                    change24h >= 0 ? 'text-green-400/70' : 'text-red-400/70'
                   )}
                 >
-                  {portfolioValues.changeValue24h >= 0 ? '+' : ''}
-                  $
-                  {Math.abs(portfolioValues.changeValue24h).toLocaleString(undefined, {
+                  {changeValue24h >= 0 ? '+' : ''}
+                  Ξ
+                  {changeValue24h.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
@@ -470,93 +402,50 @@ const PortfolioChart = memo(
 
         {/* Chart */}
         <div className="bg-[#232229] rounded-xl p-4 border border-gray-800">
-          {/* Limited Data Indicator */}
-          {apiResponse && apiResponse.snapshots && apiResponse.snapshots.length <= 3 && (
-            <div className="mb-4 px-3 py-2 bg-blue-900/20 border border-blue-800/30 rounded-md text-sm text-blue-300">
-              <div className="flex items-center gap-2 mb-1">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="12" y1="8" x2="12" y2="12"></line>
-                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                </svg>
-                <span className="font-medium">Limited Data Available</span>
-              </div>
-              <p className="text-xs ml-6">
-                Your chart is based on {apiResponse.snapshots.length} data point{apiResponse.snapshots.length !== 1 ? 's' : ''}.
-                The visualization smoothly connects your available data points.
-              </p>
-            </div>
-          )}
           <div className="h-[300px]">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-500"></div>
-              </div>
-            ) : error ? (
-              <div className="flex items-center justify-center h-full text-gray-400">
-                {error}
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={chartData}
-                  margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#FF8C00" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#FF8C00" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid 
-                    strokeDasharray="3 3" 
-                    vertical={false} 
-                    stroke="#333340" 
-                  />
-                  <XAxis 
-                    dataKey="date" 
-                    tickFormatter={formatDate} 
-                    tick={{ fontSize: 12, fontFamily: 'monospace', fill: '#9CA3AF' }}
-                    tickLine={false}
-                    axisLine={{ stroke: '#333340' }}
-                  />
-                  <YAxis 
-                    tickCount={5}
-                    tick={{ fontSize: 12, fontFamily: 'monospace', fill: '#9CA3AF' }}
-                    tickFormatter={(value) => `$${(value/1000).toFixed(1)}k`}
-                    tickLine={false}
-                    axisLine={false}
-                    domain={calculateDomain()}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Area
-                    type="monotone"
-                    dataKey="value"
-                    stroke="#FF8C00"
-                    strokeWidth={2}
-                    fillOpacity={1}
-                    fill="url(#colorValue)"
-                    activeDot={(props) => {
-                      const dataPoint = chartData[props.index];
-                      // Different dot styling for actual vs estimated data
-                      const dotSize = dataPoint.isActualData ? 6 : 4;
-                      const dotOpacity = dataPoint.isActualData ? 1 : 0.6;
-                      return (
-                        <circle
-                          cx={props.cx}
-                          cy={props.cy}
-                          r={dotSize}
-                          stroke="#FF8C00"
-                          strokeWidth={2}
-                          fill="#232229"
-                          opacity={dotOpacity}
-                        />
-                      );
-                    }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={chartData}
+                margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#FF8C00" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#FF8C00" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid 
+                  strokeDasharray="3 3" 
+                  vertical={false} 
+                  stroke="#333340" 
+                />
+                <XAxis 
+                  dataKey="date" 
+                  tickFormatter={formatDate} 
+                  tick={{ fontSize: 12, fontFamily: 'monospace', fill: '#9CA3AF' }}
+                  tickLine={false}
+                  axisLine={{ stroke: '#333340' }}
+                />
+                <YAxis 
+                  tickCount={5}
+                  tick={{ fontSize: 12, fontFamily: 'monospace', fill: '#9CA3AF' }}
+                  tickFormatter={(value) => `Ξ${value/1000}k`}
+                  tickLine={false}
+                  axisLine={false}
+                  domain={['dataMin - 1000', 'dataMax + 1000']}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#FF8C00"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorValue)"
+                  activeDot={{ r: 6, stroke: '#FF8C00', strokeWidth: 2, fill: '#232229' }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
