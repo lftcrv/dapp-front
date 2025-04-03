@@ -49,10 +49,23 @@ export async function searchAgents(params: SearchAgentsParams) {
       throw new Error(data.message || 'Failed to search agents');
     }
 
+    // Map response data to include new fields
+    const mappedAgents = data.agents.map((agent: any) => ({
+      ...agent,
+      // Ensure new fields are included
+      pnlCycle: agent.LatestMarketData?.pnlCycle || 0,
+      pnl24h: agent.LatestMarketData?.pnl24h || 0,
+      tradeCount: agent.LatestMarketData?.tradeCount || 0,
+      tvl: agent.LatestMarketData?.balanceInUSD || 0,
+      cycleRanking: agent.LatestMarketData?.pnlRank || 0,
+      forkerCount: agent.LatestMarketData?.forkCount || 0,
+      priceChange24h: agent.LatestMarketData?.priceChange24h || 0
+    }));
+
     return {
       success: true,
       data: {
-        agents: data.agents as Agent[],
+        agents: mappedAgents as Agent[],
         total: data.total as number,
         hasMore: data.hasMore as boolean,
       },

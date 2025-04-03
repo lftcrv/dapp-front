@@ -4,7 +4,7 @@ import { memo, useEffect, useRef, useState, useMemo } from 'react';
 import { Agent } from '@/lib/types';
 import { motion } from 'framer-motion';
 import { UserCircle, Sparkles, Zap } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatPnL, isPnLPositive } from '@/lib/utils';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -30,13 +30,15 @@ const AgentItem = memo(
     // Debug log agent data
     React.useEffect(() => {}, [agent]);
 
-    // Format percentage for PnL display
-    const formatPnL = (value: number | undefined) => {
+    // Format PnL for display (absolute USD values)
+    const renderPnL = (value: number | undefined) => {
       if (value === undefined) return "N/A";
-      const isPositive = value > 0;
+      
+      const isPositive = isPnLPositive(value);
+      
       return (
         <span className={isPositive ? "text-green-500" : "text-red-500"}>
-          {isPositive ? "+" : ""}{(value * 100).toFixed(1)}%
+          {formatPnL(value, true)}
         </span>
       );
     };
@@ -119,10 +121,10 @@ const AgentItem = memo(
                 </div>
                 <div className="text-right">
                   <div className="font-mono text-[10px]">
-                    PnL (Cycle): {formatPnL(agent.pnlCycle)}
+                    PnL (Cycle): {renderPnL(agent.pnlCycle)}
                   </div>
                   <div className="font-mono text-[10px]">
-                    PnL (24h): {formatPnL(agent.pnl24h || agent.priceChange24h)}
+                    PnL (24h): {renderPnL(agent.pnl24h || agent.priceChange24h)}
                   </div>
                 </div>
               </div>

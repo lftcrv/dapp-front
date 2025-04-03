@@ -61,6 +61,12 @@ export async function getLeaderboardLeft(limit: number = 10) {
         contractAddress: (agent.Token?.contractAddress ||
           '0x0') as `0x${string}`,
         abi: [],
+        pnlCycle: agent.LatestMarketData?.pnlCycle || 0,
+        pnl24h: agent.LatestMarketData?.pnl24h || 0,
+        tradeCount: agent.LatestMarketData?.tradeCount || 0,
+        tvl: agent.LatestMarketData?.balanceInUSD || 0,
+        cycleRanking: agent.LatestMarketData?.pnlRank || 0,
+        forkerCount: agent.LatestMarketData?.forkCount || 0
       }),
     );
 

@@ -3,7 +3,7 @@
 import { memo, useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUp, ArrowDown, DollarSign } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatPnL, isPnLPositive } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   BarChart,
@@ -58,8 +58,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         )}>
           {isProfit ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
           ${Math.abs(value).toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
           })}
         </p>
       </div>
@@ -486,7 +486,7 @@ const PortfolioPnL = memo(({ data }: PortfolioPnLProps) => {
   // Get total PnL values, prioritizing API fetched data
   const displayPnl = totalPnlData?.pnl !== undefined ? totalPnlData.pnl : data.total;
   const displayPercentage = totalPnlData?.pnlPercentage !== undefined ? totalPnlData.pnlPercentage : data.percentage;
-  const isDisplayPnlProfit = displayPnl >= 0;
+  const isDisplayPnlProfit = isPnLPositive(displayPnl);
 
   return (
     <div className="space-y-4">
@@ -524,8 +524,8 @@ const PortfolioPnL = memo(({ data }: PortfolioPnLProps) => {
             >
               {isDisplayPnlProfit ? '+' : '-'}$
               {Math.abs(displayPnl).toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
               })}
             </span>
             <span
@@ -691,7 +691,10 @@ const PortfolioPnL = memo(({ data }: PortfolioPnLProps) => {
                 <YAxis
                   tickCount={5}
                   tick={{ fontSize: 12, fontFamily: 'monospace', fill: '#9CA3AF' }}
-                  tickFormatter={(value) => `${value >= 0 ? '' : '-'}$${Math.abs(value).toFixed(1)}`}
+                  tickFormatter={(value) => `${value >= 0 ? '' : '-'}$${Math.abs(value).toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                  })}`}
                   tickLine={false}
                   axisLine={false}
                   domain={pnlMode === 'daily' ? [-(maxValue * 0.5), maxValue] : ['auto', 'auto']}
