@@ -59,7 +59,7 @@ export function AccessGateModal({
       try {
         const result = await validateReferralCode(
           referralCode,
-          user ?? undefined,
+          user as any,
         );
 
         if (!result.success) {
@@ -167,8 +167,9 @@ export function AccessGateModal({
                     Connect Your Wallet
                   </h2>
                   <p className="text-gray-300 mb-8">
-                    Connect your wallet to access the application. If you've
-                    used the app before, you'll get immediate access.
+                    Connect your wallet to access the application. If
+                    you&apos;ve used the app before, you&apos;ll get immediate
+                    access.
                   </p>
                   <div className="space-y-4">
                     <Button
