@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { useWallet } from '@/app/context/wallet-context';
 import { useReferralCode } from '@/hooks/use-referral-code';
+import { usePathname } from 'next/navigation';
 
 interface BlurContextType {
   isBlurred: boolean;
@@ -23,6 +24,11 @@ interface BlurContextType {
 
 const BlurContext = createContext<BlurContextType | undefined>(undefined);
 
+// Routes that should be exempt from blur/referral requirements
+const EXEMPT_ROUTES = [
+  '/admin', // Main admin page and all sub-routes
+];
+
 export function BlurProvider({ children }: { children: ReactNode }) {
   const [isBlurred, setIsBlurred] = useState(true);
   const [shouldShowReferralMessage, setShouldShowReferralMessage] = useState(false);
@@ -31,12 +37,30 @@ export function BlurProvider({ children }: { children: ReactNode }) {
 
   const { starknetWallet, privyAuthenticated, hasValidReferral } = useWallet();
   const { referralCode, isValidating } = useReferralCode();
+  const pathname = usePathname();
 
   const resetError = useCallback(() => {
     setError(null);
   }, []);
 
+  // Check if current route is exempt from blur/referral requirements
+  const isExemptRoute = useCallback(() => {
+    if (!pathname) return false;
+    
+    return EXEMPT_ROUTES.some(route => 
+      pathname === route || pathname.startsWith(`${route}/`)
+    );
+  }, [pathname]);
+
   useEffect(() => {
+    // If this is an admin route, never blur
+    if (isExemptRoute()) {
+      console.log(`Route ${pathname} is exempt from blur requirements, not showing blur/referral`);
+      setIsBlurred(false);
+      setShouldShowReferralMessage(false);
+      return;
+    }
+
     const isWalletConnected = starknetWallet.isConnected || privyAuthenticated;
     
     // If the wallet is connected and has valid referral or referral code exists,
@@ -53,7 +77,7 @@ export function BlurProvider({ children }: { children: ReactNode }) {
       setIsBlurred(true);
       setShouldShowReferralMessage(false);
     }
-  }, [starknetWallet.isConnected, privyAuthenticated, hasValidReferral, referralCode]);
+  }, [starknetWallet.isConnected, privyAuthenticated, hasValidReferral, referralCode, pathname, isExemptRoute]);
 
   const contextValue = {
     isBlurred,

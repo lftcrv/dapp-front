@@ -43,13 +43,12 @@ const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ children }) =
       setIsLoading(true);
       
       // Log the current state for debugging
-      console.log('Verifying admin access:', {
+      console.log('👮‍♂️ ADMIN ACCESS CHECK:');
+      console.log('  wallet info:', {
         ready,
         userExists: !!user,
-        privyWalletExists: !!user?.wallet?.address,
-        privyWalletAddress: user?.wallet?.address,
-        starknetWalletExists: !!starknetWallet.address,
         starknetWalletAddress: starknetWallet.address,
+        privyWalletAddress: user?.wallet?.address,
         currentAddress
       });
 
@@ -58,7 +57,7 @@ const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ children }) =
       
       // If no wallet address is available, wait a bit longer
       if (!hasWalletAddress) {
-        console.log('No wallet address found, waiting...');
+        console.log('❌ No wallet address found, waiting...');
         setIsLoading(true);
         return;
       }
@@ -67,10 +66,10 @@ const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ children }) =
       const privyWalletAddress = user?.wallet?.address?.toLowerCase();
       const starknetWalletAddress = starknetWallet.address?.toLowerCase();
       
-      console.log('User wallet details:', {
-        privyAddress: privyWalletAddress,
-        starknetAddress: starknetWalletAddress,
-        currentAddress: currentAddress?.toLowerCase()
+      console.log('🔎 Checking wallet addresses:', {
+        privyAddress: privyWalletAddress || 'none',
+        starknetAddress: starknetWalletAddress || 'none',
+        currentAddress: currentAddress?.toLowerCase() || 'none'
       });
 
       // Check admin access directly using server action
@@ -80,18 +79,24 @@ const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ children }) =
         starknetWalletAddress
       );
       
-      console.log('Admin access check result:', isAdmin);
+      console.log(`Admin access result: ${isAdmin ? '✅ GRANTED' : '❌ DENIED'}`);
       
       if (isAdmin) {
         setIsAuthorized(true);
+        console.log('✅ Admin access granted');
       } else {
+        console.error('❌ Admin access DENIED');
         setIsAuthorized(false);
         toast({
           title: 'Access Denied',
-          description: 'You do not have permission to access this page.',
+          description: 'You do not have permission to access this admin page.',
           variant: 'destructive',
         });
-        router.push('/');
+        
+        // Redirect more quickly
+        setTimeout(() => {
+          router.push('/');
+        }, 100);
       }
     } catch (error) {
       console.error('Error checking admin access:', error);
@@ -101,7 +106,11 @@ const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ children }) =
         description: 'Failed to verify admin access.',
         variant: 'destructive',
       });
-      router.push('/');
+      
+      // Redirect more quickly
+      setTimeout(() => {
+        router.push('/');
+      }, 100);
     } finally {
       setIsLoading(false);
     }

@@ -58,9 +58,216 @@ type TimeRange = '1W' | '1M' | '3M' | 'ALL';
 const PortfolioChart = memo(
   ({ data, totalValue, change24h, changeValue24h }: PortfolioChartProps) => {
     const [timeRange, setTimeRange] = useState<TimeRange>('1M');
-
-    // Filter data based on selected time range
-    const filteredData = () => {
+    const [chartData, setChartData] = useState<ChartData[]>([]);
+    const [apiResponse, setApiResponse] = useState<any>(null);
+    const [portfolioValues, setPortfolioValues] = useState<{
+      totalValue: number;
+      change24h: number;
+      changeValue24h: number;
+    }>({
+      totalValue,
+      change24h,
+      changeValue24h
+    });
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    
+    // Fetch total portfolio value and PnL data
+    useEffect(() => {
+      if (!agentId) {
+        // Use prop data if no agentId
+        setChartData(
+          data.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        );
+        return;
+      }
+      
+      const fetchLatestValues = async () => {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://127.0.0.1:8080';
+          const apiKey = process.env.API_KEY || 'secret';
+          
+          // Fetch from the KPI endpoint for overall values
+          const response = await fetch(
+            `${apiUrl}/api/kpi/pnl/${agentId}`,
+            {
+              headers: {
+                'x-api-key': apiKey
+              }
+            }
+          );
+          
+          if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+          }
+          
+          const result = await response.json();
+          console.log('Portfolio KPI data:', result);
+          
+          // Update portfolio values
+          setPortfolioValues({
+            totalValue: result.latestBalance || totalValue,
+            change24h: result.pnlPercentage || change24h,
+            changeValue24h: result.pnl || changeValue24h
+          });
+        } catch (error) {
+          console.error('Error fetching portfolio KPI data:', error);
+          // Fall back to prop data
+        }
+      };
+      
+      fetchLatestValues();
+    }, [agentId, data, totalValue, change24h, changeValue24h]);
+    
+    // Fetch portfolio history data when time range changes
+    useEffect(() => {
+      if (!agentId) {
+        // Filter and use prop data based on selected time range if no agentId
+        const filteredData = filterByTimeRange(data, timeRange);
+        setChartData(filteredData);
+        return;
+      }
+      
+      const fetchHistoricalData = async () => {
+        setIsLoading(true);
+        setError(null);
+        
+        try {
+          // Create date range based on selected time period
+          const now = new Date();
+          let startDate;
+          
+          switch (timeRange) {
+            case '1W':
+              startDate = new Date(now);
+              startDate.setDate(now.getDate() - 7);
+              break;
+            case '1M':
+              startDate = new Date(now);
+              startDate.setMonth(now.getMonth() - 1);
+              break;
+            case '3M':
+              startDate = new Date(now);
+              startDate.setMonth(now.getMonth() - 3);
+              break;
+            case 'ALL':
+            default:
+              startDate = new Date(now);
+              startDate.setFullYear(now.getFullYear() - 1);
+          }
+          
+          const fromDate = startDate.toISOString();
+          const toDate = now.toISOString();
+          
+          // Fetch historical performance data
+          const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://127.0.0.1:8080';
+          const apiKey = process.env.API_KEY || 'secret';
+          
+          console.log(`Fetching portfolio history for agent ${agentId} from ${fromDate} to ${toDate}`);
+          
+          const response = await fetch(
+            `${apiUrl}/api/performance/${agentId}/history?interval=daily&from=${fromDate}&to=${toDate}`,
+            {
+              headers: {
+                'x-api-key': apiKey
+              }
+            }
+          );
+          
+          if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+          }
+          
+          const result = await response.json();
+          console.log('Portfolio history data:', result);
+          setApiResponse(result);
+          
+          if (!result.snapshots || !Array.isArray(result.snapshots) || result.snapshots.length === 0) {
+            console.warn('No snapshots found in API response');
+            setError('No portfolio history available for the selected time period');
+            setChartData(generateTestData(timeRange));
+            return;
+          }
+          
+          // Process the API response data - use balanceInUSD for the portfolio value
+          const processPortfolioData = () => {
+            return result.snapshots.map((snapshot: any) => {
+              const date = new Date(snapshot.timestamp).toISOString().split('T')[0];
+              // Use balanceInUSD for the portfolio value at this point in time
+              const portfolioValue = typeof snapshot.balanceInUSD === 'number' ? snapshot.balanceInUSD : 0;
+              
+              return {
+                date,
+                value: portfolioValue,
+                isActualData: true // Flag to indicate this is real data, not estimated
+              };
+            });
+          };
+          
+          const portfolioData = processPortfolioData();
+          
+          // Make sure we have data for every day in the range
+          const allDates = generateDatesBetween(startDate, now);
+          const dateMap = new Map();
+          
+          // Create a map of existing dates
+          portfolioData.forEach((item: { date: string; value: number, isActualData: boolean }) => {
+            dateMap.set(item.date, item);
+          });
+          
+          // Generate the complete data set with all dates
+          const completeData = allDates.map(date => {
+            const dateStr = date.toISOString().split('T')[0];
+            
+            if (dateMap.has(dateStr)) {
+              return dateMap.get(dateStr);
+            }
+            
+            // For missing dates, estimate value by using the most recent previous value
+            let estimatedValue = 0;
+            const currentDate = new Date(date);
+            currentDate.setDate(currentDate.getDate() - 1);
+            
+            while (currentDate >= startDate) {
+              const checkDateStr = currentDate.toISOString().split('T')[0];
+              if (dateMap.has(checkDateStr)) {
+                estimatedValue = dateMap.get(checkDateStr).value;
+                break;
+              }
+              currentDate.setDate(currentDate.getDate() - 1);
+            }
+            
+            // Return estimated value for missing date
+            return {
+              date: dateStr,
+              value: estimatedValue,
+              isActualData: false, // Flag to indicate this is estimated data
+              isEstimated: true
+            };
+          });
+          
+          // Sort by date
+          completeData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+          
+          console.log('Processed Portfolio Chart Data:', completeData);
+          setChartData(completeData);
+        } catch (error) {
+          console.error('Error fetching portfolio history:', error);
+          setError('Failed to load portfolio history');
+          // Use test data as fallback
+          setChartData(generateTestData(timeRange));
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      fetchHistoricalData();
+    }, [timeRange, agentId, data]);
+    
+    // Helper to filter prop data based on time range
+    const filterByTimeRange = (inputData: ChartData[], range: TimeRange): ChartData[] => {
+      if (!inputData || inputData.length === 0) return [];
+      
       const now = new Date();
       
       switch (timeRange) {
