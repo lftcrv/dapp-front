@@ -12,52 +12,60 @@ import { showToast } from '@/lib/toast';
 import Image from 'next/image'; // Import Image for background
 
 export function ReferralRequiredModal() {
-  const { user, starknetWallet, privyAuthenticated, connectStarknet } = useWallet(); // Get user context if needed for validation
+  const { user, starknetWallet, privyAuthenticated, connectStarknet } =
+    useWallet(); // Get user context if needed for validation
   const [referralCode, setReferralCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const router = useRouter();
-  
+
   const isConnected = starknetWallet.isConnected || privyAuthenticated;
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
 
-    if (!referralCode.trim()) {
-      setError('Please enter a referral code');
-      return;
-    }
-    
-    setIsSubmitting(true);
-    setError(null);
-    setSuccess(false);
-
-    try {
-      // Pass user if available, otherwise undefined. Adjust action if needed.
-      const result = await validateReferralCode(referralCode, user ?? undefined);
-      
-      if (!result.success) {
-        setError(result.error || 'Invalid referral code');
-        showToast('REFERRAL_ERROR', 'error');
+      if (!referralCode.trim()) {
+        setError('Please enter a referral code');
         return;
       }
 
-      setSuccess(true);
-      showToast('REFERRAL_SUCCESS', 'success');
-      
-      setTimeout(() => {
-        window.location.reload(); 
-      }, 1500);
+      setIsSubmitting(true);
+      setError(null);
+      setSuccess(false);
 
-    } catch (err) {
-      console.error('Error submitting referral code:', err);
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
-      showToast('REFERRAL_ERROR', 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [referralCode, user]);
+      try {
+        // Pass user if available
+        const result = await validateReferralCode(
+          referralCode,
+          user || undefined,
+        );
+
+        if (!result.success) {
+          setError(result.error || 'Invalid referral code');
+          showToast('REFERRAL_ERROR', 'error');
+          return;
+        }
+
+        setSuccess(true);
+        showToast('REFERRAL_SUCCESS', 'success');
+
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } catch (err) {
+        console.error('Error submitting referral code:', err);
+        setError(
+          err instanceof Error ? err.message : 'An unknown error occurred',
+        );
+        showToast('REFERRAL_ERROR', 'error');
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [referralCode, user],
+  );
 
   const handleConnect = useCallback(() => {
     try {
@@ -72,7 +80,7 @@ export function ReferralRequiredModal() {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       {/* Optional: Add a background image if desired */}
       {/* <Image src="/background.jpg" layout="fill" objectFit="cover" alt="Background" className="absolute inset-0 z-0 opacity-30" /> */}
-      
+
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -87,12 +95,12 @@ export function ReferralRequiredModal() {
                 Access Required
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
-                {isConnected 
-                  ? "Please enter a valid referral code to continue." 
-                  : "Connect your wallet or enter a referral code to continue."}
+                {isConnected
+                  ? 'Please enter a valid referral code to continue.'
+                  : 'Connect your wallet or enter a referral code to continue.'}
               </p>
             </div>
-            
+
             {!success ? (
               <div className="space-y-4">
                 {!isConnected && (
@@ -104,14 +112,20 @@ export function ReferralRequiredModal() {
                     Connect Wallet
                   </Button>
                 )}
-                
-                <div className={`${!isConnected ? 'mt-4 pt-4 border-t border-gray-200 dark:border-gray-700' : ''}`}>
+
+                <div
+                  className={`${
+                    !isConnected
+                      ? 'mt-4 pt-4 border-t border-gray-200 dark:border-gray-700'
+                      : ''
+                  }`}
+                >
                   {!isConnected && (
                     <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-4">
                       Or enter a referral code
                     </p>
                   )}
-                  
+
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                       <Input
@@ -123,10 +137,12 @@ export function ReferralRequiredModal() {
                         disabled={isSubmitting}
                       />
                       {error && (
-                        <p className="mt-2 text-xs text-red-500 text-center">{error}</p>
+                        <p className="mt-2 text-xs text-red-500 text-center">
+                          {error}
+                        </p>
                       )}
                     </div>
-                    
+
                     <Button
                       type="submit"
                       disabled={isSubmitting || !referralCode.trim()}
@@ -153,4 +169,4 @@ export function ReferralRequiredModal() {
       </motion.div>
     </div>
   );
-} 
+}
