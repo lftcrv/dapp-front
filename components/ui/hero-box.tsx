@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { memo } from 'react';
 import Image from 'next/image';
+import CountdownTimer from './CountdownTimer';
 
 const HeroBox = () => {
   return (
@@ -134,7 +135,7 @@ const HeroBox = () => {
                 
                 {/* Amount text - perfectly centered on the image */}
                 <span className="text-black font-patrick text-3xl font-bold relative z-10">
-                  2, 500 $
+                  1, 500 $
                 </span>
               </div>
             </div>
@@ -145,7 +146,7 @@ const HeroBox = () => {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.7 }}
           >
-            <span className="countdown-timer">11 : 59 : 59</span>
+            <CountdownTimer targetDate={new Date('2025-04-30T23:59:00Z')} />
           </motion.div>
         </motion.div>
       </div>

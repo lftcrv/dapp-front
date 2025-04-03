@@ -93,7 +93,7 @@ export default function HomePage() {
         />
 
         {/* Cycle kings section */}
-        <CycleKingsSection />
+        {/* <CycleKingsSection /> */}
 
         {/* Agent table section */}
         <AgentTableSection 

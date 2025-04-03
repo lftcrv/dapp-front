@@ -45,3 +45,37 @@ export function calculateBondingProgress(
 export function isInBondingPhase(price: number, holders: number): boolean {
   return calculateBondingProgress(price, holders) < 100;
 }
+
+/**
+ * Formats a PnL value consistently
+ * @param value PnL value (absolute USD value from API)
+ * @param asPercentage Whether to format as currency string with $ symbol
+ * @returns Formatted string or the numeric value
+ */
+export function formatPnL(
+  value: number | undefined | null, 
+  asPercentage: boolean = false,
+  isAlreadyPercentage: boolean = false
+): string | number {
+  if (value === undefined || value === null) return "N/A";
+  
+  // This is the absolute PnL value in USD, not a percentage
+  const isPositive = value > 0;
+  
+  if (asPercentage) {
+    return `${isPositive ? "+" : ""}$${Math.abs(value).toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    })}`;
+  }
+  
+  // Return the numeric value
+  return value;
+}
+
+/**
+ * Determines if a PnL value is positive
+ */
+export function isPnLPositive(value: number | undefined | null): boolean {
+  return value !== undefined && value !== null && value > 0;
+}

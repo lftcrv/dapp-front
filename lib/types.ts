@@ -216,6 +216,14 @@ export interface ApiAgent {
     marketCap: number;
     holders: number;
     updatedAt: string;
+    pnlCycle?: number;
+    pnl24h?: number;
+    tradeCount?: number;
+    tvl?: number;
+    balanceInUSD?: number;
+    pnlRank?: number;
+    bondingStatus?: 'BONDING' | 'LIVE';
+    forkCount?: number;
   } | null;
 }
 

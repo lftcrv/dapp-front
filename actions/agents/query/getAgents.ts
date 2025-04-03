@@ -46,7 +46,15 @@ export async function mapApiAgentToAgent(apiAgent: ApiAgent): Promise<Agent> {
     performanceIndex: apiAgent.winScore || 0,
     profilePictureUrl: apiAgent.profilePictureUrl || undefined,
     contractAddress: (tokenAddress || '0x0') as `0x${string}`,
-    abi: []
+    abi: [],
+    // New fields from the API
+    pnlCycle: apiAgent.LatestMarketData?.pnlCycle || 0,
+    pnl24h: apiAgent.LatestMarketData?.pnl24h || 0,
+    tradeCount: apiAgent.LatestMarketData?.tradeCount || 0,
+    tvl: apiAgent.LatestMarketData?.balanceInUSD || 0,
+    cycleRanking: apiAgent.LatestMarketData?.pnlRank || 0,
+    forkerCount: apiAgent.LatestMarketData?.forkCount || 0,
+    priceChange24h: apiAgent.LatestMarketData?.priceChange24h || 0
   };
 
   if (!tokenAddress) {

@@ -10,13 +10,13 @@ import { User } from '@/types/user';
  * @param userId The id of the user
  * @returns Result of the operation
  */
-export async function validateReferralCode(code: string, user: User): Promise<{
+export async function validateReferralCode(code: string, user?: User): Promise<{
   success: boolean;
   message?: string;
   error?: string;
 }> {
   try {
-    if (!code || !user.id) {
+    if (!code || !user?.id) {
       return {
         success: false,
         error: 'Missing referral code or wallet address'

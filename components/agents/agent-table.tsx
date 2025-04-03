@@ -2,7 +2,7 @@
 
 import { memo } from 'react';
 import { Agent } from '@/lib/types';
-import { cn, isInBondingPhase } from '@/lib/utils';
+import { cn, isInBondingPhase, formatPnL, isPnLPositive } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -81,19 +81,20 @@ const AgentRow = memo(({ agent, index }: AgentRowProps) => {
   const formatCurrency = (value: number | undefined | null) => {
     if (value === undefined || value === null) return 'N/A';
     return `$${value.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
     })}`;
   };
 
-  // Helper function to format percentages
+  // Helper function to format PnL values (which are in USD)
   const formatPercentage = (value: number | undefined | null) => {
     if (value === undefined || value === null) return 'N/A';
-    const formattedValue = (value * 100).toFixed(2);
-    const isPositive = value > 0;
+    
+    const isPositive = isPnLPositive(value);
+    
     return (
       <span className={isPositive ? 'text-green-500' : 'text-red-500'}>
-        {isPositive ? '+' : ''}{formattedValue}%
+        {formatPnL(value, true)}
       </span>
     );
   };
@@ -334,13 +335,13 @@ export function AgentTable({
             <TableHead className="text-right text-xs py-2">
               {showSortControls ? (
                 <TableHeaderCell
-                  label="TVL"
+                  label="Balance"
                   sortKey="tvl"
                   currentSort={sortConfig}
                   onSort={onSort}
                 />
               ) : (
-                'TVL'
+                'Balance'
               )}
             </TableHead>
             <TableHead className="text-right text-xs py-2">
