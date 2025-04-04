@@ -30,7 +30,6 @@ export async function handleStarknetConnection(
   try {
     // Step 1: Check if user already exists
     const existingUser = await getUserByStarknetAddress(starknetAddress);
-    console.log('existingUser', existingUser);
     if (existingUser.success && existingUser.data) {
       // User exists - update last connection time
       const updateResult = await connectUser(starknetAddress);

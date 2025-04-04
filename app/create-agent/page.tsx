@@ -50,7 +50,7 @@ const initialFormData: FormData = {
   riskTolerance: 50,
   analysisPeriod: 2.5,
   interval: 30,
-  internal_plugins: ['rpc', 'paradex', 'leftcurve'],
+  internal_plugins: ['leftcurve'],
   bio: '',
   objectives: [],
   lore: '',
