@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useState } from 'react';
+import { memo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUp, ArrowDown, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -25,6 +25,7 @@ interface PortfolioChartProps {
   totalValue: number;
   change24h: number;
   changeValue24h: number;
+  agentId?: string;
 }
 
 // Custom tooltip for the chart
@@ -34,9 +35,10 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       <div className="bg-[#232229] p-3 rounded-lg shadow-lg border border-gray-700 text-white">
         <p className="font-mono text-sm font-semibold text-gray-300">{label}</p>
         <p className="font-mono text-lg text-white">
-          Ξ{payload[0].value.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
+          $
+          {payload[0].value.toLocaleString(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
           })}
         </p>
       </div>
@@ -55,8 +57,120 @@ const formatDate = (dateStr: string) => {
 // Time range options
 type TimeRange = '1W' | '1M' | '3M' | 'ALL';
 
+// Day scale options for data aggregation
+type DayScale = '1D' | '1W' | '1M';
+
+// Generate an array of dates between start and end
+const generateDatesBetween = (start: Date, end: Date): Date[] => {
+  const dates = [];
+  const currentDate = new Date(start);
+
+  while (currentDate <= end) {
+    dates.push(new Date(currentDate));
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return dates;
+};
+
+// Generate test data for fallback (helper function)
+const generateTestData = (timeRange: TimeRange): ChartData[] => {
+  const result: ChartData[] = [];
+  const now = new Date();
+  const startDate = new Date();
+
+  switch (timeRange) {
+    case '1W':
+      startDate.setDate(now.getDate() - 7);
+      break;
+    case '1M':
+      startDate.setMonth(now.getMonth() - 1);
+      break;
+    case '3M':
+      startDate.setMonth(now.getMonth() - 3);
+      break;
+    case 'ALL':
+    default:
+      startDate.setFullYear(now.getFullYear() - 1);
+  }
+
+  const dates = generateDatesBetween(startDate, now);
+
+  // Generate some random data
+  const baseValue = 1000 + Math.random() * 9000;
+
+  dates.forEach((date, index) => {
+    // Create some volatility in the data
+    const volatility = 0.1; // 10% volatility
+    const change = (Math.random() - 0.5) * volatility * baseValue;
+    const value = baseValue + change * (index / dates.length);
+
+    result.push({
+      date: date.toISOString().split('T')[0],
+      value: Math.max(0, value), // Ensure value is not negative
+    });
+  });
+
+  return result;
+};
+
+// Aggregate data by day scale (daily, weekly, monthly)
+const aggregateDataByScale = (data: any[], scale: DayScale): any[] => {
+  if (!data || data.length === 0) return [];
+
+  // If daily scale, just return the data as is
+  if (scale === '1D') return data;
+
+  // For weekly or monthly aggregation
+  const aggregatedMap = new Map();
+
+  data.forEach((item) => {
+    const date = new Date(item.date);
+    let key: string;
+
+    if (scale === '1W') {
+      // For weekly, group by the Monday of each week
+      const day = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust to get Monday
+      const monday = new Date(date.setDate(diff));
+      key = monday.toISOString().split('T')[0];
+    } else {
+      // For monthly, group by month and year
+      key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+        2,
+        '0',
+      )}-01`;
+    }
+
+    if (!aggregatedMap.has(key)) {
+      aggregatedMap.set(key, {
+        date: key,
+        value: 0,
+        count: 0,
+      });
+    }
+
+    const agg = aggregatedMap.get(key);
+
+    // Sum up the values
+    if (item.value) agg.value += item.value;
+    agg.count++;
+  });
+
+  // Convert the map to an array and sort by date
+  return Array.from(aggregatedMap.values()).sort(
+    (a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+  );
+};
+
 const PortfolioChart = memo(
-  ({ data, totalValue, change24h, changeValue24h }: PortfolioChartProps) => {
+  ({
+    data,
+    totalValue,
+    change24h,
+    changeValue24h,
+    agentId,
+  }: PortfolioChartProps) => {
     const [timeRange, setTimeRange] = useState<TimeRange>('1M');
     const [chartData, setChartData] = useState<ChartData[]>([]);
     const [apiResponse, setApiResponse] = useState<any>(null);
@@ -67,58 +181,60 @@ const PortfolioChart = memo(
     }>({
       totalValue,
       change24h,
-      changeValue24h
+      changeValue24h,
     });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    
+
     // Fetch total portfolio value and PnL data
     useEffect(() => {
       if (!agentId) {
         // Use prop data if no agentId
         setChartData(
-          data.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+          data.sort(
+            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+          ),
         );
         return;
       }
-      
+
       const fetchLatestValues = async () => {
         try {
-          const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://127.0.0.1:8080';
+          const apiUrl =
+            process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://127.0.0.1:8080';
           const apiKey = process.env.API_KEY || 'secret';
-          
+
           // Fetch from the KPI endpoint for overall values
-          const response = await fetch(
-            `${apiUrl}/api/kpi/pnl/${agentId}`,
-            {
-              headers: {
-                'x-api-key': apiKey
-              }
-            }
-          );
-          
+          const response = await fetch(`${apiUrl}/api/kpi/pnl/${agentId}`, {
+            headers: {
+              'x-api-key': apiKey,
+            },
+          });
+
           if (!response.ok) {
-            throw new Error(`API request failed with status ${response.status}`);
+            throw new Error(
+              `API request failed with status ${response.status}`,
+            );
           }
-          
+
           const result = await response.json();
           console.log('Portfolio KPI data:', result);
-          
+
           // Update portfolio values
           setPortfolioValues({
             totalValue: result.latestBalance || totalValue,
             change24h: result.pnlPercentage || change24h,
-            changeValue24h: result.pnl || changeValue24h
+            changeValue24h: result.pnl || changeValue24h,
           });
         } catch (error) {
           console.error('Error fetching portfolio KPI data:', error);
           // Fall back to prop data
         }
       };
-      
+
       fetchLatestValues();
     }, [agentId, data, totalValue, change24h, changeValue24h]);
-    
+
     // Fetch portfolio history data when time range changes
     useEffect(() => {
       if (!agentId) {
@@ -127,16 +243,16 @@ const PortfolioChart = memo(
         setChartData(filteredData);
         return;
       }
-      
+
       const fetchHistoricalData = async () => {
         setIsLoading(true);
         setError(null);
-        
+
         try {
           // Create date range based on selected time period
           const now = new Date();
           let startDate;
-          
+
           switch (timeRange) {
             case '1W':
               startDate = new Date(now);
@@ -155,79 +271,97 @@ const PortfolioChart = memo(
               startDate = new Date(now);
               startDate.setFullYear(now.getFullYear() - 1);
           }
-          
+
           const fromDate = startDate.toISOString();
           const toDate = now.toISOString();
-          
+
           // Fetch historical performance data
-          const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://127.0.0.1:8080';
+          const apiUrl =
+            process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://127.0.0.1:8080';
           const apiKey = process.env.API_KEY || 'secret';
-          
-          console.log(`Fetching portfolio history for agent ${agentId} from ${fromDate} to ${toDate}`);
-          
+
+          console.log(
+            `Fetching portfolio history for agent ${agentId} from ${fromDate} to ${toDate}`,
+          );
+
           const response = await fetch(
             `${apiUrl}/api/performance/${agentId}/history?interval=daily&from=${fromDate}&to=${toDate}`,
             {
               headers: {
-                'x-api-key': apiKey
-              }
-            }
+                'x-api-key': apiKey,
+              },
+            },
           );
-          
+
           if (!response.ok) {
-            throw new Error(`API request failed with status ${response.status}`);
+            throw new Error(
+              `API request failed with status ${response.status}`,
+            );
           }
-          
+
           const result = await response.json();
           console.log('Portfolio history data:', result);
           setApiResponse(result);
-          
-          if (!result.snapshots || !Array.isArray(result.snapshots) || result.snapshots.length === 0) {
+
+          if (
+            !result.snapshots ||
+            !Array.isArray(result.snapshots) ||
+            result.snapshots.length === 0
+          ) {
             console.warn('No snapshots found in API response');
-            setError('No portfolio history available for the selected time period');
+            setError(
+              'No portfolio history available for the selected time period',
+            );
             setChartData(generateTestData(timeRange));
             return;
           }
-          
+
           // Process the API response data - use balanceInUSD for the portfolio value
           const processPortfolioData = () => {
             return result.snapshots.map((snapshot: any) => {
-              const date = new Date(snapshot.timestamp).toISOString().split('T')[0];
+              const date = new Date(snapshot.timestamp)
+                .toISOString()
+                .split('T')[0];
               // Use balanceInUSD for the portfolio value at this point in time
-              const portfolioValue = typeof snapshot.balanceInUSD === 'number' ? snapshot.balanceInUSD : 0;
-              
+              const portfolioValue =
+                typeof snapshot.balanceInUSD === 'number'
+                  ? snapshot.balanceInUSD
+                  : 0;
+
               return {
                 date,
                 value: portfolioValue,
-                isActualData: true // Flag to indicate this is real data, not estimated
+                isActualData: true, // Flag to indicate this is real data, not estimated
               };
             });
           };
-          
+
           const portfolioData = processPortfolioData();
-          
+
           // Make sure we have data for every day in the range
           const allDates = generateDatesBetween(startDate, now);
           const dateMap = new Map();
-          
+
           // Create a map of existing dates
-          portfolioData.forEach((item: { date: string; value: number, isActualData: boolean }) => {
-            dateMap.set(item.date, item);
-          });
-          
+          portfolioData.forEach(
+            (item: { date: string; value: number; isActualData: boolean }) => {
+              dateMap.set(item.date, item);
+            },
+          );
+
           // Generate the complete data set with all dates
-          const completeData = allDates.map(date => {
+          const completeData = allDates.map((date) => {
             const dateStr = date.toISOString().split('T')[0];
-            
+
             if (dateMap.has(dateStr)) {
               return dateMap.get(dateStr);
             }
-            
+
             // For missing dates, estimate value by using the most recent previous value
             let estimatedValue = 0;
             const currentDate = new Date(date);
             currentDate.setDate(currentDate.getDate() - 1);
-            
+
             while (currentDate >= startDate) {
               const checkDateStr = currentDate.toISOString().split('T')[0];
               if (dateMap.has(checkDateStr)) {
@@ -236,19 +370,21 @@ const PortfolioChart = memo(
               }
               currentDate.setDate(currentDate.getDate() - 1);
             }
-            
+
             // Return estimated value for missing date
             return {
               date: dateStr,
               value: estimatedValue,
               isActualData: false, // Flag to indicate this is estimated data
-              isEstimated: true
+              isEstimated: true,
             };
           });
-          
+
           // Sort by date
-          completeData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-          
+          completeData.sort(
+            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+          );
+
           console.log('Processed Portfolio Chart Data:', completeData);
           setChartData(completeData);
         } catch (error) {
@@ -260,40 +396,71 @@ const PortfolioChart = memo(
           setIsLoading(false);
         }
       };
-      
+
       fetchHistoricalData();
     }, [timeRange, agentId, data]);
-    
+
     // Helper to filter prop data based on time range
-    const filterByTimeRange = (inputData: ChartData[], range: TimeRange): ChartData[] => {
+    const filterByTimeRange = (
+      inputData: ChartData[],
+      range: TimeRange,
+    ): ChartData[] => {
       if (!inputData || inputData.length === 0) return [];
-      
+
       const now = new Date();
-      
-      switch (timeRange) {
+
+      switch (range) {
         case '1W':
           const oneWeekAgo = new Date();
           oneWeekAgo.setDate(now.getDate() - 7);
-          return data.filter(item => new Date(item.date) >= oneWeekAgo);
-        
+          return data.filter((item) => new Date(item.date) >= oneWeekAgo);
+
         case '1M':
           const oneMonthAgo = new Date();
           oneMonthAgo.setMonth(now.getMonth() - 1);
-          return data.filter(item => new Date(item.date) >= oneMonthAgo);
-        
+          return data.filter((item) => new Date(item.date) >= oneMonthAgo);
+
         case '3M':
           const threeMonthsAgo = new Date();
           threeMonthsAgo.setMonth(now.getMonth() - 3);
-          return data.filter(item => new Date(item.date) >= threeMonthsAgo);
-        
+          return data.filter((item) => new Date(item.date) >= threeMonthsAgo);
+
         case 'ALL':
         default:
           return data;
       }
     };
 
-    const chartData = filteredData();
-    
+    // Helper to filter data for display
+    const filteredData = () => {
+      if (chartData.length === 0) return [];
+
+      const now = new Date();
+
+      switch (timeRange) {
+        case '1W':
+          const oneWeekAgo = new Date();
+          oneWeekAgo.setDate(now.getDate() - 7);
+          return chartData.filter((item) => new Date(item.date) >= oneWeekAgo);
+
+        case '1M':
+          const oneMonthAgo = new Date();
+          oneMonthAgo.setMonth(now.getMonth() - 1);
+          return chartData.filter((item) => new Date(item.date) >= oneMonthAgo);
+
+        case '3M':
+          const threeMonthsAgo = new Date();
+          threeMonthsAgo.setMonth(now.getMonth() - 3);
+          return chartData.filter(
+            (item) => new Date(item.date) >= threeMonthsAgo,
+          );
+
+        case 'ALL':
+        default:
+          return chartData;
+      }
+    };
+
     return (
       <div className="space-y-4">
         {/* Total Value Display */}
@@ -313,9 +480,10 @@ const PortfolioChart = memo(
                 Total Portfolio Value
               </h3>
               <div className="text-2xl font-bold font-mono text-white">
-                Ξ{totalValue.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
+                $
+                {totalValue.toLocaleString(undefined, {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
                 })}
               </div>
             </div>
@@ -331,30 +499,22 @@ const PortfolioChart = memo(
             <div
               className={cn(
                 'p-3 rounded-lg mr-4',
-                change24h >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'
+                change24h >= 0 ? 'bg-green-500/20' : 'bg-red-500/20',
               )}
             >
               {change24h >= 0 ? (
-                <ArrowUp
-                  className="h-6 w-6 text-green-400"
-                  strokeWidth={2.5}
-                />
+                <ArrowUp className="h-6 w-6 text-green-400" strokeWidth={2.5} />
               ) : (
-                <ArrowDown
-                  className="h-6 w-6 text-red-400"
-                  strokeWidth={2.5}
-                />
+                <ArrowDown className="h-6 w-6 text-red-400" strokeWidth={2.5} />
               )}
             </div>
             <div>
-              <h3 className="text-sm text-gray-400 font-mono">
-                24h Change
-              </h3>
+              <h3 className="text-sm text-gray-400 font-mono">24h Change</h3>
               <div className="flex items-baseline gap-2">
                 <span
                   className={cn(
                     'text-2xl font-bold font-mono',
-                    change24h >= 0 ? 'text-green-400' : 'text-red-400'
+                    change24h >= 0 ? 'text-green-400' : 'text-red-400',
                   )}
                 >
                   {change24h >= 0 ? '+' : ''}
@@ -363,14 +523,13 @@ const PortfolioChart = memo(
                 <span
                   className={cn(
                     'text-sm font-mono',
-                    change24h >= 0 ? 'text-green-400/70' : 'text-red-400/70'
+                    change24h >= 0 ? 'text-green-400/70' : 'text-red-400/70',
                   )}
                 >
-                  {changeValue24h >= 0 ? '+' : ''}
-                  Ξ
+                  {changeValue24h >= 0 ? '+' : ''}$
                   {changeValue24h.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
                   })}
                 </span>
               </div>
@@ -390,7 +549,7 @@ const PortfolioChart = memo(
                   'text-xs h-7 px-3',
                   timeRange === range
                     ? 'bg-orange-500 text-white hover:bg-orange-600'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-800',
                 )}
                 onClick={() => setTimeRange(range)}
               >
@@ -405,7 +564,7 @@ const PortfolioChart = memo(
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
-                data={chartData}
+                data={filteredData()}
                 margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
               >
                 <defs>
@@ -414,22 +573,30 @@ const PortfolioChart = memo(
                     <stop offset="95%" stopColor="#FF8C00" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  vertical={false} 
-                  stroke="#333340" 
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="#333340"
                 />
-                <XAxis 
-                  dataKey="date" 
-                  tickFormatter={formatDate} 
-                  tick={{ fontSize: 12, fontFamily: 'monospace', fill: '#9CA3AF' }}
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={formatDate}
+                  tick={{
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                    fill: '#9CA3AF',
+                  }}
                   tickLine={false}
                   axisLine={{ stroke: '#333340' }}
                 />
-                <YAxis 
+                <YAxis
                   tickCount={5}
-                  tick={{ fontSize: 12, fontFamily: 'monospace', fill: '#9CA3AF' }}
-                  tickFormatter={(value) => `Ξ${value/1000}k`}
+                  tick={{
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                    fill: '#9CA3AF',
+                  }}
+                  tickFormatter={(value) => `$${value / 1000}k`}
                   tickLine={false}
                   axisLine={false}
                   domain={['dataMin - 1000', 'dataMax + 1000']}
@@ -442,7 +609,12 @@ const PortfolioChart = memo(
                   strokeWidth={2}
                   fillOpacity={1}
                   fill="url(#colorValue)"
-                  activeDot={{ r: 6, stroke: '#FF8C00', strokeWidth: 2, fill: '#232229' }}
+                  activeDot={{
+                    r: 6,
+                    stroke: '#FF8C00',
+                    strokeWidth: 2,
+                    fill: '#232229',
+                  }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -450,9 +622,9 @@ const PortfolioChart = memo(
         </div>
       </div>
     );
-  }
+  },
 );
 
 PortfolioChart.displayName = 'PortfolioChart';
 
-export default PortfolioChart; 
+export default PortfolioChart;

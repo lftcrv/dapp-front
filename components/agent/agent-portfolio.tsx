@@ -109,6 +109,7 @@ export const AgentPortfolio = memo(
                   totalValue={portfolio.totalValue}
                   change24h={portfolio.change24h}
                   changeValue24h={portfolio.changeValue24h}
+                  agentId={agent.id}
                 />
               </div>
 
@@ -118,7 +119,7 @@ export const AgentPortfolio = memo(
                   <span className="mr-2">Profit & Loss</span>
                   <span className="text-blue-600">💰</span>
                 </h2>
-                <PortfolioPnL data={portfolio.pnlData} />
+                <PortfolioPnL data={portfolio.pnlData} agentId={agent.id} />
               </div>
             </div>
 

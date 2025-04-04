@@ -33,6 +33,14 @@ const formatData = (allocation: AllocationItem[]) => {
   }));
 };
 
+// Format large numbers for display
+const formatValue = (value: number) => {
+  return value.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  });
+};
+
 // Custom tooltip for the pie chart
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
@@ -41,9 +49,9 @@ const CustomTooltip = ({ active, payload }: any) => {
       <div className="bg-[#232229] p-3 rounded-lg shadow-lg border border-gray-700 text-white">
         <div className="font-medium text-white">{data.name}</div>
         <div className="font-mono text-white">
-          Ξ{data.value.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
+          ${data.value.toLocaleString(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
           })}
         </div>
         <div className="text-sm text-gray-400">
@@ -53,14 +61,6 @@ const CustomTooltip = ({ active, payload }: any) => {
     );
   }
   return null;
-};
-
-// Format large numbers for display
-const formatValue = (value: number) => {
-  return value.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 };
 
 const PortfolioAllocation = memo(({ allocation }: PortfolioAllocationProps) => {
@@ -161,7 +161,7 @@ const PortfolioAllocation = memo(({ allocation }: PortfolioAllocationProps) => {
                       <span className="font-medium text-white">{item.asset}</span>
                     </td>
                     <td className="py-3 text-right font-mono text-white">
-                      Ξ{formatValue(item.value)}
+                      ${formatValue(item.value)}
                     </td>
                     <td className="py-3 text-right">
                       <div className="flex items-center justify-end">
@@ -186,7 +186,7 @@ const PortfolioAllocation = memo(({ allocation }: PortfolioAllocationProps) => {
                 <tr className="border-t border-gray-700">
                   <td className="pt-3 font-medium text-white">Total</td>
                   <td className="pt-3 text-right font-mono font-medium text-white">
-                    Ξ{formatValue(
+                    ${formatValue(
                       allocation.reduce((sum, item) => sum + item.value, 0)
                     )}
                   </td>

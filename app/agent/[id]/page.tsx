@@ -15,7 +15,6 @@ import {
   getCurrentBalance,
 } from '@/actions/agents/portfolio';
 import {
-  AssetAllocation,
   AgentTradeCount as AgentTradeCountType,
   CurrentBalance,
   PnLResponse,
@@ -23,6 +22,7 @@ import {
   PerformanceHistory,
   BalanceHistory,
 } from '@/lib/types';
+import { AssetAllocation } from '@/lib/types/portfolio';
 
 // Mark this page as dynamic to skip static build
 export const dynamic = 'force-dynamic';
@@ -114,9 +114,9 @@ const getCachedPageData = unstable_cache(
       >(
         assetAllocationResult,
         (data) =>
-          data.assets.map((asset) => ({
+          data.portfolio.map((asset) => ({
             asset: asset.symbol,
-            value: asset.value,
+            value: asset.valueUsd,
             percentage: asset.percentage,
             color: getAssetColor(asset.symbol),
           })),
@@ -223,8 +223,10 @@ function getAssetColor(symbol: string): string {
     ARB: '#28A0F0',
     OP: '#FF0420',
   };
-  
-  return colorMap[symbol] || `#${Math.floor(Math.random()*16777215).toString(16)}`;
+
+  return (
+    colorMap[symbol] || `#${Math.floor(Math.random() * 16777215).toString(16)}`
+  );
 }
 
 type PageProps = {

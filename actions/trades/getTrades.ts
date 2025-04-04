@@ -9,10 +9,33 @@ import {
   CancelOrderTradeInfo,
 } from '@/lib/types';
 
+// Define the interface for simple trade format
+interface SimpleTradeInfo {
+  tradeType: string;
+  asset: string;
+  price: number;
+  amount: number;
+  reasoning?: string;
+  timestamp?: string;
+  totalCost?: number;
+}
+
+// Type guard to check for simple trade format
+function isSimpleTrade(info: any): info is SimpleTradeInfo {
+  return (
+    info &&
+    typeof info.tradeType === 'string' &&
+    typeof info.asset === 'string' &&
+    (typeof info.price === 'number' || typeof info.price === 'string') &&
+    (typeof info.amount === 'number' || typeof info.amount === 'string')
+  );
+}
+
 export async function getTrades(agentId?: string) {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
-    const apiKey = process.env.API_KEY;
+    const apiUrl =
+      process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://127.0.0.1:8080';
+    const apiKey = process.env.API_KEY || 'secret';
 
     if (!apiUrl || !apiKey) {
       throw new Error('Missing API configuration');
@@ -22,6 +45,7 @@ export async function getTrades(agentId?: string) {
       ? `${apiUrl}/api/trading-information/agent/${agentId}`
       : `${apiUrl}/api/trading-information`;
 
+    console.log('Fetching trades from:', endpoint);
     const response = await fetch(endpoint, {
       headers: {
         'Content-Type': 'application/json',
@@ -43,6 +67,7 @@ export async function getTrades(agentId?: string) {
 
     // Parse the response only once
     const result = (await response.json()) as GetTradesResponse;
+    console.log('API response:', result);
 
     // Check if trades exist in the expected structure
     const trades = result.data?.trades || [];
@@ -68,8 +93,23 @@ export async function getTrades(agentId?: string) {
           };
         }
 
-        // Determine the trade type based on the information structure
-        if ('tradeType' in trade.information) {
+        // First check for simple trade format (new API format)
+        if (isSimpleTrade(trade.information)) {
+          const info = trade.information;
+          const tradeType = info.tradeType.toUpperCase() === 'BUY' ? 'buy' : 'sell';
+          
+          return {
+            ...commonTrade,
+            type: tradeType as TradeType,
+            asset: info.asset,
+            amount: Number(info.amount),
+            price: Number(info.price),
+            summary: info.reasoning || `${tradeType.toUpperCase()} ${info.amount} ${info.asset} at $${info.price}`,
+            information: trade.information,
+          };
+        }
+        // Then check if it's a paradex trade with tradeType property
+        else if ('tradeType' in trade.information) {
           // Handle Paradex trades
           if (trade.information.tradeType === 'paradexPlaceOrderMarket') {
             const info = trade.information as MarketOrderTradeInfo;
@@ -108,8 +148,8 @@ export async function getTrades(agentId?: string) {
             };
           }
         }
-        // Legacy format handling
-        else if (trade.information.trade) {
+        // Legacy format check
+        else if ('trade' in trade.information) {
           const legacyInfo = trade.information;
           return {
             ...commonTrade,
