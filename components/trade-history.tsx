@@ -120,8 +120,8 @@ const formatAmount = (amount: string | undefined): string => {
   try {
     const num = parseFloat(amount);
     return num.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 6,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     });
   } catch {
     return '0';
@@ -130,7 +130,7 @@ const formatAmount = (amount: string | undefined): string => {
 
 // Updated formatPrice to handle both number and string values
 const formatPrice = (price: number | string | undefined): string => {
-  if (price === undefined || price === null) return '0.00';
+  if (price === undefined || price === null) return '0';
 
   // If price is already a string (like 'MARKET PRICE'), return it directly
   if (typeof price === 'string') {
@@ -140,11 +140,11 @@ const formatPrice = (price: number | string | undefined): string => {
   // Otherwise format the number
   try {
     return price.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     });
   } catch {
-    return '0.00';
+    return '0';
   }
 };
 

@@ -65,16 +65,20 @@ export interface PerformanceHistory {
   snapshots: PerformanceSnapshot[];
 }
 
-// Asset allocation data (placeholder - API doesn't specify this yet)
+// Asset allocation data from /api/kpi/portfolio/{agentId}
 export interface AssetAllocation {
   agentId: string;
-  assets: {
+  runtimeAgentId: string;
+  name: string;
+  timestamp: string;
+  balanceInUSD: number;
+  portfolio: {
     symbol: string;
-    name: string;
-    value: number;
+    balance: number;
+    price: number;
+    valueUsd: number;
     percentage: number;
   }[];
-  timestamp: string;
 }
 
 // Performance metrics data
