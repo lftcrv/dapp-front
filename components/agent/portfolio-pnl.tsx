@@ -3,7 +3,7 @@
 import { memo, useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUp, ArrowDown, DollarSign, BarChart2 } from 'lucide-react';
-import { cn, formatPnL, isPnLPositive } from '@/lib/utils';
+import { cn, isPnLPositive } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   BarChart,
@@ -37,23 +37,35 @@ interface PortfolioPnLProps {
 }
 
 // Custom tooltip for the chart
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: number;
+    dataKey: string;
+    payload: {
+      timestamp?: string;
+    };
+  }>;
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     // Get the first non-zero value (either positive or negative)
-    const activePayload = payload.find((p: any) => p.value !== 0);
+    const activePayload = payload.find((p) => p.value !== 0);
     if (!activePayload) return null;
 
     const value = activePayload.value;
     const isProfit = activePayload.dataKey === 'positive';
 
     // Format the date based on timeRange if available in the payload data
-    let formattedDate = label;
+    let formattedDate = label || '';
     try {
       // See if we can access timeRange from the payload's originalData
-      const isWeeklyView = payload[0].payload.timestamp !== undefined;
+      const isWeeklyView = payload[0]?.payload?.timestamp !== undefined;
 
-      if (isWeeklyView) {
-        const date = new Date(payload[0].payload.timestamp || label);
+      if (isWeeklyView && payload[0]?.payload?.timestamp) {
+        const date = new Date(payload[0].payload.timestamp || label || '');
         formattedDate = date.toLocaleString('en-US', {
           month: 'short',
           day: 'numeric',
@@ -111,21 +123,19 @@ const formatDate = (dateStr: string, scale?: DayScale) => {
   }
 };
 
-// Generate an array of dates between start and end
-const generateDatesBetween = (start: Date, end: Date): Date[] => {
-  const dates = [];
-  const currentDate = new Date(start);
-
-  while (currentDate <= end) {
-    dates.push(new Date(currentDate));
-    currentDate.setDate(currentDate.getDate() + 1);
-  }
-
-  return dates;
-};
-
 // Aggregate data by day scale (daily, weekly, monthly)
-const aggregateDataByScale = (data: any[], scale: DayScale): any[] => {
+interface DataItem {
+  date: string;
+  positive?: number;
+  negative?: number;
+  rawPnl?: number;
+  [key: string]: unknown;
+}
+
+const aggregateDataByScale = (
+  data: DataItem[],
+  scale: DayScale,
+): DataItem[] => {
   if (!data || data.length === 0) return [];
 
   // If daily scale, just return the data as is
@@ -177,19 +187,25 @@ const aggregateDataByScale = (data: any[], scale: DayScale): any[] => {
   );
 };
 
+// Create a complete dataset with optimal data density
+interface OptimalDataItem extends DataItem {
+  timestamp: string;
+  source: string;
+  isActualData: boolean;
+}
+
 const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
   const isProfit = data.total > 0;
   const [timeRange, setTimeRange] = useState<TimeRange>('1W');
   const [dayScale, setDayScale] = useState<DayScale>('1D');
-  const [chartData, setChartData] = useState<any[]>([]);
-  const [aggregatedData, setAggregatedData] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<DataItem[]>([]);
+  const [aggregatedData, setAggregatedData] = useState<DataItem[]>([]);
   const [totalPnlData, setTotalPnlData] = useState<{
     pnl: number;
     pnlPercentage: number;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [apiResponse, setApiResponse] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'daily' | 'cumulative'>('daily');
 
   // Fetch overall PnL data (for the header)
@@ -301,9 +317,6 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
         const result = await response.json();
         console.log('Daily PnL API Response:', result);
 
-        // Store raw API response for debugging/analysis
-        setApiResponse(result);
-
         if (
           !result.snapshots ||
           !Array.isArray(result.snapshots) ||
@@ -399,25 +412,30 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
               };
             })
             .filter((item) => item.isActualData); // Only include items with actual data
-          
+
           // Group snapshots by day for all time ranges to ensure consistent data density
-          const snapshotsByDay = new Map<string, any[]>();
-          
+          const snapshotsByDay = new Map<string, OptimalDataItem[]>();
+
           dailyPnlData.forEach((item) => {
             const date = new Date(item.timestamp);
             const dayKey = date.toISOString().split('T')[0]; // Use date as key
-            
+
             if (!snapshotsByDay.has(dayKey)) {
               snapshotsByDay.set(dayKey, []);
             }
-            
-            snapshotsByDay.get(dayKey)?.push(item);
+
+            snapshotsByDay.get(dayKey)?.push({
+              ...item,
+              timestamp: item.timestamp,
+              source: item.source,
+              isActualData: item.isActualData,
+            });
           });
-          
+
           // Determine date range based on selected time period
           const now = new Date();
           let startDate;
-          
+
           switch (timeRange) {
             case '1W':
               startDate = new Date(now);
@@ -436,10 +454,10 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
               startDate = new Date(now);
               startDate.setFullYear(now.getFullYear() - 1);
           }
-          
+
           // Create a complete dataset with optimal data density
-          const optimalData: any[] = [];
-          
+          const optimalData: OptimalDataItem[] = [];
+
           // Generate all dates in the range
           const allDates: Date[] = [];
           const currentDate = new Date(startDate);
@@ -447,36 +465,37 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
             allDates.push(new Date(currentDate));
             currentDate.setDate(currentDate.getDate() + 1);
           }
-          
+
           // For each day in the range
-          allDates.forEach(day => {
+          allDates.forEach((day) => {
             const dayStr = day.toISOString().split('T')[0];
             const dayData = snapshotsByDay.get(dayStr) || [];
-            
+
             if (dayData.length > 0) {
               // Sort the day's data points by time
               const sortedDayData = dayData.sort(
-                (a: {timestamp: string}, b: {timestamp: string}) => 
-                  new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+                (a: { timestamp: string }, b: { timestamp: string }) =>
+                  new Date(a.timestamp).getTime() -
+                  new Date(b.timestamp).getTime(),
               );
-              
+
               // Select up to 3 points (morning, mid-day, evening)
-              const selectedPoints: any[] = [];
-              
+              const selectedPoints: OptimalDataItem[] = [];
+
               // Morning - first point
               selectedPoints.push(sortedDayData[0]);
-              
+
               // Mid-day - if we have at least 3 points
               if (sortedDayData.length >= 3) {
                 const midIndex = Math.floor(sortedDayData.length / 2);
                 selectedPoints.push(sortedDayData[midIndex]);
               }
-              
+
               // Evening - last point if different from first
               if (sortedDayData.length > 1) {
                 selectedPoints.push(sortedDayData[sortedDayData.length - 1]);
               }
-              
+
               // Add the selected points to our dataset
               optimalData.push(...selectedPoints);
             } else if (timeRange === '1W') {
@@ -484,12 +503,7 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
               // For longer views, we'll let the chart interpolate
               const placeholder = new Date(dayStr);
               placeholder.setHours(12, 0, 0);
-              
-              // Use the last known value or 0
-              const lastKnownValue = optimalData.length > 0 
-                ? optimalData[optimalData.length - 1].rawPnl
-                : 0;
-              
+
               optimalData.push({
                 date: dayStr,
                 timestamp: placeholder.toISOString(),
@@ -497,17 +511,17 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
                 negative: 0,
                 rawPnl: 0,
                 source: 'placeholder',
-                isActualData: false
+                isActualData: false,
               });
             }
           });
-          
+
           // Sort the data chronologically
           optimalData.sort(
-            (a: {timestamp: string}, b: {timestamp: string}) => 
-              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+            (a: { timestamp: string }, b: { timestamp: string }) =>
+              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
           );
-          
+
           console.log(`Processed PnL data (${timeRange}):`, optimalData.length);
           return optimalData;
         };
@@ -553,13 +567,13 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
     } else {
       // For cumulative view, we need to calculate running total
       let cumulativeTotal = 0;
-      return aggregatedData.map(item => {
-        cumulativeTotal += item.rawPnl;
+      return aggregatedData.map((item) => {
+        cumulativeTotal += item.rawPnl ?? 0;
         return {
           ...item,
           positive: cumulativeTotal > 0 ? cumulativeTotal : 0,
           negative: cumulativeTotal < 0 ? cumulativeTotal : 0,
-          rawPnl: cumulativeTotal
+          rawPnl: cumulativeTotal,
         };
       });
     }
@@ -669,7 +683,29 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
             Cumulative
           </Button>
         </div>
-        
+
+        {/* Data Scale - only show for non-weekly time ranges */}
+        {timeRange !== '1W' && (
+          <div className="flex bg-[#232229] rounded-lg p-1 border border-gray-800">
+            {(['1D', '1W', '1M'] as const).map((scale) => (
+              <Button
+                key={scale}
+                size="sm"
+                variant={dayScale === scale ? 'default' : 'ghost'}
+                className={cn(
+                  'text-xs h-7 px-3',
+                  dayScale === scale
+                    ? 'bg-orange-500 text-white hover:bg-orange-600'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-800',
+                )}
+                onClick={() => setDayScale(scale)}
+              >
+                {scale}
+              </Button>
+            ))}
+          </div>
+        )}
+
         {/* Time range selector */}
         <div className="flex bg-[#232229] rounded-lg p-1 border border-gray-800">
           {(['1W', '1M', '3M', 'ALL'] as const).map((range) => (
@@ -730,14 +766,14 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
                   dataKey="date"
                   tickFormatter={(value) => {
                     // Check if we're in weekly view with timestamp data
-                    const item = chartData.find(i => i.date === value);
+                    const item = chartData.find((i) => i.date === value);
                     if (timeRange === '1W' && item?.timestamp) {
-                      const date = new Date(item.timestamp);
+                      const date = new Date(String(item.timestamp));
                       return date.toLocaleString('en-US', {
                         month: 'short',
                         day: 'numeric',
                         hour: 'numeric',
-                        hour12: true
+                        hour12: true,
                       });
                     }
                     return formatDate(value, dayScale);
@@ -752,8 +788,10 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
                   interval={(() => {
                     // Smart interval based on time range and data density
                     if (timeRange === '1W') return 3; // Every 3rd point for weekly
-                    if (timeRange === '1M') return Math.ceil(processedData.length / 10); // ~10 ticks for monthly
-                    if (timeRange === '3M') return Math.ceil(processedData.length / 12); // ~12 ticks for quarterly
+                    if (timeRange === '1M')
+                      return Math.ceil(processedData.length / 10); // ~10 ticks for monthly
+                    if (timeRange === '3M')
+                      return Math.ceil(processedData.length / 12); // ~12 ticks for quarterly
                     return 'preserveStartEnd'; // Start and end for ALL
                   })()}
                 />
@@ -767,18 +805,28 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
                   tickFormatter={(value) => {
                     // Format Y-axis ticks without decimal places
                     if (value >= 1000000 || value <= -1000000) {
-                      return `${value >= 0 ? '' : '-'}$${Math.abs(value / 1000000).toFixed(1)}M`;
+                      return `${value >= 0 ? '' : '-'}$${Math.abs(
+                        value / 1000000,
+                      ).toFixed(1)}M`;
                     } else if (value >= 1000 || value <= -1000) {
-                      return `${value >= 0 ? '' : '-'}$${Math.abs(value / 1000).toFixed(1)}k`;
+                      return `${value >= 0 ? '' : '-'}$${Math.abs(
+                        value / 1000,
+                      ).toFixed(1)}k`;
                     }
-                    return `${value >= 0 ? '' : '-'}$${Math.abs(value).toLocaleString(undefined, {
+                    return `${value >= 0 ? '' : '-'}$${Math.abs(
+                      value,
+                    ).toLocaleString(undefined, {
                       minimumFractionDigits: 0,
                       maximumFractionDigits: 0,
                     })}`;
                   }}
                   tickLine={false}
                   axisLine={false}
-                  domain={viewMode === 'daily' ? [-(maxValue * 0.5), maxValue] : ['auto', 'auto']}
+                  domain={
+                    viewMode === 'daily'
+                      ? [-(maxValue * 0.5), maxValue]
+                      : ['auto', 'auto']
+                  }
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <ReferenceLine y={0} stroke="#4B5563" />

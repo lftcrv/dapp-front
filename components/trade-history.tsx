@@ -79,20 +79,63 @@ const formatFullDate = (isoString: string | undefined): string => {
   }
 };
 
-function isCancelOrder(info: any): info is CancelOrderTradeInfo {
-  return info && info.tradeType === 'paradexCancelOrder';
+interface PotentialCancelOrderInfo {
+  tradeType?: string;
+}
+
+function isCancelOrder(info: unknown): info is CancelOrderTradeInfo {
+  return (
+    info !== null &&
+    typeof info === 'object' &&
+    'tradeType' in info &&
+    (info as PotentialCancelOrderInfo).tradeType === 'paradexCancelOrder'
+  );
+}
+
+// Define a basic trade object structure
+interface BaseTradeObject {
+  // Common properties that might exist
+  explanation?: string;
+
+  // Properties for token swap format
+  fromToken?: string;
+  toToken?: string;
+  fromAmount?: string | number;
+  toAmount?: string | number;
+  price?: string | number;
+
+  // Properties for legacy format
+  buyTokenName?: string;
+  sellTokenName?: string;
+  buyAmount?: string;
+  sellAmount?: string;
+  tradePriceUSD?: number;
+
+  // Properties for market/limit orders
+  market?: string;
+  side?: 'BUY' | 'SELL';
+  size?: string;
+
+  // Allow for other properties
+  [key: string]: unknown;
 }
 
 // Define the interface for objects with a trade property
 interface TradeInfoWithTrade {
-  trade: any;
+  trade: BaseTradeObject;
   tradeId: string;
   containerId?: string;
 }
 
 // Type predicate to narrow down the type
-function hasTradeProperty(info: any): info is TradeInfoWithTrade {
-  return info && 'trade' in info;
+function hasTradeProperty(info: unknown): info is TradeInfoWithTrade {
+  return Boolean(
+    info &&
+      typeof info === 'object' &&
+      'trade' in info &&
+      info.trade !== null &&
+      typeof info.trade === 'object',
+  );
 }
 
 interface TradeItemProps {
@@ -220,7 +263,8 @@ function getTradeDisplayData(trade: Trade) {
   // Check if the simulateTrade format with fromToken/toToken format
   if (
     info &&
-    'trade' in info &&
+    hasTradeProperty(info) &&
+    typeof info.trade === 'object' &&
     'fromToken' in info.trade &&
     'toToken' in info.trade &&
     'fromAmount' in info.trade &&
@@ -229,15 +273,15 @@ function getTradeDisplayData(trade: Trade) {
     const tradeInfo = info.trade;
     const fromToken = tradeInfo.fromToken as string;
     const toToken = tradeInfo.toToken as string;
-    const fromAmount = tradeInfo.fromAmount as string | number;
-    const toAmount = tradeInfo.toAmount as string | number;
+    const fromAmount = String(tradeInfo.fromAmount);
+    const toAmount = String(tradeInfo.toAmount);
 
     if (fromToken === 'USDC') {
       // Buying crypto with USDC
       buyTokenName = toToken;
       sellTokenName = fromToken;
-      buyAmount = String(toAmount);
-      sellAmount = String(fromAmount);
+      buyAmount = toAmount;
+      sellAmount = fromAmount;
       if ('price' in tradeInfo) {
         tradePriceUSD = parseFloat(String(tradeInfo.price)) || tradePriceUSD;
       }
@@ -252,8 +296,8 @@ function getTradeDisplayData(trade: Trade) {
       // Selling crypto for USDC
       buyTokenName = fromToken;
       sellTokenName = toToken;
-      buyAmount = String(fromAmount);
-      sellAmount = String(toAmount);
+      buyAmount = fromAmount;
+      sellAmount = toAmount;
       if ('price' in tradeInfo) {
         tradePriceUSD = parseFloat(String(tradeInfo.price)) || tradePriceUSD;
       }
@@ -268,8 +312,8 @@ function getTradeDisplayData(trade: Trade) {
       // Crypto to crypto swap
       buyTokenName = toToken;
       sellTokenName = fromToken;
-      buyAmount = String(toAmount);
-      sellAmount = String(fromAmount);
+      buyAmount = toAmount;
+      sellAmount = fromAmount;
       if ('price' in tradeInfo) {
         tradePriceUSD = parseFloat(String(tradeInfo.price)) || tradePriceUSD;
       }
@@ -289,8 +333,8 @@ function getTradeDisplayData(trade: Trade) {
 
     // If we have buyTokenName and sellTokenName directly (legacy format)
     if ('buyTokenName' in tradeInfo && 'sellTokenName' in tradeInfo) {
-      buyTokenName = tradeInfo.buyTokenName;
-      sellTokenName = tradeInfo.sellTokenName;
+      buyTokenName = tradeInfo.buyTokenName ?? 'Unknown';
+      sellTokenName = tradeInfo.sellTokenName ?? 'Unknown';
       buyAmount = tradeInfo.buyAmount || '0';
       sellAmount = tradeInfo.sellAmount || '0';
       tradePriceUSD = tradeInfo.tradePriceUSD || tradePriceUSD;
@@ -306,7 +350,7 @@ function getTradeDisplayData(trade: Trade) {
       sellAmount = isBuy ? '0' : tradeInfo.size || '0';
 
       if ('price' in tradeInfo && tradeInfo.price) {
-        tradePriceUSD = parseFloat(tradeInfo.price) || tradePriceUSD;
+        tradePriceUSD = parseFloat(String(tradeInfo.price)) || tradePriceUSD;
       }
     }
   }
@@ -413,8 +457,13 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
                       Transaction Details
                     </div>
                     <div className="pt-2 text-gray-600">
-                      <p>This transaction cannot be parsed into a standard trade format.</p>
-                      <p className="mt-1">Check the explanation below for more details.</p>
+                      <p>
+                        This transaction cannot be parsed into a standard trade
+                        format.
+                      </p>
+                      <p className="mt-1">
+                        Check the explanation below for more details.
+                      </p>
                     </div>
                   </div>
                 </TooltipContent>
@@ -456,11 +505,12 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
   const receivedAmount = buyAmount;
   const spentToken = sellTokenName;
   const spentAmount = sellAmount;
-  
+
   // For coloring, we'll use a more sophisticated financial UI color scheme
-  const isBuy = trade.type === 'buy' || 
+  const isBuy =
+    trade.type === 'buy' ||
     (buyTokenName !== 'Unknown' && sellTokenName === 'USDC');
-  
+
   const colorClass = isBuy ? 'text-blue-600' : 'text-purple-600';
   const bgClass = isBuy
     ? 'bg-blue-500/5 border-blue-500/20'
@@ -472,7 +522,7 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
 
   // Create a more informative title that focuses on the exchange
   const tradeTitle = `${displayReceived} ${receivedToken}`;
-  
+
   // Create action text that shows what was spent
   const actionText = `for ${displaySpent} ${spentToken}`;
 
@@ -514,15 +564,11 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
                     Trade Details
                   </div>
                   <div className="grid grid-cols-2 gap-2 pt-2">
-                    <div className="text-gray-500">
-                      You received:
-                    </div>
+                    <div className="text-gray-500">You received:</div>
                     <div className="font-medium text-gray-900">
                       {displayReceived} {receivedToken}
                     </div>
-                    <div className="text-gray-500">
-                      You traded:
-                    </div>
+                    <div className="text-gray-500">You traded:</div>
                     <div className="font-medium text-gray-900">
                       {displaySpent} {spentToken}
                     </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useState, useEffect } from 'react';
+import { memo, useState, useEffect} from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUp, ArrowDown, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -38,7 +38,28 @@ const formatDate = (dateStr: string) => {
 type TimeRange = '1W' | '1M' | '3M' | 'ALL';
 
 // Day scale options for data aggregation
-type DayScale = '1D' | '1W' | '1M';
+// type DayScale = '1D' | '1W' | '1M';
+
+// Define interfaces and types for the data structures
+interface ChartDataItem extends ChartData {
+  isActualData?: boolean;
+  tradeCount?: number;
+}
+
+interface SnapshotData {
+  timestamp: string;
+  balanceInUSD?: number;
+  [key: string]: unknown;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: number;
+    payload: ChartDataItem;
+  }>;
+  label?: string;
+}
 
 // Generate an array of dates between start and end
 const generateDatesBetween = (start: Date, end: Date): Date[] => {
@@ -53,96 +74,6 @@ const generateDatesBetween = (start: Date, end: Date): Date[] => {
   return dates;
 };
 
-// Generate test data for fallback (helper function)
-const generateTestData = (timeRange: TimeRange): ChartData[] => {
-  const result: ChartData[] = [];
-  const now = new Date();
-  const startDate = new Date();
-
-  switch (timeRange) {
-    case '1W':
-      startDate.setDate(now.getDate() - 7);
-      break;
-    case '1M':
-      startDate.setMonth(now.getMonth() - 1);
-      break;
-    case '3M':
-      startDate.setMonth(now.getMonth() - 3);
-      break;
-    case 'ALL':
-    default:
-      startDate.setFullYear(now.getFullYear() - 1);
-  }
-
-  const dates = generateDatesBetween(startDate, now);
-
-  // Generate some random data
-  const baseValue = 1000 + Math.random() * 9000;
-
-  dates.forEach((date, index) => {
-    // Create some volatility in the data
-    const volatility = 0.1; // 10% volatility
-    const change = (Math.random() - 0.5) * volatility * baseValue;
-    const value = baseValue + change * (index / dates.length);
-
-    result.push({
-      date: date.toISOString().split('T')[0],
-      value: Math.max(0, value), // Ensure value is not negative
-    });
-  });
-
-  return result;
-};
-
-// Aggregate data by day scale (daily, weekly, monthly)
-const aggregateDataByScale = (data: any[], scale: DayScale): any[] => {
-  if (!data || data.length === 0) return [];
-
-  // If daily scale, just return the data as is
-  if (scale === '1D') return data;
-
-  // For weekly or monthly aggregation
-  const aggregatedMap = new Map();
-
-  data.forEach((item) => {
-    const date = new Date(item.date);
-    let key: string;
-
-    if (scale === '1W') {
-      // For weekly, group by the Monday of each week
-      const day = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
-      const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust to get Monday
-      const monday = new Date(date.setDate(diff));
-      key = monday.toISOString().split('T')[0];
-    } else {
-      // For monthly, group by month and year
-      key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-        2,
-        '0',
-      )}-01`;
-    }
-
-    if (!aggregatedMap.has(key)) {
-      aggregatedMap.set(key, {
-        date: key,
-        value: 0,
-        count: 0,
-      });
-    }
-
-    const agg = aggregatedMap.get(key);
-
-    // Sum up the values
-    if (item.value) agg.value += item.value;
-    agg.count++;
-  });
-
-  // Convert the map to an array and sort by date
-  return Array.from(aggregatedMap.values()).sort(
-    (a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-  );
-};
-
 const PortfolioChart = memo(
   ({
     data,
@@ -152,27 +83,17 @@ const PortfolioChart = memo(
     agentId,
   }: PortfolioChartProps) => {
     const [timeRange, setTimeRange] = useState<TimeRange>('1W');
-    const [chartData, setChartData] = useState<ChartData[]>([]);
-    const [apiResponse, setApiResponse] = useState<any>(null);
-    const [portfolioValues, setPortfolioValues] = useState<{
-      totalValue: number;
-      change24h: number;
-      changeValue24h: number;
-    }>({
-      totalValue,
-      change24h,
-      changeValue24h,
-    });
+    const [chartData, setChartData] = useState<ChartDataItem[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Custom tooltip for the chart
-    const CustomTooltip = ({ active, payload, label }: any) => {
+    const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
       if (active && payload && payload.length) {
         // Handle date format based on whether it's a timestamp or date string
-        let formattedDate = label;
+        let formattedDate = label || '';
         try {
-          const date = new Date(label);
+          const date = new Date(label || '');
           if (timeRange === '1W') {
             formattedDate = date.toLocaleString('en-US', {
               month: 'short',
@@ -182,7 +103,7 @@ const PortfolioChart = memo(
               hour12: true,
             });
           } else {
-            formattedDate = formatDate(label);
+            formattedDate = formatDate(label || '');
           }
         } catch (e) {
           console.error('Date formatting error:', e);
@@ -212,6 +133,38 @@ const PortfolioChart = memo(
       }
 
       return null;
+    };
+
+    // Use useCallback to memoize the filterByTimeRange function
+
+    // Helper to filter data for display
+    const filteredData = () => {
+      if (chartData.length === 0) return [];
+
+      const now = new Date();
+
+      switch (timeRange) {
+        case '1W': {
+          const oneWeekAgo = new Date();
+          oneWeekAgo.setDate(now.getDate() - 8); // Include one extra day
+          return chartData.filter((item) => new Date(item.date) >= oneWeekAgo);
+        }
+        case '1M': {
+          const oneMonthAgo = new Date();
+          oneMonthAgo.setMonth(now.getMonth() - 1);
+          return chartData.filter((item) => new Date(item.date) >= oneMonthAgo);
+        }
+        case '3M': {
+          const threeMonthsAgo = new Date();
+          threeMonthsAgo.setMonth(now.getMonth() - 3);
+          return chartData.filter(
+            (item) => new Date(item.date) >= threeMonthsAgo,
+          );
+        }
+        case 'ALL':
+        default:
+          return chartData;
+      }
     };
 
     // Fetch total portfolio value and PnL data
@@ -264,11 +217,7 @@ const PortfolioChart = memo(
             apiPercentage: result.pnlPercentage,
           });
 
-          setPortfolioValues({
-            totalValue: latestBalance,
-            change24h: pnlPercentage,
-            changeValue24h: pnlValue,
-          });
+          // Don't update chartData here - it will be updated by the other useEffect
         } catch (error) {
           console.error('Error fetching portfolio KPI data:', error);
           // Fall back to prop data if API fails
@@ -280,10 +229,10 @@ const PortfolioChart = memo(
 
     // Fetch portfolio history data when time range changes
     useEffect(() => {
+      // Skip if no agent ID
       if (!agentId) {
-        // Filter and use prop data based on selected time range if no agentId
-        const filteredData = filterByTimeRange(data, timeRange);
-        setChartData(filteredData);
+        console.log('No agent ID provided, skipping historical data fetch');
+        setChartData(data || []);
         return;
       }
 
@@ -357,7 +306,6 @@ const PortfolioChart = memo(
 
           const result = await response.json();
           console.log('Portfolio history data:', result);
-          setApiResponse(result);
 
           if (
             !result.snapshots ||
@@ -373,12 +321,11 @@ const PortfolioChart = memo(
           }
 
           // Process the API response data - select 3 points per day
-          const processPortfolioData = () => {
-            const snapshots = result.snapshots;
+          const processPortfolioData = (snapshots: SnapshotData[]) => {
             // Group snapshots by day
-            const snapshotsByDay = new Map();
+            const snapshotsByDay = new Map<string, SnapshotData[]>();
 
-            snapshots.forEach((snapshot: any) => {
+            snapshots.forEach((snapshot) => {
               const date = new Date(snapshot.timestamp);
               const dayKey = date.toISOString().split('T')[0]; // Use date as key
 
@@ -386,18 +333,18 @@ const PortfolioChart = memo(
                 snapshotsByDay.set(dayKey, []);
               }
 
-              snapshotsByDay.get(dayKey).push(snapshot);
+              snapshotsByDay.get(dayKey)?.push(snapshot);
             });
 
             // Select 3 points per day: morning (first), mid-day, and evening (last)
-            const selectedSnapshots: any[] = [];
+            const selectedSnapshots: SnapshotData[] = [];
 
-            snapshotsByDay.forEach((daySnapshots, dayKey) => {
+            snapshotsByDay.forEach((daySnapshots) => {
               if (daySnapshots.length === 0) return;
 
               // Sort snapshots by time
-              const sortedSnapshots = daySnapshots.sort(
-                (a: any, b: any) =>
+              const sortedSnapshots = [...daySnapshots].sort(
+                (a, b) =>
                   new Date(a.timestamp).getTime() -
                   new Date(b.timestamp).getTime(),
               );
@@ -420,7 +367,7 @@ const PortfolioChart = memo(
             });
 
             // Map selected snapshots to chart data format
-            const formattedData = selectedSnapshots.map((snapshot: any) => {
+            const formattedData = selectedSnapshots.map((snapshot) => {
               return {
                 date: snapshot.timestamp, // Keep full timestamp
                 value:
@@ -437,7 +384,7 @@ const PortfolioChart = memo(
             );
           };
 
-          const portfolioData = processPortfolioData();
+          const portfolioData = processPortfolioData(result.snapshots);
 
           // For 1W view with hourly data, we need to ensure a full week is displayed
           if (timeRange === '1W') {
@@ -501,7 +448,7 @@ const PortfolioChart = memo(
             const dateMap = new Map();
 
             // Create a map of existing dates (strip time for non-weekly views)
-            portfolioData.forEach((item: any) => {
+            portfolioData.forEach((item: ChartDataItem) => {
               const dateKey = new Date(item.date).toISOString().split('T')[0];
               dateMap.set(dateKey, {
                 ...item,
@@ -556,70 +503,10 @@ const PortfolioChart = memo(
         }
       };
 
+      console.log('Fetching historical data for agent', agentId);
       fetchHistoricalData();
     }, [timeRange, agentId, data]);
 
-    // Helper to filter prop data based on time range
-    const filterByTimeRange = (
-      inputData: ChartData[],
-      range: TimeRange,
-    ): ChartData[] => {
-      if (!inputData || inputData.length === 0) return [];
-
-      const now = new Date();
-      
-      switch (range) {
-        case '1W':
-          const oneWeekAgo = new Date();
-          oneWeekAgo.setDate(now.getDate() - 7);
-          return data.filter((item) => new Date(item.date) >= oneWeekAgo);
-        
-        case '1M':
-          const oneMonthAgo = new Date();
-          oneMonthAgo.setMonth(now.getMonth() - 1);
-          return data.filter((item) => new Date(item.date) >= oneMonthAgo);
-        
-        case '3M':
-          const threeMonthsAgo = new Date();
-          threeMonthsAgo.setMonth(now.getMonth() - 3);
-          return data.filter((item) => new Date(item.date) >= threeMonthsAgo);
-        
-        case 'ALL':
-        default:
-          return data;
-      }
-    };
-
-    // Helper to filter data for display
-    const filteredData = () => {
-      if (chartData.length === 0) return [];
-
-      const now = new Date();
-
-      switch (timeRange) {
-        case '1W': {
-          const oneWeekAgo = new Date();
-          oneWeekAgo.setDate(now.getDate() - 8); // Include one extra day
-          return chartData.filter((item) => new Date(item.date) >= oneWeekAgo);
-        }
-        case '1M': {
-          const oneMonthAgo = new Date();
-          oneMonthAgo.setMonth(now.getMonth() - 1);
-          return chartData.filter((item) => new Date(item.date) >= oneMonthAgo);
-        }
-        case '3M': {
-          const threeMonthsAgo = new Date();
-          threeMonthsAgo.setMonth(now.getMonth() - 3);
-          return chartData.filter(
-            (item) => new Date(item.date) >= threeMonthsAgo,
-          );
-        }
-        case 'ALL':
-        default:
-          return chartData;
-      }
-    };
-    
     return (
       <div className="space-y-4">
         {/* Total Value Display */}
@@ -734,24 +621,24 @@ const PortfolioChart = memo(
                 No data available
               </div>
             ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
                   data={filteredData()}
-                margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
-              >
-                <defs>
-                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#FF8C00" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#FF8C00" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  vertical={false} 
-                  stroke="#333340" 
-                />
-                <XAxis 
-                  dataKey="date" 
+                  margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#FF8C00" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#FF8C00" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="#333340"
+                  />
+                  <XAxis
+                    dataKey="date"
                     tickFormatter={(value) => {
                       const date = new Date(value);
                       if (timeRange === '1W') {
@@ -771,13 +658,13 @@ const PortfolioChart = memo(
                       fontFamily: 'monospace',
                       fill: '#9CA3AF',
                     }}
-                  tickLine={false}
-                  axisLine={{ stroke: '#333340' }}
+                    tickLine={false}
+                    axisLine={{ stroke: '#333340' }}
                     interval={timeRange === '1W' ? 4 : 'preserveEnd'}
                     domain={['dataMin', 'dataMax']}
-                />
-                <YAxis 
-                  tickCount={5}
+                  />
+                  <YAxis
+                    tickCount={5}
                     tick={{
                       fontSize: 12,
                       fontFamily: 'monospace',
@@ -791,18 +678,18 @@ const PortfolioChart = memo(
                       }
                       return `$${value}`;
                     }}
-                  tickLine={false}
-                  axisLine={false}
+                    tickLine={false}
+                    axisLine={false}
                     domain={['auto', 'auto']}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#FF8C00"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorValue)"
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#FF8C00"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorValue)"
                     activeDot={{
                       r: 6,
                       stroke: '#FF8C00',
@@ -819,9 +706,9 @@ const PortfolioChart = memo(
                           }
                         : false
                     }
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             )}
           </div>
         </div>
@@ -832,4 +719,4 @@ const PortfolioChart = memo(
 
 PortfolioChart.displayName = 'PortfolioChart';
 
-export default PortfolioChart; 
+export default PortfolioChart;

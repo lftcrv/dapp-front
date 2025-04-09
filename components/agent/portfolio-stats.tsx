@@ -2,7 +2,7 @@
 
 import { memo } from 'react';
 
-import { Trophy, BarChart3, GitFork, ArrowUp, ArrowDown } from 'lucide-react';
+import { Trophy, BarChart3, GitFork } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AgentType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -15,47 +15,67 @@ interface PortfolioStatsProps {
 }
 
 const PortfolioStats = memo(
-  ({
-    cycleRanking,
-    totalTrades,
-    forkingRevenue,
-    agentType,
-  }: PortfolioStatsProps) => {
-
-
+  ({ cycleRanking, totalTrades, forkingRevenue }: PortfolioStatsProps) => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Ranking Card */}
         <div className="bg-white/80 rounded-xl p-4 flex items-center border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-          <div className={cn(
-            "p-3 rounded-lg mr-4",
-            cycleRanking === 1 ? "bg-yellow-500/20" : 
-            cycleRanking && cycleRanking <= 3 ? "bg-yellow-400/20" :
-            cycleRanking && cycleRanking <= 10 ? "bg-orange-400/20" : "bg-yellow-500/10"
-          )}>
-            <Trophy className={cn(
-              "h-6 w-6",
-              cycleRanking === 1 ? "text-yellow-600" : 
-              cycleRanking && cycleRanking <= 3 ? "text-yellow-500" :
-              cycleRanking && cycleRanking <= 10 ? "text-orange-500" : "text-yellow-600"
-            )} />
+          <div
+            className={cn(
+              'p-3 rounded-lg mr-4',
+              cycleRanking === 1
+                ? 'bg-yellow-500/20'
+                : cycleRanking && cycleRanking <= 3
+                ? 'bg-yellow-400/20'
+                : cycleRanking && cycleRanking <= 10
+                ? 'bg-orange-400/20'
+                : 'bg-yellow-500/10',
+            )}
+          >
+            <Trophy
+              className={cn(
+                'h-6 w-6',
+                cycleRanking === 1
+                  ? 'text-yellow-600'
+                  : cycleRanking && cycleRanking <= 3
+                  ? 'text-yellow-500'
+                  : cycleRanking && cycleRanking <= 10
+                  ? 'text-orange-500'
+                  : 'text-yellow-600',
+              )}
+            />
           </div>
           <div>
             <h3 className="text-sm text-gray-600 font-sketch">
               Performance Ranking
             </h3>
             <div className="flex items-baseline">
-              <span className={cn(
-                "text-2xl font-bold font-patrick",
-                cycleRanking === 1 ? "text-yellow-600" : 
-                cycleRanking && cycleRanking <= 3 ? "text-yellow-500" :
-                cycleRanking && cycleRanking <= 10 ? "text-orange-500" : "text-gray-900"
-              )}>
+              <span
+                className={cn(
+                  'text-2xl font-bold font-patrick',
+                  cycleRanking === 1
+                    ? 'text-yellow-600'
+                    : cycleRanking && cycleRanking <= 3
+                    ? 'text-yellow-500'
+                    : cycleRanking && cycleRanking <= 10
+                    ? 'text-orange-500'
+                    : 'text-gray-900',
+                )}
+              >
                 {cycleRanking !== undefined ? (
                   <>
-                    {cycleRanking}{cycleRanking === 1 ? "st" : cycleRanking === 2 ? "nd" : cycleRanking === 3 ? "rd" : "th"}
+                    {cycleRanking}
+                    {cycleRanking === 1
+                      ? 'st'
+                      : cycleRanking === 2
+                      ? 'nd'
+                      : cycleRanking === 3
+                      ? 'rd'
+                      : 'th'}
                   </>
-                ) : 'N/A'}
+                ) : (
+                  'N/A'
+                )}
               </span>
               <span className="text-xs text-gray-500 font-patrick ml-1">
                 of all agents
@@ -75,9 +95,7 @@ const PortfolioStats = memo(
             <BarChart3 className="h-6 w-6 text-blue-600" />
           </div>
           <div>
-            <h3 className="text-sm text-gray-600 font-sketch">
-              Total Trades
-            </h3>
+            <h3 className="text-sm text-gray-600 font-sketch">Total Trades</h3>
             <div className="text-2xl font-bold font-patrick text-gray-900">
               {totalTrades.toLocaleString()}
             </div>
