@@ -103,25 +103,46 @@ interface TradeItemProps {
 const TradeIcon = memo(({ type }: { type: TradeType }) => {
   switch (type) {
     case 'buy':
-      return <ArrowUpRight className="w-4 h-4 text-green-500" />;
+      return <ArrowUpRight className="w-4 h-4 text-blue-600" />;
     case 'sell':
-      return <ArrowDownRight className="w-4 h-4 text-red-500" />;
+      return <ArrowDownRight className="w-4 h-4 text-purple-600" />;
     case 'cancel':
-      return <XCircle className="w-4 h-4 text-orange-500" />;
+      return <XCircle className="w-4 h-4 text-amber-600" />;
     default:
       return <HelpCircle className="w-4 h-4 text-gray-500" />;
   }
 });
 TradeIcon.displayName = 'TradeIcon';
 
-// General number formatting functions
-const formatAmount = (amount: string | undefined): string => {
+// Update number formatting functions to handle asset-specific decimal places
+const formatAmount = (amount: string | undefined, token: string): string => {
   if (!amount) return '0';
   try {
     const num = parseFloat(amount);
+    // Different precision for different assets
+    if (token === 'BTC') {
+      // BTC typically uses 8 decimal places max, but display 4-6 for UI
+      return num.toLocaleString(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: num < 0.001 ? 6 : num < 0.1 ? 4 : 4,
+      });
+    } else if (token === 'ETH') {
+      // ETH typically displays 4 decimal places
+      return num.toLocaleString(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: num < 0.001 ? 6 : num < 0.1 ? 4 : 2,
+      });
+    } else if (token === 'USDC') {
+      // USDC should display 0-2 decimal places
+      return num.toLocaleString(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      });
+    }
+    // Default formatting
     return num.toLocaleString(undefined, {
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      maximumFractionDigits: 2,
     });
   } catch {
     return '0';
@@ -139,10 +160,26 @@ const formatPrice = (price: number | string | undefined): string => {
 
   // Otherwise format the number
   try {
-    return price.toLocaleString(undefined, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    });
+    // Format price with appropriate number of decimal places based on value
+    if (price > 10000) {
+      // For high prices (BTC), show 0 decimals
+      return price.toLocaleString(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      });
+    } else if (price > 100) {
+      // For medium prices, show 2 decimals
+      return price.toLocaleString(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      });
+    } else {
+      // For low prices, show more decimals
+      return price.toLocaleString(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 4,
+      });
+    }
   } catch {
     return '0';
   }
@@ -179,6 +216,72 @@ function getTradeDisplayData(trade: Trade) {
   let buyAmount = '0';
   let sellAmount = '0';
   let tradePriceUSD = trade.price || 0;
+
+  // Check if the simulateTrade format with fromToken/toToken format
+  if (
+    info &&
+    'trade' in info &&
+    'fromToken' in info.trade &&
+    'toToken' in info.trade &&
+    'fromAmount' in info.trade &&
+    'toAmount' in info.trade
+  ) {
+    const tradeInfo = info.trade;
+    const fromToken = tradeInfo.fromToken as string;
+    const toToken = tradeInfo.toToken as string;
+    const fromAmount = tradeInfo.fromAmount as string | number;
+    const toAmount = tradeInfo.toAmount as string | number;
+
+    if (fromToken === 'USDC') {
+      // Buying crypto with USDC
+      buyTokenName = toToken;
+      sellTokenName = fromToken;
+      buyAmount = String(toAmount);
+      sellAmount = String(fromAmount);
+      if ('price' in tradeInfo) {
+        tradePriceUSD = parseFloat(String(tradeInfo.price)) || tradePriceUSD;
+      }
+      return {
+        buyTokenName,
+        sellTokenName,
+        buyAmount,
+        sellAmount,
+        tradePriceUSD,
+      };
+    } else if (toToken === 'USDC') {
+      // Selling crypto for USDC
+      buyTokenName = fromToken;
+      sellTokenName = toToken;
+      buyAmount = String(fromAmount);
+      sellAmount = String(toAmount);
+      if ('price' in tradeInfo) {
+        tradePriceUSD = parseFloat(String(tradeInfo.price)) || tradePriceUSD;
+      }
+      return {
+        buyTokenName,
+        sellTokenName,
+        buyAmount,
+        sellAmount,
+        tradePriceUSD,
+      };
+    } else {
+      // Crypto to crypto swap
+      buyTokenName = toToken;
+      sellTokenName = fromToken;
+      buyAmount = String(toAmount);
+      sellAmount = String(fromAmount);
+      if ('price' in tradeInfo) {
+        tradePriceUSD = parseFloat(String(tradeInfo.price)) || tradePriceUSD;
+      }
+      return {
+        buyTokenName,
+        sellTokenName,
+        buyAmount,
+        sellAmount,
+        tradePriceUSD,
+      };
+    }
+  }
 
   // Check if the trade info has a trade property and narrow the type
   if (hasTradeProperty(info)) {
@@ -234,15 +337,15 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
         exit={{ opacity: 0, y: -20 }}
         className={cn(
           'flex flex-col space-y-1 rounded-lg border p-2 transition-colors',
-          'bg-orange-500/5 border-orange-500/20',
+          'bg-amber-500/5 border-amber-500/20',
           isLatest &&
-            'ring-2 ring-offset-2 ring-offset-background ring-orange-500/30',
+            'ring-2 ring-offset-2 ring-offset-background ring-amber-500/30',
         )}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <TradeIcon type="cancel" />
-            <span className="text-sm font-medium text-orange-500">
+            <span className="text-sm font-medium text-amber-600">
               Cancel Order
             </span>
           </div>
@@ -273,8 +376,10 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
     );
   }
 
-  // Handle unknown trade types
-  if (trade.type === 'unknown') {
+  // For buy/sell trades (including unknown type with valid token data), extract data
+  const displayData = getTradeDisplayData(trade);
+  if (!displayData) {
+    // If we couldn't extract any meaningful display data at all, show unknown trade
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -290,9 +395,31 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <TradeIcon type="unknown" />
-            <span className="text-sm font-medium text-gray-500">
-              Unknown Trade
-            </span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex flex-col cursor-help">
+                    <span className="text-sm font-medium text-gray-500">
+                      Unknown Trade
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      Transaction details unavailable
+                    </span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent className="w-64 bg-white border shadow-xl z-50 relative">
+                  <div className="text-xs space-y-1 p-3 rounded-md">
+                    <div className="font-medium border-b border-gray-100 pb-2 text-gray-900">
+                      Transaction Details
+                    </div>
+                    <div className="pt-2 text-gray-600">
+                      <p>This transaction cannot be parsed into a standard trade format.</p>
+                      <p className="mt-1">Check the explanation below for more details.</p>
+                    </div>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           <TooltipProvider>
             <Tooltip>
@@ -312,7 +439,7 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
           </TooltipProvider>
         </div>
         <div
-          className="text-xs text-muted-foreground leading-relaxed"
+          className="text-xs text-muted-foreground leading-relaxed line-clamp-2"
           title={explanation}
         >
           {explanation}
@@ -321,27 +448,33 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
     );
   }
 
-  // For buy/sell trades, extract data
-  const displayData = getTradeDisplayData(trade);
-  if (!displayData) return null;
-
   const { buyTokenName, sellTokenName, buyAmount, sellAmount, tradePriceUSD } =
     displayData;
 
-  const isBuy = trade.type === 'buy';
-  const colorClass = isBuy ? 'text-green-500' : 'text-red-500';
+  // Instead of determining if it's buy or sell, we'll focus on what was received vs spent
+  const receivedToken = buyTokenName;
+  const receivedAmount = buyAmount;
+  const spentToken = sellTokenName;
+  const spentAmount = sellAmount;
+  
+  // For coloring, we'll use a more sophisticated financial UI color scheme
+  const isBuy = trade.type === 'buy' || 
+    (buyTokenName !== 'Unknown' && sellTokenName === 'USDC');
+  
+  const colorClass = isBuy ? 'text-blue-600' : 'text-purple-600';
   const bgClass = isBuy
-    ? 'bg-green-500/5 border-green-500/20'
-    : 'bg-red-500/5 border-red-500/20';
+    ? 'bg-blue-500/5 border-blue-500/20'
+    : 'bg-purple-500/5 border-purple-500/20';
 
-  const displayAmount = isBuy
-    ? formatAmount(buyAmount)
-    : formatAmount(sellAmount);
-  const otherAmount = !isBuy
-    ? formatAmount(buyAmount)
-    : formatAmount(sellAmount);
-  const displayToken = isBuy ? buyTokenName : sellTokenName;
-  const otherToken = !isBuy ? buyTokenName : sellTokenName;
+  // Format amounts with appropriate decimal places based on token type
+  const displayReceived = formatAmount(receivedAmount, receivedToken);
+  const displaySpent = formatAmount(spentAmount, spentToken);
+
+  // Create a more informative title that focuses on the exchange
+  const tradeTitle = `${displayReceived} ${receivedToken}`;
+  
+  // Create action text that shows what was spent
+  const actionText = `for ${displaySpent} ${spentToken}`;
 
   return (
     <motion.div
@@ -352,7 +485,7 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
         'flex flex-col space-y-1 rounded-lg border p-2 transition-colors',
         bgClass,
         isLatest && 'ring-2 ring-offset-2 ring-offset-background',
-        isBuy ? 'ring-green-500/30' : 'ring-red-500/30',
+        isBuy ? 'ring-blue-500/30' : 'ring-purple-500/30',
       )}
     >
       <div className="flex items-center justify-between">
@@ -361,35 +494,37 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex items-center gap-1.5 cursor-help">
-                  <span className={cn('text-sm font-medium', colorClass)}>
-                    {typeof tradePriceUSD === 'string'
-                      ? tradePriceUSD
-                      : `$${formatPrice(tradePriceUSD)}`}
-                  </span>
+                <div className="flex flex-col cursor-help">
+                  <div className="flex items-center gap-1">
+                    <span className={cn('text-sm font-medium', colorClass)}>
+                      {tradeTitle}
+                    </span>
+                    <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 text-gray-800">
+                      {isBuy ? 'Acquired' : 'Traded'}
+                    </span>
+                  </div>
                   <span className="text-xs text-muted-foreground">
-                    ({displayAmount} {displayToken})
+                    {actionText}
                   </span>
                 </div>
               </TooltipTrigger>
-              <TooltipContent className="w-64 bg-white border shadow-xl z-50 relative">
+              <TooltipContent className="w-64 bg-white border shadow-lg z-50 relative">
                 <div className="text-xs space-y-1 p-3 rounded-md">
                   <div className="font-medium border-b border-gray-100 pb-2 text-gray-900">
-                    {isBuy ? 'Buying' : 'Selling'} {displayToken} for{' '}
-                    {otherToken}
+                    Trade Details
                   </div>
                   <div className="grid grid-cols-2 gap-2 pt-2">
                     <div className="text-gray-500">
-                      Amount {isBuy ? 'In' : 'Out'}:
+                      You received:
                     </div>
                     <div className="font-medium text-gray-900">
-                      {displayAmount} {displayToken}
+                      {displayReceived} {receivedToken}
                     </div>
                     <div className="text-gray-500">
-                      Amount {!isBuy ? 'In' : 'Out'}:
+                      You traded:
                     </div>
                     <div className="font-medium text-gray-900">
-                      {otherAmount} {otherToken}
+                      {displaySpent} {spentToken}
                     </div>
                     <div className="text-gray-500">Price:</div>
                     <div className="font-medium text-gray-900">
@@ -419,7 +554,7 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
         </TooltipProvider>
       </div>
       <div
-        className="text-xs text-muted-foreground leading-relaxed"
+        className="text-xs text-muted-foreground leading-relaxed line-clamp-2"
         title={explanation}
       >
         {explanation}

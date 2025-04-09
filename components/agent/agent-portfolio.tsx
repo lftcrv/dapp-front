@@ -41,11 +41,6 @@ interface PortfolioData {
       value: number;
     }>;
   };
-  ranking: {
-    global: number;
-    category: number;
-    change: number;
-  };
   totalTrades: number;
   forkingRevenue: number;
 }
@@ -58,7 +53,7 @@ interface AgentPortfolioProps {
 }
 
 export const AgentPortfolio = memo(
-  ({ agent,  portfolio, useSimplifiedView = false }: AgentPortfolioProps) => {
+  ({ agent, portfolio, useSimplifiedView = false }: AgentPortfolioProps) => {
     // Format the creation date for display
     const createdDate = new Date(agent.createdAt || Date.now());
     const formattedDate = new Intl.DateTimeFormat('en-US', {
@@ -67,16 +62,16 @@ export const AgentPortfolio = memo(
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
-      timeZoneName: 'short'
+      timeZoneName: 'short',
     }).format(createdDate);
 
     return (
       <div className="space-y-6">
         {/* Agent Card */}
-        <SimpleAgentCard 
-          agent={agent} 
-          created={formattedDate} 
-          by="Stevaan-Dojker"
+        <SimpleAgentCard
+          agent={agent}
+          created={formattedDate}
+          by={agent.creatorWallet || agent.creator}
         />
 
         {/* Only show the rest of the components if we're not using the simplified view */}
@@ -89,7 +84,7 @@ export const AgentPortfolio = memo(
                 <span className="text-yellow-500">📊</span>
               </h2>
               <PortfolioStats
-                ranking={portfolio.ranking}
+                cycleRanking={agent.cycleRanking}
                 totalTrades={portfolio.totalTrades}
                 forkingRevenue={portfolio.forkingRevenue}
                 agentType={agent.type}

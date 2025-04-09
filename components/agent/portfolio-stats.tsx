@@ -8,11 +8,7 @@ import { AgentType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 
 interface PortfolioStatsProps {
-  ranking: {
-    global: number;
-    category: number;
-    change: number;
-  };
+  cycleRanking?: number;
   totalTrades: number;
   forkingRevenue: number;
   agentType: AgentType;
@@ -20,7 +16,7 @@ interface PortfolioStatsProps {
 
 const PortfolioStats = memo(
   ({
-    ranking,
+    cycleRanking,
     totalTrades,
     forkingRevenue,
     agentType,
@@ -30,48 +26,46 @@ const PortfolioStats = memo(
     return (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Ranking Card */}
-        <div className="bg-white/80 rounded-xl p-4 flex items-center border border-gray-200 shadow-sm">
-          <div className="p-3 rounded-lg bg-yellow-500/10 mr-4">
-            <Trophy className="h-6 w-6 text-yellow-600" />
+        <div className="bg-white/80 rounded-xl p-4 flex items-center border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+          <div className={cn(
+            "p-3 rounded-lg mr-4",
+            cycleRanking === 1 ? "bg-yellow-500/20" : 
+            cycleRanking && cycleRanking <= 3 ? "bg-yellow-400/20" :
+            cycleRanking && cycleRanking <= 10 ? "bg-orange-400/20" : "bg-yellow-500/10"
+          )}>
+            <Trophy className={cn(
+              "h-6 w-6",
+              cycleRanking === 1 ? "text-yellow-600" : 
+              cycleRanking && cycleRanking <= 3 ? "text-yellow-500" :
+              cycleRanking && cycleRanking <= 10 ? "text-orange-500" : "text-yellow-600"
+            )} />
           </div>
           <div>
             <h3 className="text-sm text-gray-600 font-sketch">
-              Cycle&apos;s Ranking
+              Performance Ranking
             </h3>
-            <div>
-              <span className="text-2xl font-bold font-patrick text-gray-900">
-                {ranking.global}
+            <div className="flex items-baseline">
+              <span className={cn(
+                "text-2xl font-bold font-patrick",
+                cycleRanking === 1 ? "text-yellow-600" : 
+                cycleRanking && cycleRanking <= 3 ? "text-yellow-500" :
+                cycleRanking && cycleRanking <= 10 ? "text-orange-500" : "text-gray-900"
+              )}>
+                {cycleRanking !== undefined ? (
+                  <>
+                    {cycleRanking}{cycleRanking === 1 ? "st" : cycleRanking === 2 ? "nd" : cycleRanking === 3 ? "rd" : "th"}
+                  </>
+                ) : 'N/A'}
               </span>
-              <span className="text-xs text-gray-500 font-patrick">
-                {' '}
-                Global
+              <span className="text-xs text-gray-500 font-patrick ml-1">
+                of all agents
               </span>
             </div>
-            <div className="text-xs font-patrick text-gray-800">
-              <span>{ranking.category}</span>
+            <div className="text-xs font-patrick text-gray-800 mt-0.5">
               <span className="text-gray-500">
-                {' '}
-                in {agentType === 'leftcurve' ? 'DEGEN Agents' : 'SIGMA Agents'}
+                Ranked by profit in current cycle
               </span>
             </div>
-            {ranking.change !== 0 && (
-              <div
-                className={cn(
-                  'text-xs flex items-center mt-1',
-                  ranking.change > 0 ? 'text-green-600' : 'text-red-600',
-                )}
-              >
-                {ranking.change > 0 ? (
-                  <ArrowUp className="h-3 w-3 mr-1" />
-                ) : (
-                  <ArrowDown className="h-3 w-3 mr-1" />
-                )}
-                <span className="font-patrick">
-                  {Math.abs(ranking.change)}{' '}
-                  {ranking.change > 0 ? 'up' : 'down'} from last week
-                </span>
-              </div>
-            )}
           </div>
         </div>
 

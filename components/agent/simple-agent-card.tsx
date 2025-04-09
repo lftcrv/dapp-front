@@ -119,7 +119,15 @@ export default function SimpleAgentCard({ agent, created, by }: SimpleAgentCardP
           {/* Created info - shown only if provided */}
           {created && (
             <div className="text-xs text-gray-400 mt-1">
-              Created on {created} {by && <>- by <span className="text-blue-400">{by}</span></>}
+              Created on {created} {by && (
+                <>
+                  - by <span className="text-blue-400">
+                    {by.startsWith('0x') 
+                      ? `${by.substring(0, 6)}...${by.substring(by.length - 4)}` 
+                      : by}
+                  </span>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -127,8 +135,8 @@ export default function SimpleAgentCard({ agent, created, by }: SimpleAgentCardP
       
       {/* Description */}
       <div className="px-8 pb-4  text-white/80 text-sm font-patrick leading-relaxed">
-        {agent.description || 
-          "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."}
+        {agent.characterConfig?.bio || 
+          "No bio available for this agent."}
       </div>
       
       {/* Mobile Buttons - Only visible on mobile */}

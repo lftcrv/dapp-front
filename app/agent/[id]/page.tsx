@@ -38,14 +38,6 @@ const getCachedPageData = unstable_cache(
       return { error: agentResult.error || 'Agent not found' };
     }
 
-    // Add a mock description for the agent for demonstration purposes
-    if (agentResult.data && !agentResult.data.description) {
-      agentResult.data.description =
-        agentResult.data.type === 'leftcurve'
-          ? 'A degen trading agent focused on high-risk, high-reward strategies. Always looking for the next moonshot and not afraid to YOLO into promising opportunities. Known for its bold trades and occasional spectacular wins.'
-          : 'A disciplined sigma trading agent with a proven track record of consistent returns. Follows a quantitative approach with sophisticated risk management protocols. Specializes in market inefficiencies and technical analysis.';
-    }
-
     // Get trades separately as they're not part of the agent endpoint
     const tradesResult = await tradeService.getByAgent(agentId);
 
@@ -175,13 +167,6 @@ const getCachedPageData = unstable_cache(
             })),
           [],
         ),
-      },
-
-      // Other metrics (some still mocked until API endpoints are available)
-      ranking: {
-        global: 17, // Mock data - API doesn't provide this yet
-        category: 5, // Mock data - API doesn't provide this yet
-        change: 3, // Mock data - API doesn't provide this yet
       },
 
       totalTrades: getSafeValue<AgentTradeCountType, number>(

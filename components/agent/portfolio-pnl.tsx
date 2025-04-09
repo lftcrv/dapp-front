@@ -2,10 +2,9 @@
 
 import { memo, useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowUp, ArrowDown, DollarSign, BarChart2, TrendingUp } from 'lucide-react';
+import { ArrowUp, ArrowDown, DollarSign, BarChart2 } from 'lucide-react';
 import { cn, formatPnL, isPnLPositive } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   BarChart,
   Bar,
@@ -16,9 +15,6 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
-
-// PnL Calculation modes
-type PnLMode = 'daily' | 'cumulative';
 
 // Time range options
 type TimeRange = '1W' | '1M' | '3M' | 'ALL';
@@ -50,9 +46,31 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     const value = activePayload.value;
     const isProfit = activePayload.dataKey === 'positive';
 
+    // Format the date based on timeRange if available in the payload data
+    let formattedDate = label;
+    try {
+      // See if we can access timeRange from the payload's originalData
+      const isWeeklyView = payload[0].payload.timestamp !== undefined;
+
+      if (isWeeklyView) {
+        const date = new Date(payload[0].payload.timestamp || label);
+        formattedDate = date.toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: 'numeric',
+          hour12: true,
+        });
+      }
+    } catch (e) {
+      console.error('Date formatting error:', e);
+    }
+
     return (
       <div className="bg-[#232229] p-3 rounded-lg shadow-lg border border-gray-700 text-white">
-        <p className="font-mono text-sm font-semibold text-gray-300">{label}</p>
+        <p className="font-mono text-sm font-semibold text-gray-300">
+          {formattedDate}
+        </p>
         <p
           className={cn(
             'font-mono text-lg flex items-center gap-1',
@@ -80,13 +98,16 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 // Format date to display month and day
 const formatDate = (dateStr: string, scale?: DayScale) => {
   const date = new Date(dateStr);
-  
+
   if (!scale || scale === '1D') {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   } else if (scale === '1W') {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   } else {
-    return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      year: '2-digit',
+    });
   }
 };
 
@@ -94,29 +115,29 @@ const formatDate = (dateStr: string, scale?: DayScale) => {
 const generateDatesBetween = (start: Date, end: Date): Date[] => {
   const dates = [];
   const currentDate = new Date(start);
-  
+
   while (currentDate <= end) {
     dates.push(new Date(currentDate));
     currentDate.setDate(currentDate.getDate() + 1);
   }
-  
+
   return dates;
 };
 
 // Aggregate data by day scale (daily, weekly, monthly)
 const aggregateDataByScale = (data: any[], scale: DayScale): any[] => {
   if (!data || data.length === 0) return [];
-  
+
   // If daily scale, just return the data as is
   if (scale === '1D') return data;
-  
+
   // For weekly or monthly aggregation
   const aggregatedMap = new Map();
-  
-  data.forEach(item => {
+
+  data.forEach((item) => {
     const date = new Date(item.date);
     let key: string;
-    
+
     if (scale === '1W') {
       // For weekly, group by the Monday of each week
       const day = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
@@ -125,38 +146,41 @@ const aggregateDataByScale = (data: any[], scale: DayScale): any[] => {
       key = monday.toISOString().split('T')[0];
     } else {
       // For monthly, group by month and year
-      key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
+      key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+        2,
+        '0',
+      )}-01`;
     }
-    
+
     if (!aggregatedMap.has(key)) {
       aggregatedMap.set(key, {
         date: key,
         positive: 0,
         negative: 0,
         rawPnl: 0,
-        count: 0
+        count: 0,
       });
     }
-    
+
     const agg = aggregatedMap.get(key);
-    
+
     // Sum up the values
     if (item.positive) agg.positive += item.positive;
     if (item.negative) agg.negative += item.negative;
     if (item.rawPnl) agg.rawPnl += item.rawPnl;
     agg.count++;
   });
-  
+
   // Convert the map to an array and sort by date
-  return Array.from(aggregatedMap.values())
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  return Array.from(aggregatedMap.values()).sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+  );
 };
 
 const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
   const isProfit = data.total > 0;
-  const [timeRange, setTimeRange] = useState<TimeRange>('1M');
+  const [timeRange, setTimeRange] = useState<TimeRange>('1W');
   const [dayScale, setDayScale] = useState<DayScale>('1D');
-  const [pnlMode, setPnlMode] = useState<PnLMode>('daily');
   const [chartData, setChartData] = useState<any[]>([]);
   const [aggregatedData, setAggregatedData] = useState<any[]>([]);
   const [totalPnlData, setTotalPnlData] = useState<{
@@ -166,6 +190,7 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [apiResponse, setApiResponse] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'daily' | 'cumulative'>('daily');
 
   // Fetch overall PnL data (for the header)
   useEffect(() => {
@@ -302,151 +327,209 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
               new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
           );
 
-          // 2. Generate data based on selected PnL mode
-          if (pnlMode === 'daily') {
-            // Daily mode: Calculate day-to-day changes
-            return sortedSnapshots.map((snapshot, index, array) => {
+          // Filter out snapshots with invalid balance values
+          const validSnapshots = sortedSnapshots.filter(
+            (snapshot) =>
+              (typeof snapshot.balanceInUSD === 'number' &&
+                !isNaN(snapshot.balanceInUSD)) ||
+              (typeof snapshot.pnl === 'number' && !isNaN(snapshot.pnl)) ||
+              (typeof snapshot.pnl24h === 'number' && !isNaN(snapshot.pnl24h)),
+          );
+
+          if (validSnapshots.length === 0) {
+            console.warn('No valid snapshots found after filtering');
+            return [];
+          }
+
+          // Calculate day-to-day changes
+          const dailyPnlData = validSnapshots
+            .map((snapshot, index, array) => {
               const date = new Date(snapshot.timestamp)
                 .toISOString()
                 .split('T')[0];
 
-              // Log individual snapshot data for debugging
-              console.log(`Snapshot ${index} (${date})`, {
-                pnl: snapshot.pnl,
-                pnl24h: snapshot.pnl24h,
-                balanceInUSD: snapshot.balanceInUSD,
-              });
+              let pnlValue = 0;
+              let source = 'unknown';
 
-              // Try different approaches for daily PnL:
-              // First, try using pnl24h directly if it's available
-              if (typeof snapshot.pnl24h === 'number') {
-                const pnlValue = snapshot.pnl24h;
-                return {
-                  date,
-                  positive: pnlValue > 0 ? pnlValue : 0,
-                  negative: pnlValue < 0 ? pnlValue : 0,
-                  rawPnl: pnlValue,
-                  source: 'pnl24h', // Track where value came from
-                  isActualData: true,
-                };
-              }
-
-              // Second, if no pnl24h, try to calculate from cumulative PnL
-              // by comparing with the previous day
+              // Priority 1: Use pnl24h if available (most accurate for daily data)
               if (
+                typeof snapshot.pnl24h === 'number' &&
+                !isNaN(snapshot.pnl24h)
+              ) {
+                pnlValue = snapshot.pnl24h;
+                source = 'pnl24h';
+              }
+              // Priority 2: Calculate from day-to-day PnL changes
+              else if (
                 index > 0 &&
                 typeof snapshot.pnl === 'number' &&
-                typeof array[index - 1].pnl === 'number'
+                !isNaN(snapshot.pnl) &&
+                typeof array[index - 1].pnl === 'number' &&
+                !isNaN(array[index - 1].pnl)
               ) {
-                const pnlValue = snapshot.pnl - array[index - 1].pnl;
-                return {
-                  date,
-                  positive: pnlValue > 0 ? pnlValue : 0,
-                  negative: pnlValue < 0 ? pnlValue : 0,
-                  rawPnl: pnlValue,
-                  source: 'calculated', // Track where value came from
-                  isActualData: true,
-                };
+                pnlValue = snapshot.pnl - array[index - 1].pnl;
+                source = 'calculated_pnl';
               }
-
-              // Third, if no pnl, try to calculate from balance changes
-              if (
+              // Priority 3: Calculate from balance changes
+              else if (
                 index > 0 &&
                 typeof snapshot.balanceInUSD === 'number' &&
-                typeof array[index - 1].balanceInUSD === 'number'
+                !isNaN(snapshot.balanceInUSD) &&
+                typeof array[index - 1].balanceInUSD === 'number' &&
+                !isNaN(array[index - 1].balanceInUSD)
               ) {
-                const pnlValue =
+                pnlValue =
                   snapshot.balanceInUSD - array[index - 1].balanceInUSD;
-                return {
-                  date,
-                  positive: pnlValue > 0 ? pnlValue : 0,
-                  negative: pnlValue < 0 ? pnlValue : 0,
-                  rawPnl: pnlValue,
-                  source: 'balance', // Track where value came from
-                  isActualData: true,
-                };
+                source = 'calculated_balance';
               }
 
-              // Fallback: use a zero value if we can't determine the PnL
-              return {
-                date,
-                positive: 0,
-                negative: 0,
-                rawPnl: 0,
-                source: 'fallback', // Track where value came from
-                isActualData: false,
-              };
-            });
-          } else {
-            // Cumulative mode: Use the running total PnL
-            return sortedSnapshots.map((snapshot, index) => {
-              const date = new Date(snapshot.timestamp)
-                .toISOString()
-                .split('T')[0];
-
-              // Use the cumulative PnL value directly
-              const pnlValue =
-                typeof snapshot.pnl === 'number' ? snapshot.pnl : 0;
+              // Log source of PnL data for this entry
+              console.log(
+                `Daily data (${date}): value=${pnlValue}, source=${source}`,
+              );
 
               return {
                 date,
+                timestamp: snapshot.timestamp,
                 positive: pnlValue > 0 ? pnlValue : 0,
                 negative: pnlValue < 0 ? pnlValue : 0,
                 rawPnl: pnlValue,
-                source: 'cumulative', // Track where value came from
+                source,
+                isActualData: source !== 'unknown',
               };
-            });
+            })
+            .filter((item) => item.isActualData); // Only include items with actual data
+          
+          // Group snapshots by day for all time ranges to ensure consistent data density
+          const snapshotsByDay = new Map<string, any[]>();
+          
+          dailyPnlData.forEach((item) => {
+            const date = new Date(item.timestamp);
+            const dayKey = date.toISOString().split('T')[0]; // Use date as key
+            
+            if (!snapshotsByDay.has(dayKey)) {
+              snapshotsByDay.set(dayKey, []);
+            }
+            
+            snapshotsByDay.get(dayKey)?.push(item);
+          });
+          
+          // Determine date range based on selected time period
+          const now = new Date();
+          let startDate;
+          
+          switch (timeRange) {
+            case '1W':
+              startDate = new Date(now);
+              startDate.setDate(now.getDate() - 7);
+              break;
+            case '1M':
+              startDate = new Date(now);
+              startDate.setMonth(now.getMonth() - 1);
+              break;
+            case '3M':
+              startDate = new Date(now);
+              startDate.setMonth(now.getMonth() - 3);
+              break;
+            case 'ALL':
+            default:
+              startDate = new Date(now);
+              startDate.setFullYear(now.getFullYear() - 1);
           }
+          
+          // Create a complete dataset with optimal data density
+          const optimalData: any[] = [];
+          
+          // Generate all dates in the range
+          const allDates: Date[] = [];
+          const currentDate = new Date(startDate);
+          while (currentDate <= now) {
+            allDates.push(new Date(currentDate));
+            currentDate.setDate(currentDate.getDate() + 1);
+          }
+          
+          // For each day in the range
+          allDates.forEach(day => {
+            const dayStr = day.toISOString().split('T')[0];
+            const dayData = snapshotsByDay.get(dayStr) || [];
+            
+            if (dayData.length > 0) {
+              // Sort the day's data points by time
+              const sortedDayData = dayData.sort(
+                (a: {timestamp: string}, b: {timestamp: string}) => 
+                  new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+              );
+              
+              // Select up to 3 points (morning, mid-day, evening)
+              const selectedPoints: any[] = [];
+              
+              // Morning - first point
+              selectedPoints.push(sortedDayData[0]);
+              
+              // Mid-day - if we have at least 3 points
+              if (sortedDayData.length >= 3) {
+                const midIndex = Math.floor(sortedDayData.length / 2);
+                selectedPoints.push(sortedDayData[midIndex]);
+              }
+              
+              // Evening - last point if different from first
+              if (sortedDayData.length > 1) {
+                selectedPoints.push(sortedDayData[sortedDayData.length - 1]);
+              }
+              
+              // Add the selected points to our dataset
+              optimalData.push(...selectedPoints);
+            } else if (timeRange === '1W') {
+              // For weekly view, add placeholders for empty days
+              // For longer views, we'll let the chart interpolate
+              const placeholder = new Date(dayStr);
+              placeholder.setHours(12, 0, 0);
+              
+              // Use the last known value or 0
+              const lastKnownValue = optimalData.length > 0 
+                ? optimalData[optimalData.length - 1].rawPnl
+                : 0;
+              
+              optimalData.push({
+                date: dayStr,
+                timestamp: placeholder.toISOString(),
+                positive: 0,
+                negative: 0,
+                rawPnl: 0,
+                source: 'placeholder',
+                isActualData: false
+              });
+            }
+          });
+          
+          // Sort the data chronologically
+          optimalData.sort(
+            (a: {timestamp: string}, b: {timestamp: string}) => 
+              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+          
+          console.log(`Processed PnL data (${timeRange}):`, optimalData.length);
+          return optimalData;
         };
 
         const pnlData = processPnLData();
 
-        // Make sure we have data for every day in the range if requested
-        const allDates = generateDatesBetween(startDate, now);
-        const dateMap = new Map();
-
-        // Create a map of existing dates
-        pnlData.forEach(
-          (item: {
-            date: string;
-            positive: number;
-            negative: number;
-            rawPnl: number;
-          }) => {
-            dateMap.set(item.date, item);
-          },
-        );
-
-        // Generate the complete data set with all dates
-        const completeData = allDates.map((date: Date) => {
-          const dateStr = date.toISOString().split('T')[0];
-
-          if (dateMap.has(dateStr)) {
-            return dateMap.get(dateStr);
-          }
-
-          // For missing dates, check if we should use interpolation
-          // For PnL, we need to be careful with interpolation as it can be misleading
-          // For the main view, use zero values for missing dates which is most honest
-          // but for weekly/monthly aggregation we can be more flexible
-          return {
-            date: dateStr,
-            positive: 0,
-            negative: 0,
-            rawPnl: 0,
-            source: 'missing', // Track where value came from
-            isActualData: false,
-            isEmpty: true,
-          };
-        });
+        if (pnlData.length === 0) {
+          console.warn('No valid PnL data points after filtering');
+          setError(
+            'No valid performance data available for the selected time period',
+          );
+          setChartData([]);
+          return;
+        }
 
         // Sort by date
-        completeData.sort(
-          (a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+        pnlData.sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
         );
 
-        console.log('Processed Chart Data:', completeData);
-        setChartData(completeData);
+        console.log('Processed Chart Data (actual data only):', pnlData);
+        setChartData(pnlData);
       } catch (error) {
         console.error('Error fetching PnL data:', error);
         setError('Failed to load performance data');
@@ -456,23 +539,42 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
     };
 
     fetchPnLData();
-  }, [timeRange, pnlMode, agentId, data.monthly]);
+  }, [timeRange, agentId, data.monthly]);
 
   // Aggregate chart data based on day scale when chartData or dayScale changes
   useEffect(() => {
     setAggregatedData(aggregateDataByScale(chartData, dayScale));
   }, [chartData, dayScale]);
 
+  // Process aggregated data based on view mode
+  const processedData = useMemo(() => {
+    if (viewMode === 'daily') {
+      return aggregatedData;
+    } else {
+      // For cumulative view, we need to calculate running total
+      let cumulativeTotal = 0;
+      return aggregatedData.map(item => {
+        cumulativeTotal += item.rawPnl;
+        return {
+          ...item,
+          positive: cumulativeTotal > 0 ? cumulativeTotal : 0,
+          negative: cumulativeTotal < 0 ? cumulativeTotal : 0,
+          rawPnl: cumulativeTotal
+        };
+      });
+    }
+  }, [aggregatedData, viewMode]);
+
   // Calculate max and min values for chart scaling
   const maxValue = useMemo(() => {
-    if (!aggregatedData.length) return 100;
+    if (!processedData.length) return 100;
     const max = Math.max(
-      ...aggregatedData.map((item) =>
+      ...processedData.map((item) =>
         Math.max(item.positive || 0, Math.abs(item.negative || 0)),
       ),
     );
     return max > 0 ? max : 100;
-  }, [aggregatedData]);
+  }, [processedData]);
 
   // Get total PnL values, prioritizing API fetched data
   const displayPnl =
@@ -530,15 +632,45 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
               )}
             >
               ({isProfit ? '+' : ''}
-              {data.percentage.toFixed(2)}%)
+              {displayPercentage ? displayPercentage.toFixed(2) : '0.00'}%)
             </span>
           </div>
         </div>
       </motion.div>
 
       {/* Controls */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-2 mb-4">
-        {/* Time Range Selector */}
+      <div className="flex justify-between mb-4 flex-wrap gap-2">
+        {/* View toggle */}
+        <div className="flex bg-[#232229] rounded-lg p-1 border border-gray-800">
+          <Button
+            size="sm"
+            variant={viewMode === 'daily' ? 'default' : 'ghost'}
+            className={cn(
+              'text-xs h-7 px-3',
+              viewMode === 'daily'
+                ? 'bg-orange-500 text-white hover:bg-orange-600'
+                : 'text-gray-400 hover:text-white hover:bg-gray-800',
+            )}
+            onClick={() => setViewMode('daily')}
+          >
+            Daily
+          </Button>
+          <Button
+            size="sm"
+            variant={viewMode === 'cumulative' ? 'default' : 'ghost'}
+            className={cn(
+              'text-xs h-7 px-3',
+              viewMode === 'cumulative'
+                ? 'bg-orange-500 text-white hover:bg-orange-600'
+                : 'text-gray-400 hover:text-white hover:bg-gray-800',
+            )}
+            onClick={() => setViewMode('cumulative')}
+          >
+            Cumulative
+          </Button>
+        </div>
+        
+        {/* Time range selector */}
         <div className="flex bg-[#232229] rounded-lg p-1 border border-gray-800">
           {(['1W', '1M', '3M', 'ALL'] as const).map((range) => (
             <Button
@@ -557,36 +689,6 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
             </Button>
           ))}
         </div>
-
-        {/* View Mode Toggle */}
-        <Tabs 
-          defaultValue={pnlMode} 
-          className="w-full md:w-auto"
-          onValueChange={(value) => setPnlMode(value as PnLMode)}
-        >
-          <TabsList className="grid w-full grid-cols-2 bg-[#232229] border border-gray-800">
-            <TabsTrigger 
-              value="daily" 
-              className={cn(
-                "data-[state=active]:bg-orange-500 data-[state=active]:text-white",
-                "flex items-center gap-1"
-              )}
-            >
-              <BarChart2 className="w-3 h-3" />
-              Daily
-            </TabsTrigger>
-            <TabsTrigger 
-              value="cumulative"
-              className={cn(
-                "data-[state=active]:bg-orange-500 data-[state=active]:text-white",
-                "flex items-center gap-1"
-              )}
-            >
-              <TrendingUp className="w-3 h-3" />
-              Cumulative
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
       </div>
 
       {/* P&L Chart */}
@@ -596,8 +698,9 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
       >
-        <h3 className="text-sm font-medium mb-3 text-gray-300">
-          {pnlMode === 'daily' ? 'Daily' : 'Cumulative'} P&L Chart
+        <h3 className="text-sm font-medium mb-3 text-gray-300 flex items-center gap-2">
+          <BarChart2 className="h-4 w-4 text-orange-500" />
+          {viewMode === 'daily' ? 'Daily P&L' : 'Cumulative P&L'}
         </h3>
         <div className="h-[300px]">
           {isLoading ? (
@@ -608,14 +711,14 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
             <div className="flex items-center justify-center h-full text-gray-400">
               {error}
             </div>
-          ) : aggregatedData.length === 0 ? (
+          ) : processedData.length === 0 ? (
             <div className="flex items-center justify-center h-full text-gray-400">
               No data available
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={aggregatedData}
+                data={processedData}
                 margin={{ top: 20, right: 10, left: 10, bottom: 0 }}
               >
                 <CartesianGrid
@@ -625,7 +728,20 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
                 />
                 <XAxis
                   dataKey="date"
-                  tickFormatter={(date) => formatDate(date, dayScale)}
+                  tickFormatter={(value) => {
+                    // Check if we're in weekly view with timestamp data
+                    const item = chartData.find(i => i.date === value);
+                    if (timeRange === '1W' && item?.timestamp) {
+                      const date = new Date(item.timestamp);
+                      return date.toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        hour12: true
+                      });
+                    }
+                    return formatDate(value, dayScale);
+                  }}
                   tick={{
                     fontSize: 12,
                     fontFamily: 'monospace',
@@ -633,7 +749,13 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
                   }}
                   tickLine={false}
                   axisLine={{ stroke: '#333340' }}
-                  interval={dayScale === '1D' ? 'preserveStartEnd' : 0}
+                  interval={(() => {
+                    // Smart interval based on time range and data density
+                    if (timeRange === '1W') return 3; // Every 3rd point for weekly
+                    if (timeRange === '1M') return Math.ceil(processedData.length / 10); // ~10 ticks for monthly
+                    if (timeRange === '3M') return Math.ceil(processedData.length / 12); // ~12 ticks for quarterly
+                    return 'preserveStartEnd'; // Start and end for ALL
+                  })()}
                 />
                 <YAxis
                   tickCount={5}
@@ -642,22 +764,21 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
                     fontFamily: 'monospace',
                     fill: '#9CA3AF',
                   }}
-                  tickFormatter={(value) =>
-                    `${value >= 0 ? '' : '-'}$${Math.abs(value).toLocaleString(
-                      undefined,
-                      {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                      },
-                    )}`
-                  }
+                  tickFormatter={(value) => {
+                    // Format Y-axis ticks without decimal places
+                    if (value >= 1000000 || value <= -1000000) {
+                      return `${value >= 0 ? '' : '-'}$${Math.abs(value / 1000000).toFixed(1)}M`;
+                    } else if (value >= 1000 || value <= -1000) {
+                      return `${value >= 0 ? '' : '-'}$${Math.abs(value / 1000).toFixed(1)}k`;
+                    }
+                    return `${value >= 0 ? '' : '-'}$${Math.abs(value).toLocaleString(undefined, {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0,
+                    })}`;
+                  }}
                   tickLine={false}
                   axisLine={false}
-                  domain={
-                    pnlMode === 'daily'
-                      ? [-(maxValue * 0.5), maxValue]
-                      : ['auto', 'auto']
-                  }
+                  domain={viewMode === 'daily' ? [-(maxValue * 0.5), maxValue] : ['auto', 'auto']}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <ReferenceLine y={0} stroke="#4B5563" />

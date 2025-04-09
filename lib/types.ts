@@ -238,6 +238,7 @@ export interface Agent {
   marketCap: number;
   holders: number;
   creator: string;
+  creatorWallet?: string;
   createdAt: string;
   lore?: string;
   description?: string;
