@@ -429,6 +429,7 @@ export async function getCompleteAgentData(
       creator: walletInfo.deployedAddress
         ? `0x${walletInfo.deployedAddress}`
         : 'unknown',
+      creatorWallet: apiAgent.creatorWallet || undefined,
       createdAt: apiAgent.createdAt || new Date().toISOString(),
       creativityIndex: apiAgent.degenScore || 0,
       performanceIndex: apiAgent.winScore || 0,
@@ -443,6 +444,12 @@ export async function getCompleteAgentData(
       buyTax: tokenInfo.buyTax,
       sellTax: tokenInfo.sellTax,
       priceChange24h: latestMarketData.priceChange24h || 0,
+      cycleRanking: latestMarketData.pnlRank || undefined,
+      pnl24h: latestMarketData.pnl24h || 0,
+      pnlCycle: latestMarketData.pnlCycle || 0,
+      tradeCount: latestMarketData.tradeCount || 0,
+      tvl: latestMarketData.tvl || 0,
+      forkerCount: latestMarketData.forkCount || 0,
       characterConfig: apiAgent.characterConfig,
     };
 

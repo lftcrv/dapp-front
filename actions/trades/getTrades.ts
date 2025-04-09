@@ -21,13 +21,51 @@ interface SimpleTradeInfo {
 }
 
 // Type guard to check for simple trade format
-function isSimpleTrade(info: any): info is SimpleTradeInfo {
+function isSimpleTrade(info: unknown): info is SimpleTradeInfo {
+  if (!info || typeof info !== 'object' || info === null) return false;
+
+  const obj = info as Record<string, unknown>;
+
   return (
-    info &&
-    typeof info.tradeType === 'string' &&
-    typeof info.asset === 'string' &&
-    (typeof info.price === 'number' || typeof info.price === 'string') &&
-    (typeof info.amount === 'number' || typeof info.amount === 'string')
+    'tradeType' in obj &&
+    typeof obj.tradeType === 'string' &&
+    'asset' in obj &&
+    typeof obj.asset === 'string' &&
+    'price' in obj &&
+    (typeof obj.price === 'number' || typeof obj.price === 'string') &&
+    'amount' in obj &&
+    (typeof obj.amount === 'number' || typeof obj.amount === 'string')
+  );
+}
+
+// Define the interface for simulate trade format
+interface SimulateTradeInfo {
+  fromToken: string;
+  toToken: string;
+  fromAmount: string | number;
+  toAmount: string | number;
+  price: string | number;
+  explanation?: string;
+}
+
+// Type guard to check for simulate trade format
+function isSimulateTradeInfo(info: unknown): info is SimulateTradeInfo {
+  if (!info || typeof info !== 'object' || info === null) return false;
+
+  const obj = info as Record<string, unknown>;
+
+  return (
+    'fromToken' in obj &&
+    typeof obj.fromToken === 'string' &&
+    'toToken' in obj &&
+    typeof obj.toToken === 'string' &&
+    'fromAmount' in obj &&
+    (typeof obj.fromAmount === 'string' ||
+      typeof obj.fromAmount === 'number') &&
+    'toAmount' in obj &&
+    (typeof obj.toAmount === 'string' || typeof obj.toAmount === 'number') &&
+    'price' in obj &&
+    (typeof obj.price === 'string' || typeof obj.price === 'number')
   );
 }
 
@@ -54,6 +92,7 @@ export async function getTrades(agentId?: string) {
       next: { revalidate: 5 },
     });
 
+    // Handle HTTP errors with appropriate responses
     if (!response.ok) {
       if (response.status === 401) {
         throw new Error('Invalid API key');
@@ -84,7 +123,7 @@ export async function getTrades(agentId?: string) {
           txHash: '',
         };
 
-        // Check if information exists
+        // If no information, return unknown trade
         if (!trade.information) {
           return {
             ...commonTrade,
@@ -93,25 +132,35 @@ export async function getTrades(agentId?: string) {
           };
         }
 
-        // First check for simple trade format (new API format)
+        // Handle different trade formats in order of priority
+
+        // 1. Simple trade format (new API format)
         if (isSimpleTrade(trade.information)) {
           const info = trade.information;
-          const tradeType = info.tradeType.toUpperCase() === 'BUY' ? 'buy' : 'sell';
-          
+          const tradeType =
+            info.tradeType.toUpperCase() === 'BUY' ? 'buy' : 'sell';
+
           return {
             ...commonTrade,
             type: tradeType as TradeType,
             asset: info.asset,
             amount: Number(info.amount),
             price: Number(info.price),
-            summary: info.reasoning || `${tradeType.toUpperCase()} ${info.amount} ${info.asset} at $${info.price}`,
+            summary:
+              info.reasoning ||
+              `${tradeType.toUpperCase()} ${info.amount} ${info.asset} at $${
+                info.price
+              }`,
             information: trade.information,
           };
         }
-        // Then check if it's a paradex trade with tradeType property
-        else if ('tradeType' in trade.information) {
-          // Handle Paradex trades
-          if (trade.information.tradeType === 'paradexPlaceOrderMarket') {
+
+        // 2. Paradex trades
+        if ('tradeType' in trade.information) {
+          const tradeType = trade.information.tradeType;
+
+          // Market orders
+          if (tradeType === 'paradexPlaceOrderMarket') {
             const info = trade.information as MarketOrderTradeInfo;
             return {
               ...commonTrade,
@@ -124,7 +173,10 @@ export async function getTrades(agentId?: string) {
               txHash: info.tradeId || '',
               information: trade.information,
             };
-          } else if (trade.information.tradeType === 'paradexPlaceOrderLimit') {
+          }
+
+          // Limit orders
+          if (tradeType === 'paradexPlaceOrderLimit') {
             const info = trade.information as LimitOrderTradeInfo;
             return {
               ...commonTrade,
@@ -137,7 +189,10 @@ export async function getTrades(agentId?: string) {
               txHash: info.tradeId || '',
               information: trade.information,
             };
-          } else if (trade.information.tradeType === 'paradexCancelOrder') {
+          }
+
+          // Cancel orders
+          if (tradeType === 'paradexCancelOrder') {
             const info = trade.information as CancelOrderTradeInfo;
             return {
               ...commonTrade,
@@ -148,9 +203,59 @@ export async function getTrades(agentId?: string) {
             };
           }
         }
-        // Legacy format check
-        else if ('trade' in trade.information) {
+
+        // 3. Legacy format with trade property
+        if ('trade' in trade.information) {
           const legacyInfo = trade.information;
+
+          // Simulate trade format
+          if ('tradeType' in trade && trade.tradeType === 'simulateTrade') {
+            const tradeInfo = legacyInfo.trade;
+
+            if (isSimulateTradeInfo(tradeInfo)) {
+              // Determine trade type based on tokens
+              let tradeType: TradeType = 'buy';
+              let assetName = '';
+              let amount = 0;
+              let price = 0;
+
+              if (tradeInfo.fromToken === 'USDC') {
+                // Buying crypto with USDC
+                tradeType = 'buy';
+                assetName = tradeInfo.toToken;
+                amount = parseFloat(String(tradeInfo.toAmount) || '0');
+                price = parseFloat(String(tradeInfo.price) || '0');
+              } else if (tradeInfo.toToken === 'USDC') {
+                // Selling crypto for USDC
+                tradeType = 'sell';
+                assetName = tradeInfo.fromToken;
+                amount = parseFloat(String(tradeInfo.fromAmount) || '0');
+                price = parseFloat(String(tradeInfo.price) || '0');
+              } else {
+                // Crypto to crypto swap
+                tradeType = 'sell';
+                assetName = tradeInfo.fromToken;
+                amount = parseFloat(String(tradeInfo.fromAmount) || '0');
+                price = parseFloat(String(tradeInfo.price) || '0');
+              }
+
+              return {
+                ...commonTrade,
+                type: tradeType,
+                asset: assetName,
+                amount: amount,
+                price: price,
+                summary:
+                  tradeInfo.explanation ||
+                  `${
+                    tradeType === 'buy' ? 'Buy' : 'Sell'
+                  } ${amount} ${assetName} at $${price}`,
+                information: trade.information,
+              };
+            }
+          }
+
+          // Other legacy formats
           return {
             ...commonTrade,
             type:
@@ -164,7 +269,37 @@ export async function getTrades(agentId?: string) {
             information: trade.information,
           };
         }
-        // Default case for unknown formats
+
+        // 4. Root level tradeType (without nested trade info)
+        if ('tradeType' in trade && trade.tradeType === 'simulateTrade') {
+          // Extract values with safe fallbacks
+          const assetName =
+            'asset' in trade && trade.asset ? String(trade.asset) : 'Unknown';
+          const amount =
+            'amount' in trade && trade.amount
+              ? parseFloat(String(trade.amount) || '0')
+              : 0;
+          const price =
+            'price' in trade && trade.price
+              ? parseFloat(String(trade.price) || '0')
+              : 0;
+          const tradeSummary =
+            'summary' in trade && trade.summary
+              ? String(trade.summary)
+              : `Trade for ${assetName}`;
+
+          return {
+            ...commonTrade,
+            type: 'buy' as TradeType, // Default to buy
+            asset: assetName,
+            amount: amount,
+            price: price,
+            summary: tradeSummary,
+            information: trade.information,
+          };
+        }
+
+        // Default fallback for unknown formats
         return {
           ...commonTrade,
           type: 'unknown' as TradeType,
