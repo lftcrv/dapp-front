@@ -62,7 +62,6 @@ export default function CreateAgentPage() {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [agentType, setAgentType] = useState<AgentType>('leftcurve');
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
-  const [responseTextLLM, setresponseTextLLM] = useState('');
   const [isFormValid, setIsFormValid] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -75,7 +74,7 @@ export default function CreateAgentPage() {
     objectives: '',
     lore: '',
     knowledge: '',
-    tradingBehavior: ''
+    tradingBehavior: '',
   });
 
   useEffect(() => {
@@ -164,7 +163,7 @@ export default function CreateAgentPage() {
       objectives: '',
       lore: '',
       knowledge: '',
-      tradingBehavior: ''
+      tradingBehavior: '',
     };
 
     // Extract biography section
@@ -172,36 +171,41 @@ export default function CreateAgentPage() {
     if (bioMatch && bioMatch[1]) {
       sections.biography = bioMatch[1].trim();
     }
-    
+
     // Extract objectives section
     const objectivesMatch = text.match(/### Objectives\s*([\s\S]*?)(?=###|$)/);
     if (objectivesMatch && objectivesMatch[1]) {
       sections.objectives = objectivesMatch[1].trim();
     }
-    
+
     // Extract lore section
     const loreMatch = text.match(/### Lore\s*([\s\S]*?)(?=###|$)/);
     if (loreMatch && loreMatch[1]) {
       sections.lore = loreMatch[1].trim();
     }
-    
+
     // Extract knowledge section
-    const knowledgeMatch = text.match(/### Knowledge & Expertise\s*([\s\S]*?)(?=###|$)/);
+    const knowledgeMatch = text.match(
+      /### Knowledge & Expertise\s*([\s\S]*?)(?=###|$)/,
+    );
     if (knowledgeMatch && knowledgeMatch[1]) {
       sections.knowledge = knowledgeMatch[1].trim();
     }
-    
+
     // Extract trading behavior section
-    const tradingBehaviorMatch = text.match(/### Trading Behavior\s*([\s\S]*?)(?=###|$)/);
+    const tradingBehaviorMatch = text.match(
+      /### Trading Behavior\s*([\s\S]*?)(?=###|$)/,
+    );
     if (tradingBehaviorMatch && tradingBehaviorMatch[1]) {
       sections.tradingBehavior = tradingBehaviorMatch[1].trim();
     }
-    
+
     return sections;
   };
 
-  const formatProfileAsMarkdown = (sections: typeof profileSections) => {
-    return `### Biography
+  const formatProfileAsMarkdown = useCallback(
+    (sections: typeof profileSections) => {
+      return `### Biography
 ${sections.biography}
 
 ### Objectives
@@ -215,7 +219,9 @@ ${sections.knowledge}
 
 ### Trading Behavior
 ${sections.tradingBehavior}`;
-  };
+    },
+    [],
+  );
 
   const isWalletConnected = React.useMemo(() => {
     if (isLoading || !privyReady) return false;
@@ -225,7 +231,6 @@ ${sections.tradingBehavior}`;
   const [transactionHash, setTransactionHash] = useState<string | undefined>(
     undefined,
   );
-  const [isTransactionConfirmed, setIsTransactionConfirmed] = useState(false);
 
   const extractDegenScore = (text: string) => {
     const match = text.match(/\|\|\|DEGEN SCORE: (\d+)\|\|\|/);
@@ -322,8 +327,6 @@ ${sections.tradingBehavior}`;
       const cleanedResponseText = cleanResponseText(responseText);
       console.log('Cleaned response:', cleanedResponseText);
 
-      setresponseTextLLM(cleanedResponseText);
-
       // Parse the profile sections
       const parsedSections = parseProfileSections(cleanedResponseText);
       setProfileSections(parsedSections);
@@ -332,7 +335,7 @@ ${sections.tradingBehavior}`;
       const formattedMarkdown = formatProfileAsMarkdown(parsedSections);
       setFormData((prev) => ({
         ...prev,
-        bio: formattedMarkdown || prev.bio,
+        bio: formattedMarkdown,
         degenScore: degenScore || 0,
       }));
 
@@ -369,6 +372,7 @@ ${sections.tradingBehavior}`;
     formData.analysisPeriod,
     agentType,
     isGenerating,
+    formatProfileAsMarkdown,
   ]);
 
   useEffect(() => {
@@ -396,7 +400,12 @@ ${sections.tradingBehavior}`;
         knowledge: profileSections.knowledge,
       }));
     }
-  }, [profileSections, bioGenAttempted, advancedModeEnabled]);
+  }, [
+    profileSections,
+    bioGenAttempted,
+    advancedModeEnabled,
+    formatProfileAsMarkdown,
+  ]);
 
   const handleDeploy = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -414,7 +423,6 @@ ${sections.tradingBehavior}`;
     setIsSubmitting(true);
 
     try {
-      const curveSide = agentType === 'leftcurve' ? 'LEFT' : 'RIGHT';
       const recipientAddress =
         process.env.NEXT_PUBLIC_DEPLOYMENT_FEES_RECIPIENT;
       const amountToSend = process.env.NEXT_PUBLIC_DEPLOYMENT_FEES;
@@ -545,9 +553,9 @@ ${sections.tradingBehavior}`;
       }
     } catch (error) {
       console.error('❌ Detailed Agent Creation Error:', {
-        message: (error as any).message,
-        stack: (error as any).stack,
-        name: (error as any).name,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : 'Unknown',
       });
       showToast('AGENT_ERROR', 'error');
     } finally {
@@ -582,7 +590,6 @@ ${sections.tradingBehavior}`;
           execution_status === 'SUCCEEDED'
         ) {
           console.log('✅ Transaction confirmed on L2');
-          setIsTransactionConfirmed(true);
         }
       }
     }
@@ -1006,7 +1013,7 @@ ${sections.tradingBehavior}`;
                               biography: e.target.value,
                             }))
                           }
-                          className={`w-full min-h-[80px] px-3 py-2 text-sm rounded-md border-2 transition-all duration-200 ${
+                          className={`w-full min-h-[120px] px-3 py-2 text-sm rounded-md border-2 transition-all duration-200 ${
                             agentType === 'leftcurve'
                               ? 'border-yellow-200 focus:border-yellow-500 focus:ring-yellow-500/20'
                               : 'border-purple-200 focus:border-purple-500 focus:ring-purple-500/20'
@@ -1030,7 +1037,7 @@ ${sections.tradingBehavior}`;
                               objectives: e.target.value,
                             }))
                           }
-                          className={`w-full min-h-[80px] px-3 py-2 text-sm rounded-md border-2 transition-all duration-200 ${
+                          className={`w-full min-h-[120px] px-3 py-2 text-sm rounded-md border-2 transition-all duration-200 ${
                             agentType === 'leftcurve'
                               ? 'border-yellow-200 focus:border-yellow-500 focus:ring-yellow-500/20'
                               : 'border-purple-200 focus:border-purple-500 focus:ring-purple-500/20'
@@ -1054,7 +1061,7 @@ ${sections.tradingBehavior}`;
                               lore: e.target.value,
                             }))
                           }
-                          className={`w-full min-h-[80px] px-3 py-2 text-sm rounded-md border-2 transition-all duration-200 ${
+                          className={`w-full min-h-[120px] px-3 py-2 text-sm rounded-md border-2 transition-all duration-200 ${
                             agentType === 'leftcurve'
                               ? 'border-yellow-200 focus:border-yellow-500 focus:ring-yellow-500/20'
                               : 'border-purple-200 focus:border-purple-500 focus:ring-purple-500/20'
@@ -1078,7 +1085,7 @@ ${sections.tradingBehavior}`;
                               knowledge: e.target.value,
                             }))
                           }
-                          className={`w-full min-h-[80px] px-3 py-2 text-sm rounded-md border-2 transition-all duration-200 ${
+                          className={`w-full min-h-[120px] px-3 py-2 text-sm rounded-md border-2 transition-all duration-200 ${
                             agentType === 'leftcurve'
                               ? 'border-yellow-200 focus:border-yellow-500 focus:ring-yellow-500/20'
                               : 'border-purple-200 focus:border-purple-500 focus:ring-purple-500/20'
@@ -1102,7 +1109,7 @@ ${sections.tradingBehavior}`;
                               tradingBehavior: e.target.value,
                             }))
                           }
-                          className={`w-full min-h-[80px] px-3 py-2 text-sm rounded-md border-2 transition-all duration-200 ${
+                          className={`w-full min-h-[120px] px-3 py-2 text-sm rounded-md border-2 transition-all duration-200 ${
                             agentType === 'leftcurve'
                               ? 'border-yellow-200 focus:border-yellow-500 focus:ring-yellow-500/20'
                               : 'border-purple-200 focus:border-purple-500 focus:ring-purple-500/20'
