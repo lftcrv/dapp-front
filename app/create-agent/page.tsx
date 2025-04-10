@@ -74,7 +74,8 @@ export default function CreateAgentPage() {
     biography: '',
     objectives: '',
     lore: '',
-    knowledge: ''
+    knowledge: '',
+    tradingBehavior: ''
   });
 
   useEffect(() => {
@@ -101,7 +102,7 @@ export default function CreateAgentPage() {
     // - Lower values = more leftCurve (yellow)
     // So we invert the calculation to match the UI
     const adjustedCurveValue = 100 - weightedCurveValue;
-    
+
     setCurveValue(Math.round(adjustedCurveValue));
 
     // With the inversion, we also need to flip the threshold
@@ -162,9 +163,10 @@ export default function CreateAgentPage() {
       biography: '',
       objectives: '',
       lore: '',
-      knowledge: ''
+      knowledge: '',
+      tradingBehavior: ''
     };
-    
+
     // Extract biography section
     const bioMatch = text.match(/### Biography\s*([\s\S]*?)(?=###|$)/);
     if (bioMatch && bioMatch[1]) {
@@ -189,6 +191,12 @@ export default function CreateAgentPage() {
       sections.knowledge = knowledgeMatch[1].trim();
     }
     
+    // Extract trading behavior section
+    const tradingBehaviorMatch = text.match(/### Trading Behavior\s*([\s\S]*?)(?=###|$)/);
+    if (tradingBehaviorMatch && tradingBehaviorMatch[1]) {
+      sections.tradingBehavior = tradingBehaviorMatch[1].trim();
+    }
+    
     return sections;
   };
 
@@ -203,7 +211,10 @@ ${sections.objectives}
 ${sections.lore}
 
 ### Knowledge & Expertise
-${sections.knowledge}`;
+${sections.knowledge}
+
+### Trading Behavior
+${sections.tradingBehavior}`;
   };
 
   const isWalletConnected = React.useMemo(() => {
@@ -257,6 +268,9 @@ ${sections.knowledge}`;
   
   ### Knowledge & Expertise (2-3 sentences)
   What kind of market knowledge does the agent have? Is it based on technical analysis, fundamental research, memes, astrology, or something unique? How does it justify its decisions?
+
+  ### Trading Behavior (2-3 sentences)
+  How does the agent trade? What kind of strategies does it use? What kind of risk tolerance does it have?
   
   Finish your response by providing a |||DEGEN SCORE: {X}||| (where X is a number between 1-10), calculated based on:
   1-3: Conventional crypto trader character - Follows typical trader archetypes (analytical expert, seasoned investor, technical analyst) without distinguishing traits or originality in its biography.
@@ -309,11 +323,11 @@ ${sections.knowledge}`;
       console.log('Cleaned response:', cleanedResponseText);
 
       setresponseTextLLM(cleanedResponseText);
-      
+
       // Parse the profile sections
       const parsedSections = parseProfileSections(cleanedResponseText);
       setProfileSections(parsedSections);
-      
+
       // Update formData with proper Markdown formatting
       const formattedMarkdown = formatProfileAsMarkdown(parsedSections);
       setFormData((prev) => ({
@@ -374,12 +388,12 @@ ${sections.knowledge}`;
   useEffect(() => {
     if (bioGenAttempted && advancedModeEnabled) {
       const formattedMarkdown = formatProfileAsMarkdown(profileSections);
-      
-      setFormData(prev => ({
+
+      setFormData((prev) => ({
         ...prev,
         bio: formattedMarkdown,
         lore: profileSections.lore,
-        knowledge: profileSections.knowledge
+        knowledge: profileSections.knowledge,
       }));
     }
   }, [profileSections, bioGenAttempted, advancedModeEnabled]);
@@ -463,7 +477,7 @@ ${sections.knowledge}`;
           ? 'Medium-term'
           : 'Short-term'
       } focus.`;
-      
+
       // Use profile sections for objectives and knowledge if available
       const objectives =
         advancedModeEnabled && profileSections.objectives
@@ -471,7 +485,7 @@ ${sections.knowledge}`;
           : formData.objectives.length > 0
           ? formData.objectives
           : [`Trading Behavior: ${tradingBehavior}`];
-          
+
       const knowledge =
         advancedModeEnabled && profileSections.knowledge
           ? [profileSections.knowledge]
@@ -482,13 +496,15 @@ ${sections.knowledge}`;
       const lore =
         advancedModeEnabled && profileSections.lore
           ? [profileSections.lore]
-          : formData.lore 
-          ? [formData.lore] 
+          : formData.lore
+          ? [formData.lore]
           : [];
-          
+
       // Always use the properly formatted markdown for bio
-      const bio = advancedModeEnabled ? formatProfileAsMarkdown(profileSections) : formData.bio;
-          
+      const bio = advancedModeEnabled
+        ? formatProfileAsMarkdown(profileSections)
+        : formData.bio;
+
       const agentConfig: AgentConfig = {
         name: formData.name,
         bio: bio,
@@ -605,8 +621,11 @@ ${sections.knowledge}`;
           <div className="w-full bg-gray-100 h-12 rounded-lg relative overflow-hidden">
             {/* Background gradients for both curve types */}
             <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-yellow-500 to-red-500 opacity-20"></div>
-            <div className="absolute right-0 h-full bg-gradient-to-l from-purple-500 to-blue-500 opacity-20" style={{ width: `${100 - curveValue}%` }}></div>
-            
+            <div
+              className="absolute right-0 h-full bg-gradient-to-l from-purple-500 to-blue-500 opacity-20"
+              style={{ width: `${100 - curveValue}%` }}
+            ></div>
+
             {/* Active fill based on curve value */}
             <div
               className={`h-full transition-all duration-300 ${
@@ -614,39 +633,55 @@ ${sections.knowledge}`;
                   ? 'bg-gradient-to-r from-yellow-500 to-red-500'
                   : 'bg-gradient-to-l from-purple-500 to-blue-500'
               }`}
-              style={{ 
-                width: `${curveValue}%`, 
+              style={{
+                width: `${curveValue}%`,
                 position: 'absolute',
                 left: agentType === 'leftcurve' ? '0' : 'auto',
-                right: agentType === 'rightcurve' ? '0' : 'auto'
+                right: agentType === 'rightcurve' ? '0' : 'auto',
               }}
             />
-            
+
             {/* Text labels */}
             <div className="absolute top-0 left-0 w-full h-full flex justify-between items-center px-4">
               <div className="flex items-center">
-                <span className={`text-xs font-bold z-10 ${curveValue < 40 ? 'text-white' : 'text-gray-900'}`}>
+                <span
+                  className={`text-xs font-bold z-10 ${
+                    curveValue < 40 ? 'text-white' : 'text-gray-900'
+                  }`}
+                >
                   🦧 LeftCurve
                 </span>
                 {agentType === 'leftcurve' && (
-                  <span className="ml-1.5 px-1.5 py-0.5 text-[10px] rounded-sm bg-yellow-200 text-yellow-700 font-medium">ACTIVE</span>
+                  <span className="ml-1.5 px-1.5 py-0.5 text-[10px] rounded-sm bg-yellow-200 text-yellow-700 font-medium">
+                    ACTIVE
+                  </span>
                 )}
               </div>
               <div className="flex items-center">
                 {agentType === 'rightcurve' && (
-                  <span className="mr-1.5 px-1.5 py-0.5 text-[10px] rounded-sm bg-purple-200 text-purple-700 font-medium">ACTIVE</span>
+                  <span className="mr-1.5 px-1.5 py-0.5 text-[10px] rounded-sm bg-purple-200 text-purple-700 font-medium">
+                    ACTIVE
+                  </span>
                 )}
-                <span className={`text-xs font-bold z-10 ${curveValue > 60 ? 'text-white' : 'text-gray-900'}`}>
+                <span
+                  className={`text-xs font-bold z-10 ${
+                    curveValue > 60 ? 'text-white' : 'text-gray-900'
+                  }`}
+                >
                   🐙 RightCurve
                 </span>
               </div>
             </div>
           </div>
-          
+
           <div className="text-xs text-center text-muted-foreground mt-1 flex justify-between px-1">
-            <span className="text-yellow-600 font-medium">High Risk & Creativity</span>
+            <span className="text-yellow-600 font-medium">
+              High Risk & Creativity
+            </span>
             <span>Curve Analysis: {Math.round(curveValue)}%</span>
-            <span className="text-purple-600 font-medium">Low Risk & Conservatism</span>
+            <span className="text-purple-600 font-medium">
+              Low Risk & Conservatism
+            </span>
           </div>
 
           <Card className="border-2 shadow-lg">
@@ -848,25 +883,34 @@ ${sections.knowledge}`;
                       {bioGenAttempted && !isGenerating && (
                         <>
                           <div className="flex items-center">
-                            <label htmlFor="advanced-mode" className="mr-2 text-xs text-muted-foreground flex items-center">
+                            <label
+                              htmlFor="advanced-mode"
+                              className="mr-2 text-xs text-muted-foreground flex items-center"
+                            >
                               <span>Edit Mode (EXPERT)</span>
                               {advancedModeEnabled && (
-                                <span className={`ml-1 px-1.5 py-0.5 text-[10px] rounded-sm font-medium ${
-                                  agentType === 'leftcurve'
-                                    ? 'bg-yellow-100 text-yellow-700'
-                                    : 'bg-purple-100 text-purple-700'
-                                }`}>ACTIVE</span>
+                                <span
+                                  className={`ml-1 px-1.5 py-0.5 text-[10px] rounded-sm font-medium ${
+                                    agentType === 'leftcurve'
+                                      ? 'bg-yellow-100 text-yellow-700'
+                                      : 'bg-purple-100 text-purple-700'
+                                  }`}
+                                >
+                                  ACTIVE
+                                </span>
                               )}
                             </label>
-                            <div 
+                            <div
                               className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                                advancedModeEnabled 
+                                advancedModeEnabled
                                   ? agentType === 'leftcurve'
                                     ? 'bg-yellow-500'
                                     : 'bg-purple-500'
                                   : 'bg-gray-200'
                               }`}
-                              onClick={() => setAdvancedModeEnabled(!advancedModeEnabled)}
+                              onClick={() =>
+                                setAdvancedModeEnabled(!advancedModeEnabled)
+                              }
                               role="switch"
                               aria-checked={advancedModeEnabled}
                               tabIndex={0}
@@ -877,10 +921,16 @@ ${sections.knowledge}`;
                                 }
                               }}
                             >
-                              <span className="sr-only">Toggle advanced mode</span>
+                              <span className="sr-only">
+                                Toggle advanced mode
+                              </span>
                               <span
                                 aria-hidden="true"
-                                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${advancedModeEnabled ? 'translate-x-4' : 'translate-x-0'}`}
+                                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                  advancedModeEnabled
+                                    ? 'translate-x-4'
+                                    : 'translate-x-0'
+                                }`}
                               />
                               <input
                                 id="advanced-mode"
@@ -915,35 +965,47 @@ ${sections.knowledge}`;
                   ) : !bioGenAttempted ? (
                     <div>
                       <p className="text-sm whitespace-pre-line">
-                        Click &quot;Generate Profile&quot; to create agent biography
+                        Click &quot;Generate Profile&quot; to create agent
+                        biography
                       </p>
                     </div>
                   ) : advancedModeEnabled ? (
                     <div className="space-y-4">
-                      <div className={`p-2.5 rounded-md border mb-2 ${
-                        agentType === 'leftcurve'
-                          ? 'bg-yellow-50 border-yellow-100'
-                          : 'bg-purple-50 border-purple-100'
-                      }`}>
-                        <p className={`text-xs ${
+                      <div
+                        className={`p-2.5 rounded-md border mb-2 ${
                           agentType === 'leftcurve'
-                            ? 'text-yellow-700'
-                            : 'text-purple-700'
-                        }`}>
-                          <span className="font-medium">Edit Mode Active:</span> You can customize each section of your agent&apos;s profile. Your changes will be saved automatically in Markdown format with proper headings.
+                            ? 'bg-yellow-50 border-yellow-100'
+                            : 'bg-purple-50 border-purple-100'
+                        }`}
+                      >
+                        <p
+                          className={`text-xs ${
+                            agentType === 'leftcurve'
+                              ? 'text-yellow-700'
+                              : 'text-purple-700'
+                          }`}
+                        >
+                          <span className="font-medium">Edit Mode Active:</span>{' '}
+                          You can customize each section of your agent&apos;s
+                          profile. Your changes will be saved automatically in
+                          Markdown format with proper headings.
                         </p>
                       </div>
                       <div className="space-y-1">
                         <Label className="text-sm font-semibold flex items-center">
                           Biography
-                          <span className="ml-2 text-[10px] text-muted-foreground">(Editable)</span>
+                          <span className="ml-2 text-[10px] text-muted-foreground">
+                            (Editable)
+                          </span>
                         </Label>
                         <textarea
                           value={profileSections.biography}
-                          onChange={(e) => setProfileSections(prev => ({
-                            ...prev,
-                            biography: e.target.value
-                          }))}
+                          onChange={(e) =>
+                            setProfileSections((prev) => ({
+                              ...prev,
+                              biography: e.target.value,
+                            }))
+                          }
                           className={`w-full min-h-[80px] px-3 py-2 text-sm rounded-md border-2 transition-all duration-200 ${
                             agentType === 'leftcurve'
                               ? 'border-yellow-200 focus:border-yellow-500 focus:ring-yellow-500/20'
@@ -952,18 +1014,22 @@ ${sections.knowledge}`;
                           placeholder="Enter agent biography here..."
                         />
                       </div>
-                      
+
                       <div className="space-y-1">
                         <Label className="text-sm font-semibold flex items-center">
                           Objectives
-                          <span className="ml-2 text-[10px] text-muted-foreground">(Editable)</span>
+                          <span className="ml-2 text-[10px] text-muted-foreground">
+                            (Editable)
+                          </span>
                         </Label>
                         <textarea
                           value={profileSections.objectives}
-                          onChange={(e) => setProfileSections(prev => ({
-                            ...prev,
-                            objectives: e.target.value
-                          }))}
+                          onChange={(e) =>
+                            setProfileSections((prev) => ({
+                              ...prev,
+                              objectives: e.target.value,
+                            }))
+                          }
                           className={`w-full min-h-[80px] px-3 py-2 text-sm rounded-md border-2 transition-all duration-200 ${
                             agentType === 'leftcurve'
                               ? 'border-yellow-200 focus:border-yellow-500 focus:ring-yellow-500/20'
@@ -972,18 +1038,22 @@ ${sections.knowledge}`;
                           placeholder="Enter agent objectives here..."
                         />
                       </div>
-                      
+
                       <div className="space-y-1">
                         <Label className="text-sm font-semibold flex items-center">
                           Lore
-                          <span className="ml-2 text-[10px] text-muted-foreground">(Editable)</span>
+                          <span className="ml-2 text-[10px] text-muted-foreground">
+                            (Editable)
+                          </span>
                         </Label>
                         <textarea
                           value={profileSections.lore}
-                          onChange={(e) => setProfileSections(prev => ({
-                            ...prev,
-                            lore: e.target.value
-                          }))}
+                          onChange={(e) =>
+                            setProfileSections((prev) => ({
+                              ...prev,
+                              lore: e.target.value,
+                            }))
+                          }
                           className={`w-full min-h-[80px] px-3 py-2 text-sm rounded-md border-2 transition-all duration-200 ${
                             agentType === 'leftcurve'
                               ? 'border-yellow-200 focus:border-yellow-500 focus:ring-yellow-500/20'
@@ -992,18 +1062,22 @@ ${sections.knowledge}`;
                           placeholder="Enter agent lore here..."
                         />
                       </div>
-                      
+
                       <div className="space-y-1">
                         <Label className="text-sm font-semibold flex items-center">
                           Knowledge & Expertise
-                          <span className="ml-2 text-[10px] text-muted-foreground">(Editable)</span>
+                          <span className="ml-2 text-[10px] text-muted-foreground">
+                            (Editable)
+                          </span>
                         </Label>
                         <textarea
                           value={profileSections.knowledge}
-                          onChange={(e) => setProfileSections(prev => ({
-                            ...prev,
-                            knowledge: e.target.value
-                          }))}
+                          onChange={(e) =>
+                            setProfileSections((prev) => ({
+                              ...prev,
+                              knowledge: e.target.value,
+                            }))
+                          }
                           className={`w-full min-h-[80px] px-3 py-2 text-sm rounded-md border-2 transition-all duration-200 ${
                             agentType === 'leftcurve'
                               ? 'border-yellow-200 focus:border-yellow-500 focus:ring-yellow-500/20'
@@ -1012,7 +1086,31 @@ ${sections.knowledge}`;
                           placeholder="Enter agent knowledge and expertise here..."
                         />
                       </div>
-                      
+
+                      <div className="space-y-1">
+                        <Label className="text-sm font-semibold flex items-center">
+                          Trading Behavior
+                          <span className="ml-2 text-[10px] text-muted-foreground">
+                            (Editable)
+                          </span>
+                        </Label>
+                        <textarea
+                          value={profileSections.tradingBehavior}
+                          onChange={(e) =>
+                            setProfileSections((prev) => ({
+                              ...prev,
+                              tradingBehavior: e.target.value,
+                            }))
+                          }
+                          className={`w-full min-h-[80px] px-3 py-2 text-sm rounded-md border-2 transition-all duration-200 ${
+                            agentType === 'leftcurve'
+                              ? 'border-yellow-200 focus:border-yellow-500 focus:ring-yellow-500/20'
+                              : 'border-purple-200 focus:border-purple-500 focus:ring-purple-500/20'
+                          }`}
+                          placeholder="Describe how the agent trades, strategies used, and risk tolerance..."
+                        />
+                      </div>
+
                       <details className="mt-4 text-xs border rounded-md overflow-hidden">
                         <summary className="cursor-pointer px-3 py-2 bg-gray-50 font-medium">
                           View Markdown Preview
@@ -1027,38 +1125,67 @@ ${sections.knowledge}`;
                       {profileSections.biography && (
                         <div className="space-y-1">
                           <h3 className="text-sm font-semibold">Biography</h3>
-                          <p className="text-sm whitespace-pre-line">{profileSections.biography}</p>
+                          <p className="text-sm whitespace-pre-line">
+                            {profileSections.biography}
+                          </p>
                         </div>
                       )}
-                      
+
                       {profileSections.objectives && (
                         <div className="space-y-1">
                           <h3 className="text-sm font-semibold">Objectives</h3>
-                          <p className="text-sm whitespace-pre-line">{profileSections.objectives}</p>
+                          <p className="text-sm whitespace-pre-line">
+                            {profileSections.objectives}
+                          </p>
                         </div>
                       )}
-                      
+
                       {profileSections.lore && (
                         <div className="space-y-1">
                           <h3 className="text-sm font-semibold">Lore</h3>
-                          <p className="text-sm whitespace-pre-line">{profileSections.lore}</p>
+                          <p className="text-sm whitespace-pre-line">
+                            {profileSections.lore}
+                          </p>
                         </div>
                       )}
-                      
+
                       {profileSections.knowledge && (
                         <div className="space-y-1">
-                          <h3 className="text-sm font-semibold">Knowledge & Expertise</h3>
-                          <p className="text-sm whitespace-pre-line">{profileSections.knowledge}</p>
+                          <h3 className="text-sm font-semibold">
+                            Knowledge & Expertise
+                          </h3>
+                          <p className="text-sm whitespace-pre-line">
+                            {profileSections.knowledge}
+                          </p>
                         </div>
                       )}
-                      
-                      {(!profileSections.biography && !profileSections.objectives && 
-                        !profileSections.lore && !profileSections.knowledge) && (
-                        <p className="text-sm whitespace-pre-line">{formData.bio}</p>
+
+                      {profileSections.tradingBehavior && (
+                        <div className="space-y-1">
+                          <h3 className="text-sm font-semibold">
+                            Trading Behavior
+                          </h3>
+                          <p className="text-sm whitespace-pre-line">
+                            {profileSections.tradingBehavior}
+                          </p>
+                        </div>
                       )}
-                      
+
+                      {!profileSections.biography &&
+                        !profileSections.objectives &&
+                        !profileSections.lore &&
+                        !profileSections.knowledge &&
+                        !profileSections.tradingBehavior && (
+                          <p className="text-sm whitespace-pre-line">
+                            {formData.bio}
+                          </p>
+                        )}
+
                       <div className="mt-2 text-xs text-muted-foreground italic">
-                        <p>Your profile will be saved in Markdown format with the proper headings.</p>
+                        <p>
+                          Your profile will be saved in Markdown format with the
+                          proper headings.
+                        </p>
                       </div>
                     </div>
                   )}
