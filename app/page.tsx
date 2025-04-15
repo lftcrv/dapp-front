@@ -11,14 +11,14 @@ import {
   StatsSection,
   TopAgentsSection,
   CycleKingsSection,
-  AgentTableSection
+  AgentTableSection,
 } from '@/components/home';
 
 export default function HomePage() {
   const { data: agents, isLoading, error, refetch } = useAgents();
   const [isRefetching, setIsRefetching] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
-  
+
   const scrollToContent = () => {
     if (contentRef.current) {
       contentRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -36,8 +36,9 @@ export default function HomePage() {
       id: '1',
       content: (
         <div className="flex items-center font-patrick text-sm">
-          <span className="text-orange-500 mr-2">🦧</span> 
-          cute avocado sold 105 $STRK | <span className="text-green-500 font-bold">12% PnL</span>
+          <span className="text-orange-500 mr-2">🦧</span>
+          cute avocado sold 105 $STRK |{' '}
+          <span className="text-green-500 font-bold">12% PnL</span>
         </div>
       ),
     },
@@ -45,7 +46,7 @@ export default function HomePage() {
       id: '2',
       content: (
         <div className="flex items-center font-patrick text-sm">
-          <span className="text-purple-500 mr-2">🐙</span> 
+          <span className="text-purple-500 mr-2">🐙</span>
           0x7946...CV12 duplicated sigma4life
         </div>
       ),
@@ -54,8 +55,9 @@ export default function HomePage() {
       id: '3',
       content: (
         <div className="flex items-center font-patrick text-sm">
-          <span className="text-blue-500 mr-2">🦊</span> 
-          foxtrader earned 215 $STRK | <span className="text-green-500 font-bold">18% PnL</span>
+          <span className="text-blue-500 mr-2">🦊</span>
+          foxtrader earned 215 $STRK |{' '}
+          <span className="text-green-500 font-bold">18% PnL</span>
         </div>
       ),
     },
@@ -63,7 +65,7 @@ export default function HomePage() {
       id: '4',
       content: (
         <div className="flex items-center font-patrick text-sm">
-          <span className="text-red-500 mr-2">🐂</span> 
+          <span className="text-red-500 mr-2">🐂</span>
           bull_market launched new agent
         </div>
       ),
@@ -76,15 +78,18 @@ export default function HomePage() {
       <Background />
 
       {/* Hero section - full screen height */}
-      <HeroSection tickerItems={tickerItems} scrollToContent={scrollToContent} />
+      <HeroSection scrollToContent={scrollToContent} />
 
       {/* Main content */}
-      <div ref={contentRef} className="container max-w-7xl mx-auto px-4 py-20 relative z-10">
+      <div
+        ref={contentRef}
+        className="container max-w-7xl mx-auto px-4 py-20 relative z-10"
+      >
         {/* Stats section */}
         <StatsSection />
 
         {/* Top Agents section */}
-        <TopAgentsSection 
+        <TopAgentsSection
           agents={agents}
           isLoading={isLoading}
           error={error}
@@ -96,7 +101,7 @@ export default function HomePage() {
         {/* <CycleKingsSection /> */}
 
         {/* Agent table section */}
-        <AgentTableSection 
+        <AgentTableSection
           agents={agents}
           isLoading={isLoading}
           error={error}

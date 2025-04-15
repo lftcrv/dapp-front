@@ -1,19 +1,22 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { ChevronDown } from 'lucide-react';
 import HeroBox from '@/components/ui/hero-box';
 import CTAButtons from '@/components/ui/cta-buttons';
 import ScrambleText from '@/components/ui/scramble-text';
 import AnimatedTicker from '@/components/ui/animated-ticker';
+import { useTickerAgents } from '@/hooks/useTickerAgents';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type HeroSectionProps = {
-  tickerItems: { id: string; content: React.ReactNode }[];
   scrollToContent: () => void;
 }
 
-export default function HeroSection({ tickerItems, scrollToContent }: HeroSectionProps) {
+export default function HeroSection({ scrollToContent }: HeroSectionProps) {
+  const { tickerItems, isLoading, error, refreshTickerData } = useTickerAgents();
+  
   return (
     <section className="relative min-h-screen flex flex-col justify-center items-center">
       <div className="container max-w-screen-2xl mx-auto px-4 relative z-10 flex flex-col justify-between items-center h-full py-16 md:py-24 overflow-hidden">
@@ -30,6 +33,7 @@ export default function HeroSection({ tickerItems, scrollToContent }: HeroSectio
               width={300}
               height={400}
               className="w-32 h-auto md:w-40 lg:w-48 xl:w-64 2xl:w-80 opacity-90"
+              priority
             />
           </motion.div>
         </div>
@@ -47,6 +51,7 @@ export default function HeroSection({ tickerItems, scrollToContent }: HeroSectio
               width={300}
               height={400}
               className="w-32 h-auto md:w-40 lg:w-48 xl:w-64 2xl:w-80 opacity-90"
+              priority
             />
           </motion.div>
         </div>
@@ -94,12 +99,28 @@ export default function HeroSection({ tickerItems, scrollToContent }: HeroSectio
         
         {/* Animated ticker banner */}
         <motion.div 
-          className="w-full mt-auto overflow-hidden"
+          className="w-full mt-auto overflow-hidden bg-white/10 backdrop-blur-sm rounded-lg shadow-sm border border-white/20"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.7 }}
         >
-          <AnimatedTicker items={tickerItems} />
+          <AnimatePresence>
+            {isLoading ? (
+              <div className="px-4 py-3 flex items-center">
+                <Skeleton className="h-5 w-full" />
+              </div>
+            ) : error ? (
+              <div className="px-4 py-3 text-sm text-red-500">
+                Unable to load market data. <button onClick={refreshTickerData} className="underline">Retry</button>
+              </div>
+            ) : tickerItems.length > 0 ? (
+              <AnimatedTicker items={tickerItems} speed="fast" />
+            ) : (
+              <div className="px-4 py-3 text-sm text-gray-500">
+                No market data available
+              </div>
+            )}
+          </AnimatePresence>
         </motion.div>
         
         {/* Scroll indicator */}
