@@ -33,32 +33,32 @@ const itemVariants = {
 // Static class definitions
 const FEATURE_COLOR_CLASSES = {
   0: {
-    bg: "bg-violet-100",
-    bgLight: "bg-violet-50",
+    bg: "bg-white",
+    bgLight: "bg-white",
     text: "text-violet-900",
     bullet: "bg-violet-500"
   },
   1: {
-    bg: "bg-orange-100",
-    bgLight: "bg-orange-50",
+    bg: "bg-white",
+    bgLight: "bg-white",
     text: "text-orange-900",
     bullet: "bg-orange-500"
   },
   2: {
-    bg: "bg-blue-100",
-    bgLight: "bg-blue-50",
+    bg: "bg-white",
+    bgLight: "bg-white",
     text: "text-blue-900",
     bullet: "bg-blue-500"
   },
   3: {
-    bg: "bg-teal-100",
-    bgLight: "bg-teal-50",
+    bg: "bg-white",
+    bgLight: "bg-white",
     text: "text-teal-900",
     bullet: "bg-teal-500"
   },
   4: {
-    bg: "bg-amber-100",
-    bgLight: "bg-amber-50",
+    bg: "bg-white",
+    bgLight: "bg-white",
     text: "text-amber-900",
     bullet: "bg-amber-500"
   }
@@ -118,7 +118,7 @@ const Feature = memo(function Feature({ title, icon, points, index, iconAlt }: F
     >
       <div className="relative rounded-3xl overflow-hidden bg-white/10 shadow-sm transform-gpu">
         {/* Feature number indicator */}
-        <div className={`absolute top-6 ${numPosition} font-sketch text-4xl opacity-10`}>
+        <div className={`absolute top-6 ${numPosition} font-sketch text-4xl text-black`}>
           {(index + 1).toString().padStart(2, '0')}
         </div>
         
@@ -134,7 +134,7 @@ const Feature = memo(function Feature({ title, icon, points, index, iconAlt }: F
               <motion.div 
                 whileHover={{ scale: 1.05 }}
                 transition={{ type: "tween", duration: 0.2 }}
-                className={`p-4 rounded-full ${colors.bgLight} shadow-sm transform-gpu`}
+                className={`p-4 rounded-full ${colors.bgLight} shadow-md transform-gpu`}
               >
                 <Image 
                   src={`/hiw/${icon}`}

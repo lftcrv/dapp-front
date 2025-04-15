@@ -5,9 +5,12 @@ import StatCard from '@/components/ui/stat-card';
 import { getAllGlobalMetrics } from '@/actions/metrics/global/getAllGlobalMetrics';
 import { GlobalMetrics } from '@/lib/types/metrics';
 import { RefreshCw } from 'lucide-react';
+import { getTopPerformingAgent } from '@/actions/agents/query/getTopPerformingAgent';
+import { Agent } from '@/lib/types';
 
 export default function StatsSection() {
   const [metrics, setMetrics] = useState<GlobalMetrics | null>(null);
+  const [topAgent, setTopAgent] = useState<Agent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -17,19 +20,32 @@ export default function StatsSection() {
     return `$${value.toLocaleString()}`;
   };
 
-  const fetchMetrics = useCallback(async () => {
+  // Format percentage values
+  const formatPercentage = (value: number) => {
+    return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+  };
+
+  const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
-      // Call the server action directly - this is the key part that uses Next.js server actions
-      const result = await getAllGlobalMetrics();
+      // Fetch global metrics
+      const metricsResult = await getAllGlobalMetrics();
       
-      if (result.success && result.data) {
-        setMetrics(result.data);
+      if (metricsResult.success && metricsResult.data) {
+        setMetrics(metricsResult.data);
         setError(null);
-        setLastUpdated(new Date());
       } else {
-        setError(result.error || 'Failed to load metrics');
+        setError(metricsResult.error || 'Failed to load metrics');
       }
+
+      // Fetch top performing agent by PnL rank
+      const topAgentResult = await getTopPerformingAgent();
+      
+      if (topAgentResult.success && topAgentResult.data) {
+        setTopAgent(topAgentResult.data);
+      }
+      
+      setLastUpdated(new Date());
     } catch (err) {
       setError('An unexpected error occurred');
     } finally {
@@ -39,12 +55,12 @@ export default function StatsSection() {
 
   // Initial data fetch
   useEffect(() => {
-    fetchMetrics();
+    fetchData();
     
     // Optional: Set up polling for real-time updates
-    // const intervalId = setInterval(fetchMetrics, 30000); // Refresh every 30 seconds
+    // const intervalId = setInterval(fetchData, 30000); // Refresh every 30 seconds
     // return () => clearInterval(intervalId);
-  }, [fetchMetrics]);
+  }, [fetchData]);
 
   // Format the last updated time
   const getLastUpdatedText = () => {
@@ -74,7 +90,7 @@ export default function StatsSection() {
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Platform Statistics</h2>
         <button 
-          onClick={fetchMetrics} 
+          onClick={fetchData} 
           disabled={isLoading}
           className="text-sm flex items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors"
         >
@@ -92,11 +108,11 @@ export default function StatsSection() {
           isPositive={!error}
         />
         <StatCard
-          title="TVL"
-          value={error ? "Error" : formatDollar(metrics?.totalTVL || 0)}
-          change={error ? error : getLastUpdatedText()}
+          title="Best PnL"
+          value={error ? "Error" : topAgent && typeof topAgent.pnlCycle === 'number' ? formatPercentage(topAgent.pnlCycle) : "0%"}
+          change={error ? error : topAgent ? topAgent.name : "No agents yet"}
           icon="💰"
-          isPositive={!error}
+          isPositive={topAgent && typeof topAgent.pnlCycle === 'number' ? topAgent.pnlCycle >= 0 : true}
         />
         <StatCard
           title="Total Balance"
