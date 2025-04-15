@@ -412,6 +412,7 @@ export interface AgentConfig {
   bio: string;
   lore: string[];
   objectives: string[];
+  analysis_period: number;
   knowledge: string[];
   interval: number;
   chat_id: string;

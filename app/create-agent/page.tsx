@@ -395,6 +395,7 @@ export default function CreateAgentPage() {
         knowledge: knowledge,
         interval: formData.interval,
         chat_id: generateRandomChatId(),
+        analysis_period: formData.analysisPeriod,
         external_plugins: [],
         internal_plugins: formData.internal_plugins,
       };
