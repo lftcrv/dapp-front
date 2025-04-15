@@ -87,7 +87,7 @@ const SimpleAgentCard = memo(({ agent }: { agent: Agent }) => {
       
       <div className="agent-card-content">
         <p>
-          {agent.description || "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."}
+          {agent.characterConfig?.bio || "No bio available for this agent."}
         </p>
       </div>
       
@@ -285,8 +285,8 @@ const AgentHeader = memo(({ agent, simplified = false }: AgentHeaderProps) => {
           </div>
 
           <p className="text-white/80 text-sm mt-4 max-w-3xl font-patrick">
-            {agent.description ||
-              "This agent doesn't have a description yet."}
+            {agent.characterConfig?.bio || 
+              "No bio available for this agent."}
           </p>
         </div>
       </div>

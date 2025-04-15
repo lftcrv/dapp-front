@@ -452,11 +452,7 @@ const AgentBioBox = memo(
     onViewDetailsClick: () => void;
   }) => {
     // Get the bio from characterConfig or use a fallback
-    const bio =
-      agent.characterConfig?.bio ||
-      (isLeftCurve
-        ? "Born in the depths of /biz/, forged in the fires of leverage trading. This absolute unit of an ape doesn't know what 'risk management' means. Moon or food stamps, there is no in-between. 🚀🦧"
-        : 'A sophisticated trading entity utilizing advanced quantitative analysis and machine learning. Precision entries, calculated exits, and a complete disregard for human emotions. Pure alpha generation. 🐙📊');
+    const bio = agent.characterConfig?.bio || "No bio available for this agent.";
 
     return (
       <motion.div

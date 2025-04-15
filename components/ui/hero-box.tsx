@@ -135,7 +135,7 @@ const HeroBox = () => {
                 
                 {/* Amount text - perfectly centered on the image */}
                 <span className="text-black font-patrick text-3xl font-bold relative z-10">
-                  1, 500 $
+                  1, 000 $
                 </span>
               </div>
             </div>
