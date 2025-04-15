@@ -17,7 +17,7 @@ import { ArrowUpDown, Search, Users, UserCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
-import { PriceChange } from '@/components/price-change';
+
 import { useAgentsData } from '@/hooks/use-agents-data';
 import Image from 'next/image';
 
@@ -74,7 +74,9 @@ interface AgentRowProps {
 const AgentRow = memo(({ agent, index }: AgentRowProps) => {
   const { data } = useAgentsData();
   const agentMarketData = data?.marketData[agent.id];
-  const isBonding = agentMarketData?.bondingStatus === 'BONDING' || isInBondingPhase(agent.price, agent.holders);
+  const isBonding =
+    agentMarketData?.bondingStatus === 'BONDING' ||
+    isInBondingPhase(agent.price, agent.holders);
   const isLeftCurve = agent.type === 'leftcurve';
 
   // Helper function to format currency values
@@ -82,16 +84,16 @@ const AgentRow = memo(({ agent, index }: AgentRowProps) => {
     if (value === undefined || value === null) return 'N/A';
     return `$${value.toLocaleString(undefined, {
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      maximumFractionDigits: 0,
     })}`;
   };
 
   // Helper function to format PnL values (which are in USD)
   const formatPercentage = (value: number | undefined | null) => {
     if (value === undefined || value === null) return 'N/A';
-    
+
     const isPositive = isPnLPositive(value);
-    
+
     return (
       <span className={isPositive ? 'text-green-500' : 'text-red-500'}>
         {formatPnL(value, true)}
@@ -157,7 +159,9 @@ const AgentRow = memo(({ agent, index }: AgentRowProps) => {
         </span>
       </TableCell>
       <TableCell className="text-right font-mono text-xs py-2">
-        <span className="font-medium">#{formatNumber(agent.cycleRanking || 0)}</span>
+        <span className="font-medium">
+          #{formatNumber(agent.cycleRanking || 0)}
+        </span>
       </TableCell>
       <TableCell className="text-right py-2">
         {formatPercentage(agent.pnl24h || agentMarketData?.priceChange24h || 0)}
@@ -198,8 +202,8 @@ const AgentRow = memo(({ agent, index }: AgentRowProps) => {
           {isBonding
             ? '🔥 bonding'
             : agent.status === 'ended'
-              ? '💀 ended'
-              : '🚀 live'}
+            ? '💀 ended'
+            : '🚀 live'}
         </span>
       </TableCell>
     </TableRow>
@@ -341,7 +345,7 @@ export function AgentTable({
                   onSort={onSort}
                 />
               ) : (
-                'Balance'
+                'TVL'
               )}
             </TableHead>
             <TableHead className="text-right text-xs py-2">
