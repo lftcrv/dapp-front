@@ -253,9 +253,9 @@ function WalletProviderContent({ children }: { children: ReactNode }) {
         await fetchUserData(starknetAddress);
 
         // If no valid referral, still show the notification
-        if (!hasValidRef && !referralCode) {
-          showToast('REFERRAL_REQUIRED', 'error');
-        }
+        // if (!hasValidRef && !referralCode) {
+        //   showToast('REFERRAL_REQUIRED', 'error');
+        // }
       } catch (err) {
         console.error('Error creating user:', err);
         // Ignore 409 conflicts as they're expected when user already exists
