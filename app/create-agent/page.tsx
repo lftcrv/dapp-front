@@ -743,34 +743,6 @@ ${sections.tradingBehavior}`;
                     <Label className="text-base font-medium">
                       Personality Keywords
                     </Label>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setBioGenAttempted(false);
-                        generateAgentProfile();
-                      }}
-                      disabled={
-                        !formData.name ||
-                        !formData.keywords.every((k) => k.trim())
-                      }
-                      className={`${
-                        isGenerating ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      {isGenerating ? (
-                        <>
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className="h-3 w-3 mr-1" />
-                          Generate Profile
-                        </>
-                      )}
-                    </Button>
                   </div>
                   <p className="text-sm text-muted-foreground">
                     Enter 3 keywords that define your agent&apos;s trading
@@ -880,6 +852,37 @@ ${sections.tradingBehavior}`;
                     <span>Medium-term</span>
                     <span>Long-term</span>
                   </div>
+                </div>
+
+                <div className="flex justify-center w-full">
+                  <Button
+                    type="button"
+                    size="lg"
+                    variant="outline"
+                    onClick={() => {
+                      setBioGenAttempted(false);
+                      generateAgentProfile();
+                    }}
+                    className={`w-3/5 rounded-2xl ${
+                      isGenerating ? 'opacity-50' : ''
+                    } ${
+                      agentType === 'leftcurve'
+                        ? 'border-yellow-500 hover:bg-yellow-50 text-yellow-700'
+                        : 'border-purple-500 hover:bg-purple-50 text-purple-700'
+                    }`}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Generating Profile...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Generate Your Agent&apos;s Profile
+                      </>
+                    )}
+                  </Button>
                 </div>
 
                 <div className="space-y-2 bg-muted/50 p-4 rounded-lg relative">
@@ -1202,17 +1205,22 @@ ${sections.tradingBehavior}`;
                 <Button
                   type="submit"
                   size="lg"
-                  className={`w-full font-bold ${
+                  className={`w-full font-bold rounded-full ${
                     agentType === 'leftcurve'
                       ? 'bg-gradient-to-r from-yellow-500 to-red-500 hover:opacity-90'
                       : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:opacity-90'
                   }`}
-                  disabled={isSubmitting || !isFormValid}
+                  disabled={isSubmitting || !isFormValid || !bioGenAttempted}
                 >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                       DEPLOYING...
+                    </>
+                  ) : !bioGenAttempted ? (
+                    <>
+                      <Flame className="mr-2 h-5 w-5" />
+                      GENERATE PROFILE FIRST
                     </>
                   ) : (
                     <>

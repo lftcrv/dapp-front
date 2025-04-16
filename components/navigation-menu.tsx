@@ -36,12 +36,7 @@ const navigation = [
     name: 'Create Agent',
     href: '/create-agent',
     segment: 'create-agent',
-  },
-  {
-    name: 'Leaderboard',
-    href: '/leaderboard',
-    segment: 'leaderboard',
-  },
+  }
 ] as const;
 
 // // Development-only performance tracking
