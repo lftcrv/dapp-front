@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Agent, Performance, AgentType, AgentStatus, CharacterConfig } from '@/lib/types';
 import Link from 'next/link';
@@ -269,10 +269,11 @@ function calculateCreatorStats(creator: CreatorDetail): CreatorStats {
   };
 }
 
+// Align interface with Next.js PageProps expectation (even for Client Component)
 interface CreatorPageParams {
-  params: {
+  params: Promise<{
     creatorId: string;
-  };
+  }>;
 }
 
 // --- New Component for Creator Stats ---
@@ -479,9 +480,13 @@ function AgentListForCreator({ agents, creatorName, formatPnl }: AgentListForCre
   );
 }
 
-// --- Main Content Component ---
-function CreatorDetailContent(props: { creatorId: string }) {
-  const { creatorId } = props;
+// Main Page Component - Still a Client Component
+export default function CreatorDetailPage({ params }: CreatorPageParams) {
+  // Access creatorId - Next.js resolves the promise for Client Components here
+  // We still need to tell TS it *will* be resolved, hence the direct access
+  // If this still errors, we might need `React.use(params)` again.
+  const { creatorId } = params as unknown as { creatorId: string }; 
+  
   const [creator, setCreator] = useState<CreatorDetail | null>(null);
   const [creatorStats, setCreatorStats] = useState<CreatorStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -559,10 +564,11 @@ function CreatorDetailContent(props: { creatorId: string }) {
           </div>
         )}
 
+        {/* Main Content Area */}
         {!isLoading && !error && creator && creatorStats && (
           <div className="bg-[rgb(246,236,231)] text-gray-900 rounded-lg p-6 shadow-lg border border-gray-300">
             {/* Creator Header Info */}
-            <div className="flex flex-col sm:flex-row items-center space-x-0 sm:space-x-6 mb-8">
+             <div className="flex flex-col sm:flex-row items-center space-x-0 sm:space-x-6 mb-8">
               <Avatar className="w-20 h-20 mb-4 sm:mb-0">
                 <AvatarImage
                   src={creator.avatarUrl}
@@ -585,27 +591,18 @@ function CreatorDetailContent(props: { creatorId: string }) {
               </div>
             </div>
             
-            {/* Creator Stats - Use the new component */}
+            {/* Creator Stats - Use the component */}
             <CreatorStatsDisplay stats={creatorStats} formatPnl={formatPnl} />
 
-            {/* Agents List - Use the new component */}
+            {/* Agents List - Use the component */}
             <AgentListForCreator 
-              agents={creator.agents as AgentWithPerformance[]} // Cast here
+              agents={creator.agents as AgentWithPerformance[]} 
               creatorName={creator.name} 
               formatPnl={formatPnl} 
             />
           </div>
         )}
-      </div>
+       </div>
     </main>
   );
-}
-
-// Main page component - using Next.js' params as a Promise
-export default function CreatorDetailPage({ params }: CreatorPageParams) {
-  // Use React.use() to unwrap params Promise as recommended by Next.js
-  const unwrappedParams = use(params as unknown as Promise<{ creatorId: string }>);
-  const { creatorId } = unwrappedParams;
-  
-  return <CreatorDetailContent creatorId={creatorId} />;
 }
