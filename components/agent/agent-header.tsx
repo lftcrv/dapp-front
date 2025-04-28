@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Agent } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 
 interface AgentHeaderProps {
@@ -246,6 +247,26 @@ const AgentHeader = memo(({ agent, simplified = false }: AgentHeaderProps) => {
                 <span>#{agent.id}</span>
                 <span className="text-xs">•</span>
                 <span>{agent.holders.toLocaleString()} holders</span>
+                {agent.creator && (
+                  <>
+                    <span className="text-xs">•</span>
+                    <span>
+                      by{' '}
+                      <Link
+                        href={`/creators/${agent.creator}`}
+                        passHref
+                        legacyBehavior={false}
+                      >
+                        <a
+                         className="hover:text-primary transition-colors underline underline-offset-2 decoration-white/30 hover:decoration-primary/70"
+                         title={`View creator ${agent.creator}`}
+                        >
+                          {agent.creator.length > 10 ? `${agent.creator.substring(0, 6)}...${agent.creator.substring(agent.creator.length - 4)}` : agent.creator}
+                        </a>
+                      </Link>
+                    </span>
+                  </>
+                )}
               </div>
             </div>
 
