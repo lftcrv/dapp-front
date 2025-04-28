@@ -4,7 +4,6 @@ import { memo, useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUp, ArrowDown, DollarSign, BarChart2 } from 'lucide-react';
 import { cn, isPnLPositive } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import {
   BarChart,
   Bar,
@@ -15,12 +14,18 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
+// Import our new components
+import DarkSectionCard from '@/components/ui/dark-section-card';
+import ButtonSelector from '@/components/ui/button-selector';
 
 // Time range options
 type TimeRange = '1W' | '1M' | '3M' | 'ALL';
 
 // Day scale options for data aggregation
 type DayScale = '1D' | '1W' | '1M';
+
+// ViewMode type for better type safety
+type ViewMode = 'daily' | 'cumulative';
 
 interface PnLData {
   total: number;
@@ -206,7 +211,7 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'daily' | 'cumulative'>('daily');
+  const [viewMode, setViewMode] = useState<ViewMode>('daily');
 
   // Fetch overall PnL data (for the header)
   useEffect(() => {
@@ -654,90 +659,35 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
 
       {/* Controls */}
       <div className="flex justify-between mb-4 flex-wrap gap-2">
-        {/* View toggle */}
-        <div className="flex bg-[#232229] rounded-lg p-1 border border-gray-800">
-          <Button
-            size="sm"
-            variant={viewMode === 'daily' ? 'default' : 'ghost'}
-            className={cn(
-              'text-xs h-7 px-3',
-              viewMode === 'daily'
-                ? 'bg-orange-500 text-white hover:bg-orange-600'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800',
-            )}
-            onClick={() => setViewMode('daily')}
-          >
-            Daily
-          </Button>
-          <Button
-            size="sm"
-            variant={viewMode === 'cumulative' ? 'default' : 'ghost'}
-            className={cn(
-              'text-xs h-7 px-3',
-              viewMode === 'cumulative'
-                ? 'bg-orange-500 text-white hover:bg-orange-600'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800',
-            )}
-            onClick={() => setViewMode('cumulative')}
-          >
-            Cumulative
-          </Button>
-        </div>
+        {/* View toggle - Using ButtonSelector */}
+        <ButtonSelector<ViewMode>
+          options={['daily', 'cumulative'] as const}
+          value={viewMode}
+          onChange={setViewMode}
+        />
 
-        {/* Data Scale - only show for non-weekly time ranges */}
+        {/* Data Scale - Using ButtonSelector */}
         {timeRange !== '1W' && (
-          <div className="flex bg-[#232229] rounded-lg p-1 border border-gray-800">
-            {(['1D', '1W', '1M'] as const).map((scale) => (
-              <Button
-                key={scale}
-                size="sm"
-                variant={dayScale === scale ? 'default' : 'ghost'}
-                className={cn(
-                  'text-xs h-7 px-3',
-                  dayScale === scale
-                    ? 'bg-orange-500 text-white hover:bg-orange-600'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-800',
-                )}
-                onClick={() => setDayScale(scale)}
-              >
-                {scale}
-              </Button>
-            ))}
-          </div>
+          <ButtonSelector<DayScale>
+            options={['1D', '1W', '1M'] as const}
+            value={dayScale}
+            onChange={setDayScale}
+          />
         )}
 
-        {/* Time range selector */}
-        <div className="flex bg-[#232229] rounded-lg p-1 border border-gray-800">
-          {(['1W', '1M', '3M', 'ALL'] as const).map((range) => (
-            <Button
-              key={range}
-              size="sm"
-              variant={timeRange === range ? 'default' : 'ghost'}
-              className={cn(
-                'text-xs h-7 px-3',
-                timeRange === range
-                  ? 'bg-orange-500 text-white hover:bg-orange-600'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800',
-              )}
-              onClick={() => setTimeRange(range)}
-            >
-              {range}
-            </Button>
-          ))}
-        </div>
+        {/* Time range selector - Using ButtonSelector */}
+        <ButtonSelector<TimeRange>
+          options={['1W', '1M', '3M', 'ALL'] as const}
+          value={timeRange}
+          onChange={setTimeRange}
+        />
       </div>
 
-      {/* P&L Chart */}
-      <motion.div
-        className="bg-[#232229] rounded-xl p-4 border border-gray-800 text-white"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
+      {/* P&L Chart - Using DarkSectionCard */}
+      <DarkSectionCard
+        title={viewMode === 'daily' ? 'Daily P&L' : 'Cumulative P&L'}
+        icon={<BarChart2 className="h-4 w-4 text-orange-500" />}
       >
-        <h3 className="text-sm font-medium mb-3 text-gray-300 flex items-center gap-2">
-          <BarChart2 className="h-4 w-4 text-orange-500" />
-          {viewMode === 'daily' ? 'Daily P&L' : 'Cumulative P&L'}
-        </h3>
         <div className="h-[300px]">
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
@@ -858,7 +808,7 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
             </ResponsiveContainer>
           )}
         </div>
-      </motion.div>
+      </DarkSectionCard>
     </div>
   );
 });

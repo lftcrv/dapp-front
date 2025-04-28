@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useState, useEffect} from 'react';
+import { memo, useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUp, ArrowDown, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import ButtonSelector from '@/components/ui/button-selector';
 
 interface ChartData {
   date: string;
@@ -583,26 +584,13 @@ const PortfolioChart = memo(
           </motion.div>
         </div>
 
-        {/* Time Range Selector */}
+        {/* Time Range Selector - use ButtonSelector component */}
         <div className="flex justify-end mb-2">
-          <div className="flex bg-[#232229] rounded-lg p-1 border border-gray-800">
-            {(['1W', '1M', '3M', 'ALL'] as const).map((range) => (
-              <Button
-                key={range}
-                size="sm"
-                variant={timeRange === range ? 'default' : 'ghost'}
-                className={cn(
-                  'text-xs h-7 px-3',
-                  timeRange === range
-                    ? 'bg-orange-500 text-white hover:bg-orange-600'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-800',
-                )}
-                onClick={() => setTimeRange(range)}
-              >
-                {range}
-              </Button>
-            ))}
-          </div>
+          <ButtonSelector<TimeRange>
+            options={['1W', '1M', '3M', 'ALL'] as const}
+            value={timeRange}
+            onChange={setTimeRange}
+          />
         </div>
 
         {/* Chart */}
