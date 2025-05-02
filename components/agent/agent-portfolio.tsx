@@ -1,12 +1,13 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, ReactNode } from 'react';
 import { Agent, Trade } from '@/lib/types';
 import SimpleAgentCard from '@/components/agent/simple-agent-card';
 import PortfolioStats from '@/components/agent/portfolio-stats';
 import PortfolioChart from '@/components/agent/portfolio-chart';
 import PortfolioPnL from '@/components/agent/portfolio-pnl';
 import PortfolioAllocation from '@/components/agent/portfolio-allocation';
+import SectionCard from '@/components/ui/section-card';
 import dynamic from 'next/dynamic';
 
 // Dynamically import AgentTrades to prevent hydration issues
@@ -53,7 +54,12 @@ interface AgentPortfolioProps {
 }
 
 export const AgentPortfolio = memo(
-  ({ agent, portfolio, useSimplifiedView = false }: AgentPortfolioProps) => {
+  ({
+    agent,
+    trades,
+    portfolio,
+    useSimplifiedView = false,
+  }: AgentPortfolioProps) => {
     // Format the creation date for display
     const createdDate = new Date(agent.createdAt || Date.now());
     const formattedDate = new Intl.DateTimeFormat('en-US', {
@@ -78,27 +84,19 @@ export const AgentPortfolio = memo(
         {!useSimplifiedView && (
           <>
             {/* Stats Cards (Ranking, Trades, Forking Revenue) */}
-            <div className="bg-[#F6ECE7] rounded-xl p-6 shadow-sm">
-              <h2 className="font-sketch text-2xl mb-4 flex items-center justify-center text-gray-800">
-                <span className="mr-2">Performance Overview</span>
-                <span className="text-yellow-500">📊</span>
-              </h2>
+            <SectionCard title="Performance Overview" icon="📊" iconColor="text-yellow-500">
               <PortfolioStats
                 cycleRanking={agent.cycleRanking}
                 totalTrades={portfolio.totalTrades}
                 forkingRevenue={portfolio.forkingRevenue}
                 agentType={agent.type}
               />
-            </div>
+            </SectionCard>
 
             {/* Portfolio Value Chart and P&L side by side on desktop */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Portfolio Value Chart */}
-              <div className="bg-[#F6ECE7] rounded-xl p-6 shadow-sm">
-                <h2 className="font-sketch text-2xl mb-4 flex items-center justify-center text-gray-800">
-                  <span className="mr-2">Portfolio Evolution</span>
-                  <span className="text-green-600">📈</span>
-                </h2>
+              <SectionCard title="Portfolio Evolution" icon="📈" iconColor="text-green-600">
                 <PortfolioChart
                   data={portfolio.historicalData}
                   totalValue={portfolio.totalValue}
@@ -106,35 +104,23 @@ export const AgentPortfolio = memo(
                   changeValue24h={portfolio.changeValue24h}
                   agentId={agent.id}
                 />
-              </div>
+              </SectionCard>
 
               {/* Portfolio P&L */}
-              <div className="bg-[#F6ECE7] rounded-xl p-6 shadow-sm">
-                <h2 className="font-sketch text-2xl mb-4 flex items-center justify-center text-gray-800">
-                  <span className="mr-2">Profit & Loss</span>
-                  <span className="text-blue-600">💰</span>
-                </h2>
+              <SectionCard title="Profit & Loss" icon="💰" iconColor="text-blue-600">
                 <PortfolioPnL data={portfolio.pnlData} agentId={agent.id} />
-              </div>
+              </SectionCard>
             </div>
 
             {/* Portfolio Allocation */}
-            <div className="bg-[#F6ECE7] rounded-xl p-6 shadow-sm">
-              <h2 className="font-sketch text-2xl mb-4 flex items-center justify-center text-gray-800">
-                <span className="mr-2">Asset Allocation</span>
-                <span className="text-purple-600">🧩</span>
-              </h2>
+            <SectionCard title="Asset Allocation" icon="🧩" iconColor="text-purple-600">
               <PortfolioAllocation allocation={portfolio.allocation} />
-            </div>
+            </SectionCard>
 
             {/* Trade History */}
-            <div className="bg-[#F6ECE7] rounded-xl p-6 shadow-sm">
-              <h2 className="font-sketch text-2xl mb-4 flex items-center justify-center text-gray-800">
-                <span className="mr-2">Trade History</span>
-                <span className="text-orange-600">📜</span>
-              </h2>
-              <AgentTrades />
-            </div>
+            <SectionCard title="Trade History" icon="📜" iconColor="text-orange-600">
+              <AgentTrades agentId={agent.id} trades={trades} />
+            </SectionCard>
           </>
         )}
       </div>
