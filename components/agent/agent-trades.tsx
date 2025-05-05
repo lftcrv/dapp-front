@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 interface AgentTradesProps {
   agentId: string;
   trades: Trade[];
-}
+      }
 
 export default function AgentTrades({ agentId, trades }: AgentTradesProps) {
   return <TradeHistoryCard agentId={agentId} initialTrades={trades} />;
