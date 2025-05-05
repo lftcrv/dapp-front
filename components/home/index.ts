@@ -4,6 +4,8 @@ import StatsSection from './stats-section';
 import TopAgentsSection from './top-agents-section';
 import CycleKingsSection from './cycle-kings-section';
 import AgentTableSection from './agent-table-section';
+import TopCreatorsSection from './top-creators-section';
+import CreatorCard from './creator-card';
 
 export {
   Background,
@@ -11,5 +13,7 @@ export {
   StatsSection,
   TopAgentsSection,
   CycleKingsSection,
-  AgentTableSection
+  AgentTableSection,
+  TopCreatorsSection,
+  CreatorCard
 }; 

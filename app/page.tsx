@@ -4,6 +4,7 @@ import { Suspense, useState, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { useAgents } from '@/hooks/use-agents';
+import { useCreators } from '@/hooks/use-creators';
 import Background from '@/components/ui/background';
 // Import home components without Background
 import {
@@ -12,11 +13,20 @@ import {
   TopAgentsSection,
   CycleKingsSection,
   AgentTableSection,
+  TopCreatorsSection,
 } from '@/components/home';
 
 export default function HomePage() {
   const { data: agents, isLoading, error, refetch } = useAgents();
+  const { 
+    data: creators, 
+    isLoading: isLoadingCreators, 
+    error: creatorsError, 
+    refetch: refetchCreators 
+  } = useCreators(6); // Fetch 6 creators to display
+  
   const [isRefetching, setIsRefetching] = useState(false);
+  const [isRefetchingCreators, setIsRefetchingCreators] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const scrollToContent = () => {
@@ -30,6 +40,12 @@ export default function HomePage() {
     await refetch();
     setIsRefetching(false);
   }, [refetch]);
+
+  const handleRetryCreators = useCallback(async () => {
+    setIsRefetchingCreators(true);
+    await refetchCreators();
+    setIsRefetchingCreators(false);
+  }, [refetchCreators]);
 
   const [tickerItems] = useState<{ id: string; content: React.ReactNode }[]>([
     {
@@ -95,6 +111,15 @@ export default function HomePage() {
           error={error}
           isRefetching={isRefetching}
           handleRetry={handleRetry}
+        />
+
+        {/* Top Creators section */}
+        <TopCreatorsSection
+          creators={creators}
+          isLoading={isLoadingCreators}
+          error={creatorsError}
+          isRefetching={isRefetchingCreators}
+          handleRetry={handleRetryCreators}
         />
 
         {/* Cycle kings section */}
