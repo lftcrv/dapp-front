@@ -3,7 +3,7 @@ import { Abi } from 'starknet';
 // Common Types
 export type AgentType = 'leftcurve' | 'rightcurve';
 export type AgentStatus = 'bonding' | 'live' | 'ended';
-export type TradeType = 'buy' | 'sell' | 'cancel' | 'unknown';
+export type TradeType = 'buy' | 'sell' | 'cancel' | 'unknown' | 'noTrade' | 'simulateTrade';
 
 // Core Service Types
 export interface IBaseService<T> {
