@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { GitFork, ExternalLink } from 'lucide-react';
+import { GitFork, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 import { Agent } from '@/lib/types';
 import {
   Tooltip,
@@ -20,14 +20,89 @@ interface SimpleAgentCardProps {
   by?: string;
 }
 
+// Helper function to convert markdown to formatted text
+const formatMarkdown = (text: string) => {
+  if (!text) return '';
+
+  // Format headings (### Heading)
+  let formatted = text.replace(
+    /^###\s+(.+)$/gm,
+    '<h3 class="text-lg font-bold mt-3 mb-1 text-orange-400">$1</h3>',
+  );
+
+  // Format subheadings (## Heading)
+  formatted = formatted.replace(
+    /^##\s+(.+)$/gm,
+    '<h2 class="text-xl font-bold mt-4 mb-2 text-white">$1</h2>',
+  );
+
+  // Format main headings (# Heading)
+  formatted = formatted.replace(
+    /^#\s+(.+)$/gm,
+    '<h1 class="text-2xl font-bold mt-4 mb-2 text-white">$1</h1>',
+  );
+
+  // Format bold text (**bold**)
+  formatted = formatted.replace(
+    /\*\*(.*?)\*\*/g,
+    '<strong class="font-bold">$1</strong>',
+  );
+
+  // Format italic text (*italic*)
+  formatted = formatted.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
+
+  // Format lists (- item or * item)
+  formatted = formatted.replace(
+    /^[*-]\s+(.+)$/gm,
+    '<li class="ml-4 list-disc">$1</li>',
+  );
+
+  // Format horizontal rule (---)
+  formatted = formatted.replace(
+    /^---$/gm,
+    '<hr class="border-t border-gray-700 my-3" />',
+  );
+
+  // Format paragraphs - Add spacing between paragraphs
+  formatted = formatted.replace(/\n\n/g, '</p><p class="mb-2">');
+
+  // Wrap in a paragraph if not already
+  if (
+    !formatted.startsWith('<h1') &&
+    !formatted.startsWith('<h2') &&
+    !formatted.startsWith('<h3') &&
+    !formatted.startsWith('<p')
+  ) {
+    formatted = `<p class="mb-2">${formatted}</p>`;
+  }
+
+  return formatted;
+};
+
 export default function SimpleAgentCard({
   agent,
   created,
   by,
 }: SimpleAgentCardProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || '';
   const isLeftCurve = agent.type === 'leftcurve';
+
+  // Bio content
+  const bioContent =
+    agent.characterConfig?.bio || 'No bio available for this agent.';
+  const bio =
+    typeof bioContent === 'string'
+      ? bioContent
+      : 'No bio available for this agent.';
+  const formattedBio = formatMarkdown(bio);
+
+  // Determine if bio needs "Read More" button (more than ~200 chars or contains headings)
+  const isLongBio = bio.length > 200 || bio.includes('#');
+  const previewLength = 150;
+  const bioPreview = bio.substring(0, previewLength) + (isLongBio ? '...' : '');
+  const formattedBioPreview = formatMarkdown(bioPreview);
 
   useEffect(() => {
     if (agent.profilePictureUrl) {
@@ -153,8 +228,34 @@ export default function SimpleAgentCard({
       </div>
 
       {/* Description */}
-      <div className="px-8 pb-4  text-white/80 text-sm font-patrick leading-relaxed">
-        {agent.characterConfig?.bio || 'No bio available for this agent.'}
+      <div className="px-8 pb-4 text-white/80 text-sm font-patrick leading-relaxed">
+        {/* Bio Content with Markdown Formatting */}
+        <div
+          className="markdown-content"
+          dangerouslySetInnerHTML={{
+            __html: isExpanded ? formattedBio : formattedBioPreview,
+          }}
+        />
+
+        {/* Read More/Less Button */}
+        {isLongBio && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center mt-2 text-orange-400 hover:text-orange-300 transition-colors text-xs font-medium"
+          >
+            {isExpanded ? (
+              <>
+                <ChevronUp className="h-3 w-3 mr-1" />
+                Read Less
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-3 w-3 mr-1" />
+                Read More
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Mobile Buttons - Only visible on mobile */}
