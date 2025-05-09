@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { GitFork, ExternalLink } from 'lucide-react';
+import { GitFork, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 import { Agent } from '@/lib/types';
 import {
   Tooltip,
@@ -20,14 +20,133 @@ interface SimpleAgentCardProps {
   by?: string;
 }
 
+// Basic sanitization function to prevent XSS
+const sanitizeHtml = (html: string): string => {
+  // Remove script tags and their content
+  let sanitized = html.replace(
+    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+    '',
+  );
+
+  // Remove other potentially dangerous tags and attributes
+  sanitized = sanitized.replace(
+    /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi,
+    '',
+  );
+  sanitized = sanitized.replace(/on\w+="[^"]*"/g, ''); // Remove inline event handlers
+  sanitized = sanitized.replace(/javascript:/gi, 'disabled:'); // Disable javascript: URLs
+
+  return sanitized;
+};
+
+// Helper function to convert markdown to formatted text
+const formatMarkdown = (text: string) => {
+  if (!text) return '';
+
+  // Format headings (### Heading)
+  let formatted = text.replace(
+    /^###\s+(.+)$/gm,
+    '<h3 class="text-lg font-bold mt-3 mb-1 text-orange-400">$1</h3>',
+  );
+
+  // Format subheadings (## Heading)
+  formatted = formatted.replace(
+    /^##\s+(.+)$/gm,
+    '<h2 class="text-xl font-bold mt-4 mb-2 text-white">$1</h2>',
+  );
+
+  // Format main headings (# Heading)
+  formatted = formatted.replace(
+    /^#\s+(.+)$/gm,
+    '<h1 class="text-2xl font-bold mt-4 mb-2 text-white">$1</h1>',
+  );
+
+  // Format bold text (**bold**)
+  formatted = formatted.replace(
+    /\*\*(.*?)\*\*/g,
+    '<strong class="font-bold">$1</strong>',
+  );
+
+  // Format italic text (*italic*)
+  formatted = formatted.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
+
+  // Properly handle lists - Group consecutive list items in ul tags
+  // First, identify list blocks and wrap them
+  let inList = false;
+  const lines = formatted.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const isListItem = /^[*-]\s+(.+)$/.test(line);
+
+    if (isListItem && !inList) {
+      // Start of a new list
+      lines[i] =
+        '<ul class="list-disc pl-5 my-2">' +
+        line.replace(/^[*-]\s+(.+)$/, '<li class="ml-4">$1</li>');
+      inList = true;
+    } else if (isListItem && inList) {
+      // Continue existing list
+      lines[i] = line.replace(/^[*-]\s+(.+)$/, '<li class="ml-4">$1</li>');
+    } else if (!isListItem && inList) {
+      // End the current list
+      lines[i - 1] = lines[i - 1] + '</ul>';
+      inList = false;
+    }
+  }
+  // Close any open list at the end
+  if (inList) {
+    lines.push('</ul>');
+  }
+  formatted = lines.join('\n');
+
+  // Format horizontal rule (---)
+  formatted = formatted.replace(
+    /^---$/gm,
+    '<hr class="border-t border-gray-700 my-3" />',
+  );
+
+  // Format paragraphs - Add spacing between paragraphs
+  formatted = formatted.replace(/\n\n/g, '</p><p class="mb-2">');
+
+  // Wrap in a paragraph if not already
+  if (
+    !formatted.startsWith('<h1') &&
+    !formatted.startsWith('<h2') &&
+    !formatted.startsWith('<h3') &&
+    !formatted.startsWith('<p') &&
+    !formatted.startsWith('<ul')
+  ) {
+    formatted = `<p class="mb-2">${formatted}</p>`;
+  }
+
+  // Sanitize the HTML to prevent XSS attacks
+  return sanitizeHtml(formatted);
+};
+
 export default function SimpleAgentCard({
   agent,
   created,
   by,
 }: SimpleAgentCardProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || '';
   const isLeftCurve = agent.type === 'leftcurve';
+
+  // Bio content
+  const bioContent =
+    agent.characterConfig?.bio || 'No bio available for this agent.';
+  const bio =
+    typeof bioContent === 'string'
+      ? bioContent
+      : 'No bio available for this agent.';
+  const formattedBio = formatMarkdown(bio);
+
+  // Determine if bio needs "Read More" button (more than ~200 chars or contains proper markdown headings)
+  const isLongBio = bio.length > 200 || /^#{1,3}\s+/m.test(bio);
+  const previewLength = 150;
+  const bioPreview = bio.substring(0, previewLength) + (isLongBio ? '...' : '');
+  const formattedBioPreview = formatMarkdown(bioPreview);
 
   useEffect(() => {
     if (agent.profilePictureUrl) {
@@ -153,8 +272,34 @@ export default function SimpleAgentCard({
       </div>
 
       {/* Description */}
-      <div className="px-8 pb-4  text-white/80 text-sm font-patrick leading-relaxed">
-        {agent.characterConfig?.bio || 'No bio available for this agent.'}
+      <div className="px-8 pb-4 text-white/80 text-sm font-patrick leading-relaxed">
+        {/* Bio Content with Markdown Formatting */}
+        <div
+          className="markdown-content"
+          dangerouslySetInnerHTML={{
+            __html: isExpanded ? formattedBio : formattedBioPreview,
+          }}
+        />
+
+        {/* Read More/Less Button */}
+        {isLongBio && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center mt-2 text-orange-400 hover:text-orange-300 transition-colors text-xs font-medium"
+          >
+            {isExpanded ? (
+              <>
+                <ChevronUp className="h-3 w-3 mr-1" />
+                Read Less
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-3 w-3 mr-1" />
+                Read More
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Mobile Buttons - Only visible on mobile */}
