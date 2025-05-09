@@ -13,6 +13,7 @@ import {
   History,
   XCircle,
   HelpCircle,
+  Clock,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -151,6 +152,8 @@ const TradeIcon = memo(({ type }: { type: TradeType }) => {
       return <ArrowDownRight className="w-4 h-4 text-purple-600" />;
     case 'cancel':
       return <XCircle className="w-4 h-4 text-amber-600" />;
+    case 'noTrade':
+      return <Clock className="w-4 h-4 text-gray-600" />;
     default:
       return <HelpCircle className="w-4 h-4 text-gray-500" />;
   }
@@ -253,6 +256,50 @@ function getTradeDisplayData(trade: Trade) {
   const info = trade.information;
   if (!info) return null;
 
+  // Check for noTrade in information object if it exists
+  const isNoTrade =
+    trade.type === 'noTrade' ||
+    (info &&
+      typeof info === 'object' &&
+      'tradeType' in info &&
+      (info as { tradeType?: string }).tradeType === 'noTrade');
+
+  // Handle noTrade events specifically
+  if (isNoTrade) {
+    let action = 'Wait';
+    let explanation = '';
+
+    // Try to extract information from the trade object
+    if (
+      hasTradeProperty(info) &&
+      typeof info.trade === 'object' &&
+      'action' in info.trade
+    ) {
+      action = String(info.trade.action) || 'Wait';
+      explanation = info.trade.explanation || '';
+    }
+
+    return {
+      buyTokenName: 'N/A',
+      sellTokenName: 'N/A',
+      buyAmount: 'N/A',
+      sellAmount: 'N/A',
+      tradePriceUSD: 0,
+      isNoTrade: true,
+      isSimulated: false,
+      action,
+      explanation,
+    };
+  }
+
+  // Check for simulateTrade in information object if it exists
+  const isSimulated =
+    trade.type === 'simulateTrade' ||
+    (info &&
+      typeof info === 'object' &&
+      'tradeType' in info &&
+      (info as { tradeType?: string }).tradeType === 'simulateTrade');
+
   // Default values
   let buyTokenName = 'Unknown';
   let sellTokenName = 'Unknown';
@@ -291,6 +338,8 @@ function getTradeDisplayData(trade: Trade) {
         buyAmount,
         sellAmount,
         tradePriceUSD,
+        isNoTrade: false,
+        isSimulated,
       };
     } else if (toToken === 'USDC') {
       // Selling crypto for USDC
@@ -307,6 +356,8 @@ function getTradeDisplayData(trade: Trade) {
         buyAmount,
         sellAmount,
         tradePriceUSD,
+        isNoTrade: false,
+        isSimulated,
       };
     } else {
       // Crypto to crypto swap
@@ -323,6 +374,8 @@ function getTradeDisplayData(trade: Trade) {
         buyAmount,
         sellAmount,
         tradePriceUSD,
+        isNoTrade: false,
+        isSimulated,
       };
     }
   }
@@ -372,240 +425,275 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
   // Get explanation
   const explanation = getExplanation(trade);
 
+  // Check if this is a simulated trade
+  const isSimulated = trade.type === 'simulateTrade' || 
+    (trade.information && 
+     typeof trade.information === 'object' && 
+     'tradeType' in trade.information && 
+     (trade.information as { tradeType?: string }).tradeType === 'simulateTrade');
+  
+  // Check for noTrade
+  const isNoTrade = trade.type === 'noTrade' || 
+    (trade.information && 
+     typeof trade.information === 'object' && 
+     'tradeType' in trade.information && 
+     (trade.information as { tradeType?: string }).tradeType === 'noTrade');
+
+  // Check if this is an actual trade (not a no-trade, cancel, or unknown)
+  const isActualTrade = !isNoTrade && trade.type !== 'cancel' && trade.type !== 'unknown';
+
+  // Determine action label and details based on trade type
+  let tradeTitle = 'Unknown';
+  let tradeSubtitle = '';
+  let tradePriceDisplay = null;
+  let cardClasses = 'bg-gray-500/5 border-gray-500/20';
+  let iconType: TradeType = 'unknown';
+  let titleColor = 'text-gray-600';
+  let tooltipTitle = 'Trade Details';
+  let actionType = '';
+  let tradeBadge = null;
+  
+  // For tooltip trade details
+  let fromToken = 'Unknown';
+  let toToken = 'Unknown';
+  let fromAmount = 'N/A';
+  let toAmount = 'N/A';
+  
   // Handle cancel orders
   if (trade.type === 'cancel') {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        className={cn(
-          'flex flex-col space-y-1 rounded-lg border p-2 transition-colors',
-          'bg-amber-500/5 border-amber-500/20',
-          isLatest &&
-            'ring-2 ring-offset-2 ring-offset-background ring-amber-500/30',
-        )}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <TradeIcon type="cancel" />
-            <span className="text-sm font-medium text-amber-600">
-              Cancel Order
-            </span>
-          </div>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="text-[10px] text-muted-foreground cursor-help">
-                  {formattedTime}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent className="bg-white border shadow-xl z-50 relative">
-                <div className="p-3 rounded-md">
-                  <p className="text-xs font-medium text-gray-900">
-                    {fullDate}
-                  </p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-        <div
-          className="text-xs text-muted-foreground leading-relaxed"
-          title={explanation}
-        >
-          {explanation}
-        </div>
-      </motion.div>
-    );
+    tradeTitle = 'Cancel Order';
+    iconType = 'cancel';
+    cardClasses = 'bg-amber-500/5 border-amber-500/20';
+    titleColor = 'text-amber-600';
+    tooltipTitle = 'Cancel Order Details';
+  } 
+  // Handle noTrade events
+  else if (isNoTrade) {
+    let action = 'Wait';
+    // Extract action if available
+    if (trade.information && 
+        hasTradeProperty(trade.information) && 
+        typeof trade.information.trade === 'object' && 
+        'action' in trade.information.trade) {
+      action = String(trade.information.trade.action) || 'Wait';
+    }
+    
+    tradeTitle = `Decision: ${action}`;
+    tradeSubtitle = 'No trade executed';
+    iconType = 'noTrade';
+    tooltipTitle = 'No Trade Details';
+    actionType = 'wait';
+  } 
+  // Handle regular/simulated trades
+  else {
+    const displayData = getTradeDisplayData(trade);
+    
+    if (displayData) {
+      const { buyTokenName, sellTokenName, buyAmount, sellAmount, tradePriceUSD } = displayData;
+      
+      // Instead of determining if it's buy or sell, we'll focus on what was received vs spent
+      const receivedToken = buyTokenName;
+      const receivedAmount = buyAmount;
+      const spentToken = sellTokenName;
+      const spentAmount = sellAmount;
+      
+      // Set from/to tokens for tooltip
+      fromToken = spentToken;
+      toToken = receivedToken;
+      fromAmount = spentAmount === 'N/A' ? 'N/A' : formatAmount(spentAmount, spentToken);
+      toAmount = receivedAmount === 'N/A' ? 'N/A' : formatAmount(receivedAmount, receivedToken);
+      
+      // For coloring, we'll use a more sophisticated financial UI color scheme
+      const isBuy =
+        trade.type === 'buy' ||
+        (buyTokenName !== 'Unknown' && sellTokenName === 'USDC');
+      
+      iconType = isBuy ? 'buy' : 'sell';
+      cardClasses = isBuy
+        ? 'bg-blue-500/5 border-blue-500/20'
+        : 'bg-purple-500/5 border-purple-500/20';
+      titleColor = isBuy ? 'text-blue-600' : 'text-purple-600';
+      actionType = isBuy ? 'buy' : 'sell';
+      
+      // Format amounts with appropriate decimal places based on token type
+      const displayReceived = formatAmount(receivedAmount, receivedToken);
+      const displaySpent = formatAmount(spentAmount, spentToken);
+      
+      // Price display if available
+      if (tradePriceUSD) {
+        tradePriceDisplay = typeof tradePriceUSD === 'string'
+          ? tradePriceUSD
+          : `$${formatPrice(tradePriceUSD)}`;
+      }
+      
+      // Create a more informative title that focuses on the exchange
+      tradeTitle = `${displayReceived} ${receivedToken}`;
+      tradeSubtitle = `for ${displaySpent} ${spentToken}`;
+      tooltipTitle = isSimulated ? "Simulated Trade Details" : "Trade Details";
+      
+      // Create trade badge - different for simulated vs real trades
+      tradeBadge = (
+        <span className={cn(
+          "inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[10px] font-medium",
+          isSimulated 
+            ? "bg-blue-100 text-blue-800" 
+            : (isBuy ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800")
+        )}>
+          {isSimulated ? 'Simulation' : (isBuy ? 'Acquired' : 'Sold')}
+        </span>
+      );
+    } else {
+      // Unknown trade with no displayable data
+      tradeTitle = 'Unknown Trade';
+      tradeSubtitle = 'Transaction details unavailable';
+      tooltipTitle = 'Transaction Details';
+    }
   }
 
-  // For buy/sell trades (including unknown type with valid token data), extract data
-  const displayData = getTradeDisplayData(trade);
-  if (!displayData) {
-    // If we couldn't extract any meaningful display data at all, show unknown trade
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        className={cn(
-          'flex flex-col space-y-1 rounded-lg border p-2 transition-colors',
-          'bg-gray-500/5 border-gray-500/20',
-          isLatest &&
-            'ring-2 ring-offset-2 ring-offset-background ring-gray-500/30',
-        )}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <TradeIcon type="unknown" />
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex flex-col cursor-help">
-                    <span className="text-sm font-medium text-gray-500">
-                      Unknown Trade
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      Transaction details unavailable
-                    </span>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent className="w-64 bg-white border shadow-xl z-50 relative">
-                  <div className="text-xs space-y-1 p-3 rounded-md">
-                    <div className="font-medium border-b border-gray-100 pb-2 text-gray-900">
-                      Transaction Details
-                    </div>
-                    <div className="pt-2 text-gray-600">
-                      <p>
-                        This transaction cannot be parsed into a standard trade
-                        format.
-                      </p>
-                      <p className="mt-1">
-                        Check the explanation below for more details.
-                      </p>
-                    </div>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="text-[10px] text-muted-foreground cursor-help">
-                  {formattedTime}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent className="bg-white border shadow-xl z-50 relative">
-                <div className="p-3 rounded-md">
-                  <p className="text-xs font-medium text-gray-900">
-                    {fullDate}
-                  </p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-        <div
-          className="text-xs text-muted-foreground leading-relaxed line-clamp-2"
-          title={explanation}
-        >
-          {explanation}
-        </div>
-      </motion.div>
-    );
+  // Determine highlight ring color
+  let ringColor = 'ring-gray-500/30';
+  if (cardClasses.includes('amber')) {
+    ringColor = 'ring-amber-500/30';
+  } else if (cardClasses.includes('blue')) {
+    ringColor = 'ring-blue-500/30';
+  } else if (cardClasses.includes('purple')) {
+    ringColor = 'ring-purple-500/30';
   }
-
-  const { buyTokenName, sellTokenName, buyAmount, sellAmount, tradePriceUSD } =
-    displayData;
-
-  // Instead of determining if it's buy or sell, we'll focus on what was received vs spent
-  const receivedToken = buyTokenName;
-  const receivedAmount = buyAmount;
-  const spentToken = sellTokenName;
-  const spentAmount = sellAmount;
-
-  // For coloring, we'll use a more sophisticated financial UI color scheme
-  const isBuy =
-    trade.type === 'buy' ||
-    (buyTokenName !== 'Unknown' && sellTokenName === 'USDC');
-
-  const colorClass = isBuy ? 'text-blue-600' : 'text-purple-600';
-  const bgClass = isBuy
-    ? 'bg-blue-500/5 border-blue-500/20'
-    : 'bg-purple-500/5 border-purple-500/20';
-
-  // Format amounts with appropriate decimal places based on token type
-  const displayReceived = formatAmount(receivedAmount, receivedToken);
-  const displaySpent = formatAmount(spentAmount, spentToken);
-
-  // Create a more informative title that focuses on the exchange
-  const tradeTitle = `${displayReceived} ${receivedToken}`;
-
-  // Create action text that shows what was spent
-  const actionText = `for ${displaySpent} ${spentToken}`;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className={cn(
-        'flex flex-col space-y-1 rounded-lg border p-2 transition-colors',
-        bgClass,
-        isLatest && 'ring-2 ring-offset-2 ring-offset-background',
-        isBuy ? 'ring-blue-500/30' : 'ring-purple-500/30',
-      )}
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <TradeIcon type={isBuy ? 'buy' : 'sell'} />
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex flex-col cursor-help">
-                  <div className="flex items-center gap-1">
-                    <span className={cn('text-sm font-medium', colorClass)}>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className={cn(
+              'flex flex-col space-y-1 rounded-lg border p-2 transition-colors cursor-help relative',
+              cardClasses,
+              isLatest && `ring-2 ring-offset-2 ring-offset-background ${ringColor}`,
+            )}
+          >
+            {/* Enhanced trade header with more information */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <TradeIcon type={iconType} />
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className={cn('text-sm font-medium', titleColor)}>
                       {tradeTitle}
                     </span>
-                    <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 text-gray-800">
-                      {isBuy ? 'Acquired' : 'Traded'}
+                    {tradeBadge}
+                  </div>
+                  {tradeSubtitle && (
+                    <span className="text-xs text-muted-foreground">
+                      {tradeSubtitle}
                     </span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    {actionText}
-                  </span>
+                  )}
                 </div>
-              </TooltipTrigger>
-              <TooltipContent className="w-64 bg-white border shadow-lg z-50 relative">
-                <div className="text-xs space-y-1 p-3 rounded-md">
-                  <div className="font-medium border-b border-gray-100 pb-2 text-gray-900">
-                    Trade Details
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 pt-2">
-                    <div className="text-gray-500">You received:</div>
-                    <div className="font-medium text-gray-900">
-                      {displayReceived} {receivedToken}
-                    </div>
-                    <div className="text-gray-500">You traded:</div>
-                    <div className="font-medium text-gray-900">
-                      {displaySpent} {spentToken}
-                    </div>
-                    <div className="text-gray-500">Price:</div>
-                    <div className="font-medium text-gray-900">
-                      {typeof tradePriceUSD === 'string'
-                        ? tradePriceUSD
-                        : `$${formatPrice(tradePriceUSD)}`}
-                    </div>
-                  </div>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="text-[10px] text-muted-foreground cursor-help">
-                {formattedTime}
-              </span>
-            </TooltipTrigger>
-            <TooltipContent className="bg-white border shadow-xl z-50 relative">
-              <div className="p-3 rounded-md">
-                <p className="text-xs font-medium text-gray-900">{fullDate}</p>
               </div>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-      <div
-        className="text-xs text-muted-foreground leading-relaxed line-clamp-2"
-        title={explanation}
-      >
-        {explanation}
-      </div>
-    </motion.div>
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] text-muted-foreground">
+                  {formattedTime}
+                </span>
+                {tradePriceDisplay && (
+                  <span className="text-xs font-medium text-gray-600">
+                    {tradePriceDisplay}
+                  </span>
+                )}
+              </div>
+            </div>
+            
+            {/* Show explanation with appropriate styling */}
+            <div
+              className={cn(
+                "text-xs text-muted-foreground leading-relaxed",
+                isActualTrade ? "line-clamp-2" : "line-clamp-3"
+              )}
+            >
+              {explanation}
+            </div>
+            
+            {/* Add extra information for actual trades */}
+            {isActualTrade && !isNoTrade && (
+              <div className="mt-1 flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  {actionType === 'buy' && (
+                    <div className="text-[10px] flex items-center text-blue-600 font-medium">
+                      <ArrowUpRight className="h-3 w-3 mr-0.5" />
+                      Buy
+                    </div>
+                  )}
+                  {actionType === 'sell' && (
+                    <div className="text-[10px] flex items-center text-purple-600 font-medium">
+                      <ArrowDownRight className="h-3 w-3 mr-0.5" />
+                      Sell
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </TooltipTrigger>
+        <TooltipContent className="w-64 bg-white border shadow-xl z-50 relative">
+          <div className="text-xs space-y-1 p-3 rounded-md">
+            <div className="font-medium border-b border-gray-100 pb-2 text-gray-900">
+              {tooltipTitle}
+            </div>
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              {/* Trade pair for actual trades */}
+              {isActualTrade && (
+                <>
+                  <div className="text-gray-500">From:</div>
+                  <div className="font-medium text-gray-900">{fromAmount} {fromToken}</div>
+                  <div className="text-gray-500">To:</div>
+                  <div className="font-medium text-gray-900">{toAmount} {toToken}</div>
+                </>
+              )}
+              
+              {/* Action field for noTrade */}
+              {isNoTrade && trade.information && 
+               hasTradeProperty(trade.information) && 
+               typeof trade.information.trade === 'object' && 
+               'action' in trade.information.trade && (
+                <>
+                  <div className="text-gray-500">Action:</div>
+                  <div className="font-medium text-gray-900">
+                    {String(trade.information.trade.action) || 'Wait'}
+                  </div>
+                </>
+              )}
+              
+              {/* Price field - for trades */}
+              {tradePriceDisplay && (
+                <>
+                  <div className="text-gray-500">Price:</div>
+                  <div className="font-medium text-gray-900">
+                    {tradePriceDisplay}
+                  </div>
+                </>
+              )}
+              
+              {/* Simulation indicator */}
+              {isSimulated && (
+                <>
+                  <div className="text-gray-500">Type:</div>
+                  <div className="font-medium text-blue-700">Simulation</div>
+                </>
+              )}
+              
+              {/* Time field - for all types */}
+              <div className="text-gray-500">Time:</div>
+              <div className="font-medium text-gray-900">{fullDate}</div>
+              
+              {/* Explanation field - for all types */}
+              <div className="text-gray-500 col-span-2">Explanation:</div>
+              <div className="font-medium text-gray-900 col-span-2 break-words">{explanation || 'No explanation provided'}</div>
+            </div>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 });
 TradeItem.displayName = 'TradeItem';
