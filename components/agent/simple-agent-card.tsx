@@ -20,6 +20,25 @@ interface SimpleAgentCardProps {
   by?: string;
 }
 
+// Basic sanitization function to prevent XSS
+const sanitizeHtml = (html: string): string => {
+  // Remove script tags and their content
+  let sanitized = html.replace(
+    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+    '',
+  );
+
+  // Remove other potentially dangerous tags and attributes
+  sanitized = sanitized.replace(
+    /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi,
+    '',
+  );
+  sanitized = sanitized.replace(/on\w+="[^"]*"/g, ''); // Remove inline event handlers
+  sanitized = sanitized.replace(/javascript:/gi, 'disabled:'); // Disable javascript: URLs
+
+  return sanitized;
+};
+
 // Helper function to convert markdown to formatted text
 const formatMarkdown = (text: string) => {
   if (!text) return '';
@@ -51,11 +70,34 @@ const formatMarkdown = (text: string) => {
   // Format italic text (*italic*)
   formatted = formatted.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
 
-  // Format lists (- item or * item)
-  formatted = formatted.replace(
-    /^[*-]\s+(.+)$/gm,
-    '<li class="ml-4 list-disc">$1</li>',
-  );
+  // Properly handle lists - Group consecutive list items in ul tags
+  // First, identify list blocks and wrap them
+  let inList = false;
+  const lines = formatted.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const isListItem = /^[*-]\s+(.+)$/.test(line);
+
+    if (isListItem && !inList) {
+      // Start of a new list
+      lines[i] =
+        '<ul class="list-disc pl-5 my-2">' +
+        line.replace(/^[*-]\s+(.+)$/, '<li class="ml-4">$1</li>');
+      inList = true;
+    } else if (isListItem && inList) {
+      // Continue existing list
+      lines[i] = line.replace(/^[*-]\s+(.+)$/, '<li class="ml-4">$1</li>');
+    } else if (!isListItem && inList) {
+      // End the current list
+      lines[i - 1] = lines[i - 1] + '</ul>';
+      inList = false;
+    }
+  }
+  // Close any open list at the end
+  if (inList) {
+    lines.push('</ul>');
+  }
+  formatted = lines.join('\n');
 
   // Format horizontal rule (---)
   formatted = formatted.replace(
@@ -71,12 +113,14 @@ const formatMarkdown = (text: string) => {
     !formatted.startsWith('<h1') &&
     !formatted.startsWith('<h2') &&
     !formatted.startsWith('<h3') &&
-    !formatted.startsWith('<p')
+    !formatted.startsWith('<p') &&
+    !formatted.startsWith('<ul')
   ) {
     formatted = `<p class="mb-2">${formatted}</p>`;
   }
 
-  return formatted;
+  // Sanitize the HTML to prevent XSS attacks
+  return sanitizeHtml(formatted);
 };
 
 export default function SimpleAgentCard({
@@ -98,8 +142,8 @@ export default function SimpleAgentCard({
       : 'No bio available for this agent.';
   const formattedBio = formatMarkdown(bio);
 
-  // Determine if bio needs "Read More" button (more than ~200 chars or contains headings)
-  const isLongBio = bio.length > 200 || bio.includes('#');
+  // Determine if bio needs "Read More" button (more than ~200 chars or contains proper markdown headings)
+  const isLongBio = bio.length > 200 || /^#{1,3}\s+/m.test(bio);
   const previewLength = 150;
   const bioPreview = bio.substring(0, previewLength) + (isLongBio ? '...' : '');
   const formattedBioPreview = formatMarkdown(bioPreview);
