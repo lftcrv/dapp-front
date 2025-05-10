@@ -513,6 +513,15 @@ const AgentHeader = memo(({ agent, isLoading, error }: AgentHeaderProps) => {
 
   // Use priceChange24h from the API, default to 0 if not available
   const priceChange = agent.priceChange24h || 0;
+  const createdDate = new Date(agent.createdAt);
+  const formattedDate = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZoneName: 'short',
+  }).format(createdDate);
 
   return (
     <motion.div
@@ -554,7 +563,7 @@ const AgentHeader = memo(({ agent, isLoading, error }: AgentHeaderProps) => {
             />
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <Zap className="h-4 w-4" />
-              Created {agent.createdAt}
+              Created {formattedDate}
             </div>
           </motion.div>
         </div>
