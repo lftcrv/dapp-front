@@ -14,6 +14,14 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import ButtonSelector from '@/components/ui/button-selector';
+// Import our server actions
+import {
+  getPortfolioHistoricalData,
+  type SnapshotData,
+} from '@/actions/agents/portfolio/getPortfolioHistoricalData';
+import { getPortfolioLatestValues } from '@/actions/agents/portfolio/getPortfolioLatestValues';
+// Define time range type locally to avoid import conflict
+type TimeRange = '1W' | '1M' | '3M' | 'ALL';
 
 interface ChartData {
   date: string;
@@ -34,9 +42,6 @@ const formatDate = (dateStr: string) => {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
-// Time range options
-type TimeRange = '1W' | '1M' | '3M' | 'ALL';
-
 // Day scale options for data aggregation
 // type DayScale = '1D' | '1W' | '1M';
 
@@ -44,12 +49,6 @@ type TimeRange = '1W' | '1M' | '3M' | 'ALL';
 interface ChartDataItem extends ChartData {
   isActualData?: boolean;
   tradeCount?: number;
-}
-
-interface SnapshotData {
-  timestamp: string;
-  balanceInUSD?: number;
-  [key: string]: unknown;
 }
 
 interface CustomTooltipProps {
@@ -181,30 +180,19 @@ const PortfolioChart = memo(
 
       const fetchLatestValues = async () => {
         try {
-          const apiUrl =
-            process.env.NEXT_PUBLIC_BACKEND_API_URL;
-          const apiKey = process.env.API_KEY;
+          // Use the server action instead of direct API call
+          const result = await getPortfolioLatestValues(agentId);
 
-          // Fetch from the KPI endpoint for overall values
-          const response = await fetch(`${apiUrl}/api/kpi/pnl/${agentId}`, {
-            headers: {
-              'Content-Type': 'application/json',
-              ...(apiKey ? { 'x-api-key': apiKey } : {})
-            },
-          });
-
-          if (!response.ok) {
-            throw new Error(
-              `API request failed with status ${response.status}`,
-            );
+          if (!result.success || !result.data) {
+            throw new Error(result.error || 'Failed to fetch portfolio data');
           }
 
-          const result = await response.json();
-          console.log('Portfolio KPI data:', result);
+          console.log('Portfolio KPI data:', result.data);
 
           // Update portfolio values with API data
-          const latestBalance = result.latestBalance || totalValue;
-          const pnlValue = result.pnl24h || result.pnl || changeValue24h;
+          const latestBalance = result.data.latestBalance || totalValue;
+          const pnlValue =
+            result.data.pnl24h || result.data.pnl || changeValue24h;
 
           // Calculate 24h change percentage using current portfolio value
           // Formula: (change / current value) * 100
@@ -215,7 +203,7 @@ const PortfolioChart = memo(
             latestBalance,
             pnlValue,
             calculatedPercentage: pnlPercentage,
-            apiPercentage: result.pnlPercentage,
+            apiPercentage: result.data.pnlPercentage,
           });
 
           // Don't update chartData here - it will be updated by the other useEffect
@@ -242,77 +230,19 @@ const PortfolioChart = memo(
         setError(null);
 
         try {
-          // Create date range based on selected time period
-          const now = new Date();
-          let startDate;
+          // Use the server action instead of direct API call
+          const result = await getPortfolioHistoricalData(agentId, timeRange);
 
-          switch (timeRange) {
-            case '1W':
-              startDate = new Date(now);
-              startDate.setDate(now.getDate() - 8);
-              break;
-            case '1M':
-              startDate = new Date(now);
-              startDate.setMonth(now.getMonth() - 1);
-              break;
-            case '3M':
-              startDate = new Date(now);
-              startDate.setMonth(now.getMonth() - 3);
-              break;
-            case 'ALL':
-            default:
-              startDate = new Date(now);
-              startDate.setFullYear(now.getFullYear() - 1);
+          if (!result.success || !result.data) {
+            throw new Error(result.error || 'Failed to fetch historical data');
           }
 
-          const fromDate = startDate.toISOString();
-          const toDate = now.toISOString();
-
-          // Fetch historical performance data
-          const apiUrl =
-            process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://127.0.0.1:8080';
-          const apiKey = process.env.API_KEY || 'secret';
-
-          const getInterval = (range: TimeRange) => {
-            switch (range) {
-              case '1W':
-                return 'hourly'; // Get hourly data for week view
-              case '1M':
-                return 'daily'; // Daily for month view
-              default:
-                return 'daily'; // Daily for longer periods
-            }
-          };
-
-          console.log(
-            `Fetching portfolio history for agent ${agentId} from ${fromDate} to ${toDate}`,
-          );
-
-          const response = await fetch(
-            `${apiUrl}/api/performance/${agentId}/history?interval=${getInterval(
-              timeRange,
-            )}&from=${fromDate}&to=${toDate}`,
-            {
-              headers: {
-                'Content-Type': 'application/json',
-                ...(apiKey ? { 'x-api-key': apiKey } : {})
-              },
-            },
-          );
-
-          if (!response.ok) {
-            throw new Error(
-              `API request failed with status ${response.status}`,
-            );
-          }
-
-          const result = await response.json();
-          console.log('Portfolio history data:', result);
+          console.log('Portfolio history data:', result.data);
 
           if (
-            !result.snapshots ||
-            !Array.isArray(result.snapshots) ||
-            result.snapshots.length === 0
+            !result.data.snapshots ||
+            !Array.isArray(result.data.snapshots) ||
+            result.data.snapshots.length === 0
           ) {
             console.warn('No snapshots found in API response');
             setError(
@@ -376,6 +306,7 @@ const PortfolioChart = memo(
                   typeof snapshot.balanceInUSD === 'number'
                     ? snapshot.balanceInUSD
                     : 0,
+                tradeCount: snapshot.tradeCount,
                 isActualData: true,
               };
             });
@@ -386,7 +317,7 @@ const PortfolioChart = memo(
             );
           };
 
-          const portfolioData = processPortfolioData(result.snapshots);
+          const portfolioData = processPortfolioData(result.data.snapshots);
 
           // For 1W view with hourly data, we need to ensure a full week is displayed
           if (timeRange === '1W') {
@@ -446,7 +377,14 @@ const PortfolioChart = memo(
             setChartData(fullWeekData);
           } else {
             // For longer time ranges, ensure we have data for every day
-            const allDates = generateDatesBetween(startDate, now);
+            // Define the initial snapshot date based on the first snapshot's timestamp
+            const initialSnapshotDate = new Date(
+              result.data.snapshots[0].timestamp,
+            );
+            const allDates = generateDatesBetween(
+              initialSnapshotDate,
+              new Date(),
+            );
             const dateMap = new Map();
 
             // Create a map of existing dates (strip time for non-weekly views)
@@ -471,7 +409,7 @@ const PortfolioChart = memo(
               const currentDate = new Date(date);
               currentDate.setDate(currentDate.getDate() - 1);
 
-              while (currentDate >= startDate) {
+              while (currentDate >= allDates[0]) {
                 const checkDateStr = currentDate.toISOString().split('T')[0];
                 if (dateMap.has(checkDateStr)) {
                   estimatedValue = dateMap.get(checkDateStr).value;

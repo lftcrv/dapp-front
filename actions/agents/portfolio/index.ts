@@ -5,4 +5,6 @@ export { getPortfolioHistory } from './getPortfolioHistory';
 export { getBalanceHistory } from './getBalanceHistory';
 export { getCurrentBalance } from './getCurrentBalance';
 export { getTotalPnl } from './getTotalPnl';
-export { getPnlHistory } from './getPnlHistory'; 
+export { getPnlHistory } from './getPnlHistory';
+export { getPortfolioLatestValues } from './getPortfolioLatestValues';
+export { getPortfolioHistoricalData } from './getPortfolioHistoricalData'; 
