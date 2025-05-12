@@ -1,10 +1,9 @@
 'use client';
 
-import { memo, useState, useEffect, useCallback } from 'react';
+import { memo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUp, ArrowDown, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import {
   AreaChart,
   Area,
@@ -183,13 +182,14 @@ const PortfolioChart = memo(
       const fetchLatestValues = async () => {
         try {
           const apiUrl =
-            process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://127.0.0.1:8080';
-          const apiKey = process.env.API_KEY || 'secret';
+            process.env.NEXT_PUBLIC_BACKEND_API_URL;
+          const apiKey = process.env.API_KEY;
 
           // Fetch from the KPI endpoint for overall values
           const response = await fetch(`${apiUrl}/api/kpi/pnl/${agentId}`, {
             headers: {
-              'x-api-key': apiKey,
+              'Content-Type': 'application/json',
+              ...(apiKey ? { 'x-api-key': apiKey } : {})
             },
           });
 
@@ -294,7 +294,8 @@ const PortfolioChart = memo(
             )}&from=${fromDate}&to=${toDate}`,
             {
               headers: {
-                'x-api-key': apiKey,
+                'Content-Type': 'application/json',
+                ...(apiKey ? { 'x-api-key': apiKey } : {})
               },
             },
           );

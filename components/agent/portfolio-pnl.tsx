@@ -17,6 +17,8 @@ import {
 // Import our new components
 import DarkSectionCard from '@/components/ui/dark-section-card';
 import ButtonSelector from '@/components/ui/button-selector';
+// Import server actions
+import { getTotalPnl, getPnlHistory } from '@/actions/agents/portfolio';
 
 // Time range options
 type TimeRange = '1W' | '1M' | '3M' | 'ALL';
@@ -221,26 +223,21 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
 
     const fetchTotalPnL = async () => {
       try {
-        const apiUrl =
-          process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://127.0.0.1:8080';
-        const apiKey = process.env.API_KEY || 'secret';
+        // Use the server action instead of direct API call
+        const result = await getTotalPnl(agentId);
 
-        const response = await fetch(`${apiUrl}/api/kpi/pnl/${agentId}`, {
-          headers: {
-            'x-api-key': apiKey,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`API request failed with status ${response.status}`);
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to fetch PnL data');
         }
 
-        const result = await response.json();
-        console.log('Total PnL data:', result);
+        console.log('Total PnL data:', result.data);
+
+        // Add type assertion to fix type errors
+        const pnlData = result.data as { pnl: number; pnlPercentage: number };
 
         setTotalPnlData({
-          pnl: result.pnl,
-          pnlPercentage: result.pnlPercentage,
+          pnl: pnlData.pnl,
+          pnlPercentage: pnlData.pnlPercentage,
         });
       } catch (error) {
         console.error('Error fetching total PnL data:', error);
@@ -297,35 +294,36 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
         const fromDate = startDate.toISOString();
         const toDate = now.toISOString();
 
-        // Fetch PnL history from API
-        const apiUrl =
-          process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://127.0.0.1:8080';
-        const apiKey = process.env.API_KEY || 'secret';
-
+        // Use the server action instead of direct API call
         console.log(
           `Fetching PnL data for agent ${agentId} from ${fromDate} to ${toDate}`,
         );
 
-        const response = await fetch(
-          `${apiUrl}/api/performance/${agentId}/history?interval=daily&from=${fromDate}&to=${toDate}`,
-          {
-            headers: {
-              'x-api-key': apiKey,
-            },
-          },
-        );
+        // Use server action with range parameter
+        const result = await getPnlHistory(agentId, timeRange.toLowerCase());
 
-        if (!response.ok) {
-          throw new Error(`API request failed with status ${response.status}`);
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to fetch PnL history data');
         }
 
-        const result = await response.json();
-        console.log('Daily PnL API Response:', result);
+        console.log('Daily PnL API Response:', result.data);
+
+        // The rest of the processing logic remains the same
+        // Just adapt the response structure to match what the component expects
+        // Add type assertion to fix type errors
+        const responseData = result.data as {
+          snapshots: Array<{
+            timestamp: string;
+            balanceInUSD?: number;
+            pnl?: number;
+            pnl24h?: number;
+          }>;
+        };
 
         if (
-          !result.snapshots ||
-          !Array.isArray(result.snapshots) ||
-          result.snapshots.length === 0
+          !responseData.snapshots ||
+          !Array.isArray(responseData.snapshots) ||
+          responseData.snapshots.length === 0
         ) {
           console.warn('No snapshots found in API response');
           setError(
@@ -337,13 +335,18 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
         // Process the API response data
         const processPnLData = () => {
           // Log entire snapshots array to debug
-          console.log('Raw snapshots array:', JSON.stringify(result.snapshots));
+          console.log(
+            'Raw snapshots array:',
+            JSON.stringify(responseData.snapshots),
+          );
 
           // 1. First, create an array sorted by date
-          const sortedSnapshots = [...result.snapshots].sort(
-            (a, b) =>
-              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-          );
+          const sortedSnapshots = [...responseData.snapshots].sort((a, b) => {
+            // Make sure timestamp exists before using it
+            const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+            const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+            return aTime - bTime;
+          });
 
           // Filter out snapshots with invalid balance values
           const validSnapshots = sortedSnapshots.filter(
@@ -362,7 +365,7 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
           // Calculate day-to-day changes
           const dailyPnlData = validSnapshots
             .map((snapshot, index, array) => {
-              const date = new Date(snapshot.timestamp)
+              const date = new Date(snapshot.timestamp || '')
                 .toISOString()
                 .split('T')[0];
 
@@ -383,9 +386,9 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
                 typeof snapshot.pnl === 'number' &&
                 !isNaN(snapshot.pnl) &&
                 typeof array[index - 1].pnl === 'number' &&
-                !isNaN(array[index - 1].pnl)
+                !isNaN(array[index - 1].pnl || 0)
               ) {
-                pnlValue = snapshot.pnl - array[index - 1].pnl;
+                pnlValue = (snapshot.pnl || 0) - (array[index - 1].pnl || 0);
                 source = 'calculated_pnl';
               }
               // Priority 3: Calculate from balance changes
@@ -394,10 +397,11 @@ const PortfolioPnL = memo(({ data, agentId }: PortfolioPnLProps) => {
                 typeof snapshot.balanceInUSD === 'number' &&
                 !isNaN(snapshot.balanceInUSD) &&
                 typeof array[index - 1].balanceInUSD === 'number' &&
-                !isNaN(array[index - 1].balanceInUSD)
+                !isNaN(array[index - 1].balanceInUSD || 0)
               ) {
                 pnlValue =
-                  snapshot.balanceInUSD - array[index - 1].balanceInUSD;
+                  (snapshot.balanceInUSD || 0) -
+                  (array[index - 1].balanceInUSD || 0);
                 source = 'calculated_balance';
               }
 
