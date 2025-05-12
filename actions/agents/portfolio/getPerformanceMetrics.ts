@@ -5,6 +5,7 @@ import {
   PerformanceHistory,
   PerformanceSnapshot,
 } from '@/lib/types';
+import { callApi } from './api-utils';
 
 /**
  * Fetches the latest performance metrics for a specific agent
@@ -13,29 +14,16 @@ import {
  */
 export async function getPerformanceMetrics(agentId: string) {
   try {
-    const apiUrl =
-      process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://127.0.0.1:8080';
-    const apiKey = process.env.API_KEY || 'secret';
-
     try {
       // First try the direct endpoint
-      const response = await fetch(`${apiUrl}/api/performance/${agentId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-        },
-        next: { revalidate: 10 },
-      });
-
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
-      }
-
-      const data = (await response.json()) as PerformanceMetrics;
+      const result = await callApi<PerformanceMetrics>(
+        `/api/performance/${agentId}`,
+        'GET'
+      );
+      
       return {
         success: true,
-        data,
+        data: result,
       };
     } catch {
       console.log(
@@ -43,25 +31,12 @@ export async function getPerformanceMetrics(agentId: string) {
       );
 
       // If the direct endpoint fails, try to get the latest snapshot from history
-      const historyResponse = await fetch(
-        `${apiUrl}/api/performance/${agentId}/history?interval=hourly`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-          },
-          next: { revalidate: 10 },
-        },
+      const historyData = await callApi<PerformanceHistory>(
+        `/api/performance/${agentId}/history`,
+        'GET',
+        undefined,
+        { interval: 'hourly' }
       );
-
-      if (!historyResponse.ok) {
-        throw new Error(
-          `History API request failed with status ${historyResponse.status}`,
-        );
-      }
-
-      const historyData = (await historyResponse.json()) as PerformanceHistory;
 
       if (historyData?.snapshots?.length > 0) {
         // Get the most recent snapshot

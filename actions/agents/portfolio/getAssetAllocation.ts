@@ -1,6 +1,7 @@
 'use server';
 
 import { AssetAllocation } from '@/lib/types/portfolio';
+import { callApi } from './api-utils';
 
 /**
  * Fetches asset allocation data for a specific agent
@@ -8,26 +9,13 @@ import { AssetAllocation } from '@/lib/types/portfolio';
  */
 export async function getAssetAllocation(agentId: string) {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://127.0.0.1:8080';
-    const apiKey = process.env.API_KEY || 'secret';
-    
     try {
       // Use the correct endpoint for portfolio allocation
-      const response = await fetch(`${apiUrl}/api/kpi/agent-portfolio/${agentId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-        },
-        next: { revalidate: 10 }
-      });
-
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
-      }
-
-      // The API response format matches our AssetAllocation type
-      const data = await response.json() as AssetAllocation;
+      const data = await callApi<AssetAllocation>(
+        `/api/kpi/agent-portfolio/${agentId}`,
+        'GET'
+      );
+      
       console.log('Portfolio allocation data:', data);
       
       return {

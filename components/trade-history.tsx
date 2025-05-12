@@ -458,7 +458,7 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
   let toToken = 'Unknown';
   let fromAmount = 'N/A';
   let toAmount = 'N/A';
-  
+
   // Handle cancel orders
   if (trade.type === 'cancel') {
     tradeTitle = 'Cancel Order';
@@ -486,38 +486,38 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
   } 
   // Handle regular/simulated trades
   else {
-    const displayData = getTradeDisplayData(trade);
+  const displayData = getTradeDisplayData(trade);
     
     if (displayData) {
       const { buyTokenName, sellTokenName, buyAmount, sellAmount, tradePriceUSD } = displayData;
-      
-      // Instead of determining if it's buy or sell, we'll focus on what was received vs spent
-      const receivedToken = buyTokenName;
-      const receivedAmount = buyAmount;
-      const spentToken = sellTokenName;
-      const spentAmount = sellAmount;
+
+  // Instead of determining if it's buy or sell, we'll focus on what was received vs spent
+  const receivedToken = buyTokenName;
+  const receivedAmount = buyAmount;
+  const spentToken = sellTokenName;
+  const spentAmount = sellAmount;
       
       // Set from/to tokens for tooltip
       fromToken = spentToken;
       toToken = receivedToken;
       fromAmount = spentAmount === 'N/A' ? 'N/A' : formatAmount(spentAmount, spentToken);
       toAmount = receivedAmount === 'N/A' ? 'N/A' : formatAmount(receivedAmount, receivedToken);
-      
-      // For coloring, we'll use a more sophisticated financial UI color scheme
-      const isBuy =
-        trade.type === 'buy' ||
-        (buyTokenName !== 'Unknown' && sellTokenName === 'USDC');
-      
+
+  // For coloring, we'll use a more sophisticated financial UI color scheme
+  const isBuy =
+    trade.type === 'buy' ||
+    (buyTokenName !== 'Unknown' && sellTokenName === 'USDC');
+
       iconType = isBuy ? 'buy' : 'sell';
       cardClasses = isBuy
-        ? 'bg-blue-500/5 border-blue-500/20'
-        : 'bg-purple-500/5 border-purple-500/20';
+    ? 'bg-blue-500/5 border-blue-500/20'
+    : 'bg-purple-500/5 border-purple-500/20';
       titleColor = isBuy ? 'text-blue-600' : 'text-purple-600';
       actionType = isBuy ? 'buy' : 'sell';
-      
-      // Format amounts with appropriate decimal places based on token type
-      const displayReceived = formatAmount(receivedAmount, receivedToken);
-      const displaySpent = formatAmount(spentAmount, spentToken);
+
+  // Format amounts with appropriate decimal places based on token type
+  const displayReceived = formatAmount(receivedAmount, receivedToken);
+  const displaySpent = formatAmount(spentAmount, spentToken);
       
       // Price display if available
       if (tradePriceUSD) {
@@ -525,8 +525,8 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
           ? tradePriceUSD
           : `$${formatPrice(tradePriceUSD)}`;
       }
-      
-      // Create a more informative title that focuses on the exchange
+
+  // Create a more informative title that focuses on the exchange
       tradeTitle = `${displayReceived} ${receivedToken}`;
       tradeSubtitle = `for ${displaySpent} ${spentToken}`;
       tooltipTitle = isSimulated ? "Simulated Trade Details" : "Trade Details";
@@ -564,19 +564,19 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className={cn(
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className={cn(
               'flex flex-col space-y-1 rounded-lg border p-2 transition-colors cursor-help relative',
               cardClasses,
               isLatest && `ring-2 ring-offset-2 ring-offset-background ${ringColor}`,
-            )}
-          >
+      )}
+    >
             {/* Enhanced trade header with more information */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
                 <TradeIcon type={iconType} />
                 <div className="flex flex-col">
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -591,7 +591,7 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
                     </span>
                   )}
                 </div>
-              </div>
+                  </div>
               <div className="flex flex-col items-end">
                 <span className="text-[10px] text-muted-foreground">
                   {formattedTime}
@@ -634,13 +634,13 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
               </div>
             )}
           </motion.div>
-        </TooltipTrigger>
+              </TooltipTrigger>
         <TooltipContent className="w-64 bg-white border shadow-xl z-50 relative">
-          <div className="text-xs space-y-1 p-3 rounded-md">
-            <div className="font-medium border-b border-gray-100 pb-2 text-gray-900">
+                <div className="text-xs space-y-1 p-3 rounded-md">
+                  <div className="font-medium border-b border-gray-100 pb-2 text-gray-900">
               {tooltipTitle}
-            </div>
-            <div className="grid grid-cols-2 gap-2 pt-2">
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pt-2">
               {/* Trade pair for actual trades */}
               {isActualTrade && (
                 <>
@@ -658,17 +658,17 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
                'action' in trade.information.trade && (
                 <>
                   <div className="text-gray-500">Action:</div>
-                  <div className="font-medium text-gray-900">
+                    <div className="font-medium text-gray-900">
                     {String(trade.information.trade.action) || 'Wait'}
-                  </div>
+                    </div>
                 </>
               )}
               
               {/* Price field - for trades */}
               {tradePriceDisplay && (
                 <>
-                  <div className="text-gray-500">Price:</div>
-                  <div className="font-medium text-gray-900">
+                    <div className="text-gray-500">Price:</div>
+                    <div className="font-medium text-gray-900">
                     {tradePriceDisplay}
                   </div>
                 </>
@@ -689,11 +689,11 @@ const TradeItem = memo(({ trade, isLatest }: TradeItemProps) => {
               {/* Explanation field - for all types */}
               <div className="text-gray-500 col-span-2">Explanation:</div>
               <div className="font-medium text-gray-900 col-span-2 break-words">{explanation || 'No explanation provided'}</div>
-            </div>
-          </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+        </div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
   );
 });
 TradeItem.displayName = 'TradeItem';

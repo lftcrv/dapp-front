@@ -1,12 +1,12 @@
 'use server';
 
-import { Agent, ApiAgent } from '@/lib/types';
+import { ApiAgent } from '@/lib/types';
 import { mapApiAgentToAgent } from './getAgents';
 
 /**
  * Gets the top performing agent by PnL rank
  * Similar to:
- * curl -X GET "http://127.0.0.1:8080/api/eliza-agent" -H "x-api-key: secret" | \
+ * curl -X GET
  * jq '.data.agents[] | {id: .id, name: .name, pnlCycle: .LatestMarketData.pnlCycle, balanceInUSD: .LatestMarketData.balanceInUSD, pnlRank: .LatestMarketData.pnlRank}' | \
  * jq -s 'sort_by(.pnlRank) | .[0]'
  */

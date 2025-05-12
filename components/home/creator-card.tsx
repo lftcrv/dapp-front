@@ -13,6 +13,8 @@ import {
 } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
+// Import our server action
+import { getCreatorAgents, Agent } from '@/actions/creators/getCreatorAgents';
 
 // Type definition for CreatorLeaderboardEntryDto based on DTO in creator_doc.md
 export interface CreatorLeaderboardEntryDto {
@@ -25,14 +27,6 @@ export interface CreatorLeaderboardEntryDto {
   bestAgentId?: string;
   bestAgentPnlCycle?: number;
   updatedAt: Date;
-}
-
-// Agent data type from API
-interface Agent {
-  id: string;
-  name: string;
-  status: string;
-  createdAt: string;
 }
 
 interface CreatorCardProps {
@@ -52,33 +46,20 @@ const CreatorCard = ({ creator, index }: CreatorCardProps) => {
 
       setIsLoadingAgents(true);
       try {
-        const response = await fetch(
-          `http://127.0.0.1:8080/api/creators/${creator.creatorId}/agents`,
-          {
-            headers: {
-              'x-api-key': 'secret',
-            },
-            cache: 'no-store',
-          },
-        );
-
-        if (!response.ok) {
-          console.error(
-            'API response not OK:',
-            response.status,
-            response.statusText,
-          );
-          throw new Error('Failed to fetch agents');
+        // Use the server action instead of direct API call
+        const result = await getCreatorAgents(creator.creatorId);
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to fetch agents');
         }
+        
+        console.log('Agents data received:', result.data);
 
-        const data = await response.json();
-        console.log('Agents data received:', data);
-
-        // Verify we're getting the data in the expected format
-        if (data && Array.isArray(data.data)) {
-          setAgents(data.data);
+        // Set the agents data if available
+        if (result.data && Array.isArray(result.data)) {
+          setAgents(result.data);
         } else {
-          console.error('Unexpected data format:', data);
+          console.error('Unexpected data format:', result.data);
           setAgents([]);
         }
       } catch (error) {

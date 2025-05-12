@@ -10,14 +10,14 @@
 export async function callApi<T>(
   endpoint: string,
   method: 'GET' | 'POST' = 'GET',
-  body?: any,
+  body?: Record<string, unknown>,
   queryParams?: Record<string, string>
 ): Promise<T> {
-  const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://127.0.0.1:8080';
-  const apiKey = process.env.API_KEY || 'secret';
+  const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
+  const apiKey = process.env.API_KEY;
 
   if (!apiUrl || !apiKey) {
-    throw new Error('Missing API configuration');
+    throw new Error('Missing API configuration: API_URL or API_KEY not set in environment');
   }
 
   // Construct the URL with query parameters if provided
