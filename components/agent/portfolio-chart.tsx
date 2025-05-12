@@ -15,7 +15,10 @@ import {
 } from 'recharts';
 import ButtonSelector from '@/components/ui/button-selector';
 // Import our server actions
-import { getPortfolioHistoricalData } from '@/actions/agents/portfolio/getPortfolioHistoricalData';
+import {
+  getPortfolioHistoricalData,
+  type SnapshotData,
+} from '@/actions/agents/portfolio/getPortfolioHistoricalData';
 import { getPortfolioLatestValues } from '@/actions/agents/portfolio/getPortfolioLatestValues';
 // Define time range type locally to avoid import conflict
 type TimeRange = '1W' | '1M' | '3M' | 'ALL';
@@ -46,12 +49,6 @@ const formatDate = (dateStr: string) => {
 interface ChartDataItem extends ChartData {
   isActualData?: boolean;
   tradeCount?: number;
-}
-
-interface SnapshotData {
-  timestamp: string;
-  balanceInUSD?: number;
-  [key: string]: unknown;
 }
 
 interface CustomTooltipProps {
@@ -185,11 +182,11 @@ const PortfolioChart = memo(
         try {
           // Use the server action instead of direct API call
           const result = await getPortfolioLatestValues(agentId);
-          
+
           if (!result.success || !result.data) {
             throw new Error(result.error || 'Failed to fetch portfolio data');
           }
-          
+
           console.log('Portfolio KPI data:', result.data);
 
           // Update portfolio values with API data
@@ -235,11 +232,11 @@ const PortfolioChart = memo(
         try {
           // Use the server action instead of direct API call
           const result = await getPortfolioHistoricalData(agentId, timeRange);
-          
+
           if (!result.success || !result.data) {
             throw new Error(result.error || 'Failed to fetch historical data');
           }
-          
+
           console.log('Portfolio history data:', result.data);
 
           if (
@@ -256,9 +253,9 @@ const PortfolioChart = memo(
           }
 
           // Process the API response data - select 3 points per day
-          const processPortfolioData = (snapshots: any[]) => {
+          const processPortfolioData = (snapshots: SnapshotData[]) => {
             // Group snapshots by day
-            const snapshotsByDay = new Map<string, any[]>();
+            const snapshotsByDay = new Map<string, SnapshotData[]>();
 
             snapshots.forEach((snapshot) => {
               const date = new Date(snapshot.timestamp);
@@ -272,7 +269,7 @@ const PortfolioChart = memo(
             });
 
             // Select 3 points per day: morning (first), mid-day, and evening (last)
-            const selectedSnapshots: any[] = [];
+            const selectedSnapshots: SnapshotData[] = [];
 
             snapshotsByDay.forEach((daySnapshots) => {
               if (daySnapshots.length === 0) return;
@@ -382,7 +379,7 @@ const PortfolioChart = memo(
             // For longer time ranges, ensure we have data for every day
             const allDates = generateDatesBetween(
               new Date(result.data.snapshots?.[0]?.timestamp || Date.now()),
-              new Date()
+              new Date(),
             );
             const dateMap = new Map();
 

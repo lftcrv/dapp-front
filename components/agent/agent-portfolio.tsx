@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, ReactNode } from 'react';
+import { memo } from 'react';
 import { Agent, Trade } from '@/lib/types';
 import SimpleAgentCard from '@/components/agent/simple-agent-card';
 import PortfolioStats from '@/components/agent/portfolio-stats';
