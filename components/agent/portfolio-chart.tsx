@@ -377,10 +377,9 @@ const PortfolioChart = memo(
             setChartData(fullWeekData);
           } else {
             // For longer time ranges, ensure we have data for every day
-            const allDates = generateDatesBetween(
-              new Date(result.data.snapshots?.[0]?.timestamp || Date.now()),
-              new Date(),
-            );
+            // Define the start date based on the first snapshot's timestamp
+            const startDate = new Date(result.data.snapshots[0].timestamp);
+            const allDates = generateDatesBetween(startDate, new Date());
             const dateMap = new Map();
 
             // Create a map of existing dates (strip time for non-weekly views)
