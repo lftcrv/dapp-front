@@ -8,7 +8,7 @@ import fetch from 'node-fetch';
 
 const CREATOR_ID = '0x046494be4b665b6182152e656d5eae6ec9dc8e8d8870851f11422fff1457736a';
 const API_URL = 'http://localhost:8080/api/creators';
-const API_KEY = 'secret';
+const API_KEY = '';
 
 async function testCreatorPerformanceApi() {
   console.log('Testing creator performance API endpoint...');

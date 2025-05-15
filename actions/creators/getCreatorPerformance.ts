@@ -3,6 +3,8 @@
 import { Agent, AgentStatus, AgentType } from '@/lib/types';
 import { Abi } from 'starknet';
 
+const DEFAULT_AGENT_TYPE: AgentType = 'leftcurve';
+
 // Define the API response type
 interface CreatorPerformanceResponse {
   creatorId: string;
@@ -81,17 +83,20 @@ export async function getCreatorPerformance(creatorId: string): Promise<{
 
     const apiUrl = `${backendApiUrl}/api/creators/${creatorId}/performance`;
     
+    const headers: HeadersInit = {
+      'Accept': 'application/json',
+    };
+    if (process.env.API_KEY) {
+      headers['x-api-key'] = process.env.API_KEY;
+    }
+
     const response = await fetch(apiUrl, {
-      headers: {
-        'x-api-key': process.env.BACKEND_API_KEY || 'secret',
-        'Accept': 'application/json',
-      },
+      headers,
       cache: 'no-store', 
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`API error for ${apiUrl}: ${response.status} - ${errorText}`);
       throw new Error(`API responded with status: ${response.status}. Body: ${errorText}`);
     }
 
@@ -106,7 +111,7 @@ export async function getCreatorPerformance(creatorId: string): Promise<{
       // Generate a symbol from the agent name
       symbol: agent.name?.substring(0, 3).toUpperCase() || 'AGT',
       // Default type as 'leftcurve' since we don't have this info
-      type: 'leftcurve' as AgentType,
+      type: DEFAULT_AGENT_TYPE,
       // Use API data where available
       tvl: agent.balanceInUSD,
       pnlCycle: agent.pnlCycle,
@@ -139,7 +144,7 @@ export async function getCreatorPerformance(creatorId: string): Promise<{
         name: apiData.bestPerformingAgentPnlCycle.name,
         // Minimal required fields for Agent type
         symbol: apiData.bestPerformingAgentPnlCycle.name?.substring(0, 3).toUpperCase() || 'AGT',
-        type: 'leftcurve' as AgentType,
+        type: DEFAULT_AGENT_TYPE,
         status: apiData.bestPerformingAgentPnlCycle.status === 'RUNNING' ? 'live' as AgentStatus : 'ended' as AgentStatus,
         price: 0,
         marketCap: apiData.bestPerformingAgentPnlCycle.marketCap || 0,
