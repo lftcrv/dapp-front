@@ -232,8 +232,11 @@ const PortfolioChart = memo(
         try {
           // Use the server action instead of direct API call
           const result = await getPortfolioHistoricalData(agentId, timeRange);
-
+          
           if (!result.success || !result.data) {
+            console.error('❌ Failed to fetch historical data:', result.error);
+            console.error('  Success:', result.success);
+            console.error('  Has data:', !!result.data);
             throw new Error(result.error || 'Failed to fetch historical data');
           }
 

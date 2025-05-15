@@ -532,3 +532,127 @@ export function useCreators(limit: number = 5): UseCreatorsResult {
 3. **Additional Metrics**: Add more creator metrics like success rates or historical performance as they become available through the API.
 
 4. **Filtering/Sorting**: Add UI controls to allow users to sort creators by different metrics (balance, PnL, agent count, etc.).
+
+---
+
+## 8. Frontend Refactoring Plan: `app/creators/page.tsx` (Main Creators List)
+
+This section details the plan to refactor `app/creators/page.tsx` and its related components to use live data from the `/api/creators/leaderboard` endpoint, replacing the current mock implementation.
+
+**Goal:** Connect the main "Creators" page to the backend API, enabling dynamic loading, pagination, sorting, and searching of creators based on the `CreatorLeaderboardEntryDto`.
+
+### 8.1. New Server Action (`actions/creators/getPaginatedCreators.ts`)
+
+*   **Purpose:** Fetch paginated and potentially sorted creator data from the `/api/creators/leaderboard` endpoint.
+*   **File:** `actions/creators/getPaginatedCreators.ts`
+*   **Function Signature (approximate):**
+    ```typescript
+    export async function getPaginatedCreators(
+      page: number = 1,
+      limit: number = 10,
+      sortBy?: LeaderboardSortField // Optional: from LeaderboardQueryDto
+    ): Promise<{ creators: CreatorLeaderboardEntryDto[]; total: number; currentPage: number; error?: string }>
+    ```
+*   **Implementation Details:**
+    *   Utilize `makeApiRequest` from `actions/creators/api-utils.ts` for the actual API call.
+    *   Target endpoint: `/api/creators/leaderboard`.
+    *   Pass `page`, `limit`, and `sortBy` (if provided) as query parameters.
+    *   Handle API key authentication securely via `api-utils.ts`.
+    *   Perform error handling (network errors, non-200 responses) and return a structured response including the data array, total count, current page, and an optional error message.
+    *   Define `CreatorLeaderboardEntryDto` and `PaginatedResponseDto` interfaces within this file or import from a shared types location if available, based on Section 5.5.
+
+### 8.2. `app/creators/page.tsx` Refactoring
+
+*   **`Creator` Interface Update:**
+    *   The existing `Creator` interface in `app/creators/page.tsx` will be updated to align with the fields available in `CreatorLeaderboardEntryDto`.
+    ```typescript
+    interface Creator {
+      id: string; // Mapped from creatorId
+      name: string; // Will use creatorId initially, as full name is not in leaderboard DTO
+      avatarUrl?: string; // Placeholder, as avatar is not in leaderboard DTO
+      agentCount: number; // Mapped from totalAgents
+      createdAt: string; // Mapped from updatedAt (timestamp of leaderboard data)
+      totalPnl: number; // Mapped from aggregatedPnlCycle
+      // Add other relevant fields from CreatorLeaderboardEntryDto if needed
+    }
+    ```
+
+*   **Data Fetching Logic:**
+    *   Remove the mock `fetchCreators` function.
+    *   Implement a new function (e.g., `loadCreatorsData`) that calls the `getPaginatedCreators` server action.
+    *   This function will be called in `useEffect` on initial load and when pagination or sorting parameters change (if server-side sorting is implemented for a specific sort option).
+
+*   **State Management:**
+    *   `allCreators`: Will store an array of `Creator` objects fetched from the API. This array will accumulate data as the user clicks "Load More".
+    *   `isLoading`: Boolean state for loading indicators.
+    *   `error`: String state for displaying error messages.
+    *   `searchTerm`: Remains for client-side filtering.
+    *   `sortBy`: Remains for controlling sort order.
+    *   `currentPage`: Number state to track the current page fetched (for "Load More"). Default to 1.
+    *   `totalCreators`: Number state to store the total number of creators available from the API, used to determine if "Load More" should be shown.
+    *   `hasMore`: Boolean derived from `allCreators.length < totalCreators`.
+
+*   **Pagination ("Load More"):**
+    *   The `handleLoadMore` function will increment `currentPage` and call `loadCreatorsData` to fetch the next set of creators.
+    *   Fetched creators will be appended to the `allCreators` state array.
+    *   The "Load More" button's visibility (`canLoadMore`) will depend on `hasMore`.
+    *   `ITEMS_PER_PAGE` will correspond to the `limit` parameter passed to `getPaginatedCreators`.
+
+*   **Sorting Logic:**
+    *   The `filteredAndSortedCreators` memoized value will perform sorting and filtering on the `allCreators` array.
+    *   **PnL (High to Low):** Can be potentially offloaded to the server by calling `getPaginatedCreators` with `sortBy: LeaderboardSortField.PNL_CYCLE`. If fetched with default sort, client-side sort on `totalPnl` (descending).
+    *   **PnL (Low to High):** Client-side sort on `totalPnl` (ascending).
+    *   **Newest/Oldest:** Client-side sort on `createdAt` (which maps to `updatedAt` from the API).
+    *   **Name (A-Z, Z-A):** Client-side sort on `name` (which maps to `creatorId`).
+    *   When a sort option is selected, if it's a sort that *could* be server-side (like PnL Desc), the component *could* reset `allCreators` and `currentPage`, then re-fetch from page 1 with the new server-side sort parameter. However, to maintain consistency with current "load more and sort all loaded" behavior, all sorting will initially be implemented client-side on the accumulated `allCreators` list. The `getPaginatedCreators` will be called with a default sort (e.g., by `pnlCycle`) or no specific sort if the API has a sensible default.
+
+*   **Search Logic:**
+    *   Client-side filtering will continue to operate on the `name` field (i.e., `creatorId`) of the `allCreators` array.
+    *   Changing the search term will reset the `visibleCount` (or rather, it will filter the existing `allCreators` and pagination will apply to the filtered result).
+
+### 8.3. `components/creators/creator-card.tsx` Updates
+
+*   **Props:** The component will be updated to accept a `Creator` object matching the new interface defined in `app/creators/page.tsx`.
+*   **Data Display:**
+    *   Display `creator.id` (which is `creatorId`) as the creator's name.
+    *   Use a placeholder for the avatar as this data is not available from the `/api/creators/leaderboard` endpoint.
+    *   Display `creator.agentCount`.
+    *   Display `creator.totalPnl`.
+    *   Display `creator.createdAt` (formatted nicely).
+
+### 8.4. Environment Variables
+
+*   The API key will be managed securely within the server actions (`api-utils.ts`) and will not be exposed to the client. `process.env.DEPIN_API_KEY` should be used.
+
+### 8.5. Limitations and Future Considerations
+
+*   **Creator Names & Avatars:** The `/api/creators/leaderboard` endpoint provides `creatorId` but not full names or avatar URLs. The UI will display `creatorId` as the name and use placeholders for avatars. Future integration with a creator profile endpoint (e.g., `GET /api/creators/{creatorId}`) will be needed to fetch and display this richer information.
+*   **Sorting Complexity:** Complex multi-field server-side sorting or advanced filtering (beyond what `/api/creators/leaderboard` `sortBy` offers) is not covered. Client-side sorting applies only to data loaded so far. For true global sorting on fields not supported by the API's `sortBy`, all data would need to be fetched, which is not scalable.
+*   **Data Source:** This plan assumes `/api/creators/leaderboard` is the most suitable endpoint. If `/api/creators` were enhanced to include PnL and date fields, and supported robust sorting/pagination, it could become a more direct alternative.
+*   **"Newest" Definition:** `updatedAt` from the leaderboard entry is used as the proxy for "newest". This reflects when the leaderboard data for that creator was last updated, not necessarily the creator's account creation date on the platform. If a true `creator.createdAt` field becomes available, that should be used.
+
+---
+
+## 9. Implementation Steps (High-Level for `app/creators/page.tsx` refactor)
+
+1.  **Create `actions/creators/getPaginatedCreators.ts`:**
+    *   Define `CreatorLeaderboardEntryDto` and `PaginatedResponseDto<T>` types (or import if shared).
+    *   Implement the `getPaginatedCreators` function using `makeApiRequest` to call `/api/creators/leaderboard` with `page`, `limit`, and optional `sortBy` parameters.
+    *   Include error handling and return structure `{ creators, total, currentPage, error? }`.
+2.  **Update `Creator` interface in `app/creators/page.tsx`:**
+    *   Align fields with `CreatorLeaderboardEntryDto` (e.g., `id: string` (from `creatorId`), `name: string` (from `creatorId`), `agentCount: number` (from `totalAgents`), `createdAt: string` (from `updatedAt`), `totalPnl: number` (from `aggregatedPnlCycle`)).
+3.  **Refactor data fetching in `app/creators/page.tsx`:**
+    *   Introduce `currentPage` and `totalCreators` states.
+    *   Replace `fetchCreators` mock with `loadCreatorsData` that calls `getPaginatedCreators`.
+    *   Handle initial load in `useEffect`.
+    *   Implement `handleLoadMore` to fetch and append data.
+4.  **Adjust sorting and filtering in `app/creators/page.tsx`:**
+    *   Ensure `filteredAndSortedCreators` correctly processes the new `Creator` objects and `allCreators` list.
+    *   Client-side sorting for PnL Asc/Desc, Newest/Oldest (on `createdAt`), Name (on `id`).
+    *   Client-side search on `id`.
+5.  **Update `CreatorCard` component (`components/creators/creator-card.tsx`):**
+    *   Modify props to accept the new `Creator` type.
+    *   Display `creator.id` as name, placeholder for avatar, `creator.agentCount`, `creator.totalPnl`, formatted `creator.createdAt`.
+6.  **Testing:**
+    *   Thoroughly test pagination, sorting options, search, loading states, and error handling.
+    *   Verify API calls in the network tab (though server actions abstract this from the browser's view).

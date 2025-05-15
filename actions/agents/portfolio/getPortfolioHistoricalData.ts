@@ -25,6 +25,16 @@ export async function getPortfolioHistoricalData(
   timeRange: TimeRange
 ) {
   try {
+    // Debug logs for troubleshooting API key issues
+    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
+    const apiKey = process.env.API_KEY;
+    
+    console.log('🔍 DEBUG Portfolio History - Environment:');
+    console.log('  API URL defined:', !!apiUrl);
+    console.log('  API KEY defined:', !!apiKey);
+    console.log('  Agent ID:', agentId);
+    console.log('  Time Range:', timeRange);
+    
     // Create date range based on selected time period
     const now = new Date();
     let startDate: Date;
@@ -62,25 +72,40 @@ export async function getPortfolioHistoricalData(
           return 'daily'; // Daily for longer periods
       }
     };
-
-    const result = await callApi<PortfolioHistoryResponse>(
-      `/api/performance/${agentId}/history`,
-      'GET',
-      undefined,
-      {
-        interval: getInterval(timeRange),
-        from: fromDate,
-        to: toDate
-      }
-    );
     
-    return {
-      success: true,
-      data: result,
-      timeRange
-    };
+    const interval = getInterval(timeRange);
+    console.log('🔍 DEBUG Portfolio History - Request details:');
+    console.log('  Endpoint:', `/api/performance/${agentId}/history`);
+    console.log('  Interval:', interval);
+    console.log('  Date range:', `${fromDate} to ${toDate}`);
+    
+    try {
+      const result = await callApi<PortfolioHistoryResponse>(
+        `/api/performance/${agentId}/history`,
+        'GET',
+        undefined,
+        {
+          interval,
+          from: fromDate,
+          to: toDate
+        }
+      );
+      
+      console.log('✅ API call succeeded with data size:', result?.snapshots?.length || 0);
+      
+      return {
+        success: true,
+        data: result,
+        timeRange
+      };
+    } catch (apiError) {
+      // Detailed API error logging
+      console.error('❌ API call failed:', apiError);
+      console.error('  Full error details:', JSON.stringify(apiError));
+      throw apiError; // Re-throw to be caught by outer try/catch
+    }
   } catch (error) {
-    console.error('Error fetching portfolio historical data:', error);
+    console.error('❌ Error fetching portfolio historical data:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unexpected error occurred'
