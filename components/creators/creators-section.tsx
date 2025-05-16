@@ -12,6 +12,15 @@ import {
 } from '@/components/ui/select';
 import { CreatorCard, CreatorCardSkeleton } from '@/components/creators/creator-card';
 
+const CreatorSortOptions = {
+  PNL_DESC: 'pnl_desc',
+  PNL_ASC: 'pnl_asc',
+  NEWEST: 'newest',
+  OLDEST: 'oldest',
+  NAME_ASC: 'name_asc',
+  NAME_DESC: 'name_desc',
+} as const;
+
 // Define the expected structure for a creator object within this component
 // This should align with the props CreatorCard expects, plus any other fields
 // CreatorsSection might use directly (though currently it primarily passes them down).
@@ -76,12 +85,12 @@ export default function CreatorsSection({
                 <SelectValue placeholder="Sort by..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="pnl_desc">PnL: High to Low</SelectItem>
-                <SelectItem value="pnl_asc">PnL: Low to High</SelectItem>
-                <SelectItem value="newest">Newest</SelectItem>
-                <SelectItem value="oldest">Oldest</SelectItem>
-                <SelectItem value="name_asc">Name: A to Z</SelectItem>
-                <SelectItem value="name_desc">Name: Z to A</SelectItem>
+                <SelectItem value={CreatorSortOptions.PNL_DESC}>PnL: High to Low</SelectItem>
+                <SelectItem value={CreatorSortOptions.PNL_ASC}>PnL: Low to High</SelectItem>
+                <SelectItem value={CreatorSortOptions.NEWEST}>Newest</SelectItem>
+                <SelectItem value={CreatorSortOptions.OLDEST}>Oldest</SelectItem>
+                <SelectItem value={CreatorSortOptions.NAME_ASC}>Name: A to Z</SelectItem>
+                <SelectItem value={CreatorSortOptions.NAME_DESC}>Name: Z to A</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -9,6 +9,8 @@ export enum LeaderboardSortField {
 // Corresponds to CreatorLeaderboardEntryDto in creator_doc.md (Section 5.5)
 export interface CreatorLeaderboardEntryDto {
   creatorId: string;
+  name?: string;
+  avatarUrl?: string;
   totalAgents: number;
   runningAgents: number;
   totalBalanceInUSD: number;

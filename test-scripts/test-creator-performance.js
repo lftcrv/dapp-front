@@ -7,8 +7,8 @@
 import fetch from 'node-fetch';
 
 const CREATOR_ID = '0x046494be4b665b6182152e656d5eae6ec9dc8e8d8870851f11422fff1457736a';
-const API_URL = 'http://localhost:8080/api/creators';
-const API_KEY = '';
+const API_URL = process.env.TEST_API_URL || 'http://localhost:8080/api/creators';
+const API_KEY = process.env.API_KEY ;
 
 async function testCreatorPerformanceApi() {
   console.log('Testing creator performance API endpoint...');
@@ -23,7 +23,8 @@ async function testCreatorPerformanceApi() {
     });
     
     if (!response.ok) {
-      throw new Error(`API responded with status: ${response.status}`);
+      const errorBody = await response.text();
+      throw new Error(`API responded with status: ${response.status}. Body: ${errorBody}`);
     }
     
     const data = await response.json();
@@ -71,4 +72,4 @@ async function testCreatorPerformanceApi() {
 testCreatorPerformanceApi().then(result => {
   console.log('\nTest completed.');
   process.exit(result ? 0 : 1);
-}); 
+});

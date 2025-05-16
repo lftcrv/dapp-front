@@ -27,9 +27,9 @@ export async function getPaginatedCreators(
   limit: number = 10, // This will be our ITEMS_PER_PAGE
   sortBy?: LeaderboardSortField,
 ): Promise<GetPaginatedCreatorsResult> {
-  const params: Record<string, string | number> = {
-    page: page,
-    limit: limit,
+  const params: Record<string, string> = {
+    page: String(page),
+    limit: String(limit),
   };
 
   if (sortBy) {
@@ -44,7 +44,7 @@ export async function getPaginatedCreators(
       '/api/creators/leaderboard',
       'GET',
       undefined, // No body for GET request
-      params as Record<string, string>, // queryParams
+      params, // queryParams - no longer needs casting
     );
 
     return {
@@ -62,7 +62,7 @@ export async function getPaginatedCreators(
       console.log('Falling back to /api/creators endpoint...');
       const fallbackResponse = await callApi<
         PaginatedResponseDto<SimpleCreator>
-      >('/api/creators', 'GET', undefined, params as Record<string, string>);
+      >('/api/creators', 'GET', undefined, params); // no longer needs casting
 
       // Map the simpler creator data to our more comprehensive DTO structure
       const mappedCreators: CreatorLeaderboardEntryDto[] =

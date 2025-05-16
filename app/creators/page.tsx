@@ -25,11 +25,11 @@ interface UICreator {
 
 // Updated mapper function
 const mapDtoToUICreator = (dto: CreatorLeaderboardEntryDto): UICreator => {
-  const displayName = (dto as any).name || `${dto.creatorId.substring(0, 8)}...`; 
+  const displayName = dto.name || `${dto.creatorId.substring(0, 8)}...`; 
   return {
     id: dto.creatorId,
     name: displayName,
-    avatarUrl: (dto as any).avatarUrl, 
+    avatarUrl: dto.avatarUrl, 
     agentCount: dto.totalAgents,
     runningAgents: dto.runningAgents,
     totalPnl: dto.aggregatedPnlCycle || 0,
