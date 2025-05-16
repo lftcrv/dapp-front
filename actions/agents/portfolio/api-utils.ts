@@ -34,7 +34,7 @@ export async function callApi<T>(
       url = `${url}?${queryString}`;
     }
   }
-
+  
   const options: RequestInit = {
     method,
     headers: {
@@ -61,14 +61,18 @@ export async function callApi<T>(
         throw new Error('Server error - please try again later');
       }
 
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'API request failed');
+      try {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'API request failed');
+      } catch (jsonError) {
+        // If parsing JSON fails, just use status text
+        throw new Error(`API request failed with status ${response.status}`);
+      }
     }
 
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error(`Error calling API at ${endpoint}:`, error);
     throw error;
   }
 } 

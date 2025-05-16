@@ -25,6 +25,10 @@ export async function getPortfolioHistoricalData(
   timeRange: TimeRange
 ) {
   try {
+    // Debug logs for troubleshooting API key issues
+    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
+    const apiKey = process.env.API_KEY;
+    
     // Create date range based on selected time period
     const now = new Date();
     let startDate: Date;
@@ -62,25 +66,31 @@ export async function getPortfolioHistoricalData(
           return 'daily'; // Daily for longer periods
       }
     };
-
-    const result = await callApi<PortfolioHistoryResponse>(
-      `/api/performance/${agentId}/history`,
-      'GET',
-      undefined,
-      {
-        interval: getInterval(timeRange),
-        from: fromDate,
-        to: toDate
-      }
-    );
     
-    return {
-      success: true,
-      data: result,
-      timeRange
-    };
+    const interval = getInterval(timeRange);
+    
+    try {
+      const result = await callApi<PortfolioHistoryResponse>(
+        `/api/performance/${agentId}/history`,
+        'GET',
+        undefined,
+        {
+          interval,
+          from: fromDate,
+          to: toDate
+        }
+      );
+      
+      return {
+        success: true,
+        data: result,
+        timeRange
+      };
+    } catch (apiError) {
+      // Detailed API error logging
+      throw apiError; // Re-throw to be caught by outer try/catch
+    }
   } catch (error) {
-    console.error('Error fetching portfolio historical data:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unexpected error occurred'

@@ -30,7 +30,7 @@ export async function getCreatorAgents(creatorId: string): Promise<GetCreatorAge
       data: result.data
     };
   } catch (error) {
-    console.error('Error fetching creator agents:', error);
+    console.error(`Error fetching agents for creator ${creatorId}:`, error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unexpected error occurred'

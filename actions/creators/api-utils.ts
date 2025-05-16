@@ -11,13 +11,15 @@ export async function callApi<T>(
   endpoint: string,
   method: 'GET' | 'POST' = 'GET',
   body?: Record<string, unknown>,
-  queryParams?: Record<string, string>
+  queryParams?: Record<string, string>,
 ): Promise<T> {
   const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
   const apiKey = process.env.API_KEY;
 
   if (!apiUrl || !apiKey) {
-    throw new Error('Missing API configuration: API_URL or API_KEY not set in environment');
+    throw new Error(
+      'Missing API configuration: API_URL or API_KEY not set in environment for creators',
+    );
   }
 
   // Construct the URL with query parameters if provided
@@ -54,21 +56,27 @@ export async function callApi<T>(
     if (!response.ok) {
       // Handle error cases
       if (response.status === 401) {
-        throw new Error('Invalid API key');
+        throw new Error('Invalid API key for creators');
       } else if (response.status === 404) {
-        throw new Error('Resource not found');
+        throw new Error('Resource not found for creators at ' + url);
       } else if (response.status >= 500) {
-        throw new Error('Server error - please try again later');
+        throw new Error('Server error - please try again later for creators');
       }
 
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'API request failed');
+      try {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'API request failed for creators');
+      } catch {
+        // If parsing JSON fails, just use status text
+        throw new Error(
+          `API request failed for creators with status ${response.status} ${response.statusText}`,
+        );
+      }
     }
 
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error(`Error calling API at ${endpoint}:`, error);
     throw error;
   }
-} 
+}
