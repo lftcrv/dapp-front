@@ -78,7 +78,7 @@ export function CreatorCard({
 
   const formatDisplayCurrency = (amount: number) => {
     if (Math.abs(amount) >= 1000000) {
-      return `$${(amount / 1000).toFixed(0)}k`;
+      return `$${(amount / 1000000).toFixed(1)}M`;
     }
     if (Math.abs(amount) >= 10000 && Math.abs(amount) < 1000000) {
        return `$${(amount / 1000).toFixed(1)}k`;

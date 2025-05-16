@@ -105,7 +105,9 @@ const PortfolioChart = memo(
             formattedDate = formatDate(label || '');
           }
         } catch (e) {
-          console.error('Date formatting error:', e);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Date formatting error:', e);
+          }
         }
 
         const data = payload[0].payload;
@@ -208,7 +210,9 @@ const PortfolioChart = memo(
 
           // Don't update chartData here - it will be updated by the other useEffect
         } catch (error) {
-          console.error('Error fetching portfolio KPI data:', error);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Error fetching portfolio KPI data:', error);
+          }
           // Fall back to prop data if API fails
         }
       };
@@ -220,7 +224,9 @@ const PortfolioChart = memo(
     useEffect(() => {
       // Skip if no agent ID
       if (!agentId) {
-        console.log('No agent ID provided, skipping historical data fetch');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('No agent ID provided, skipping historical data fetch');
+        }
         setChartData(data || []);
         return;
       }
@@ -446,7 +452,9 @@ const PortfolioChart = memo(
         }
       };
 
-      console.log('Fetching historical data for agent', agentId);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Fetching historical data for agent', agentId);
+      }
       fetchHistoricalData();
     }, [timeRange, agentId, data]);
 
