@@ -8,15 +8,7 @@ import EmptyState from '@/components/ui/empty-state';
 import { TopAgentsSkeleton } from '@/components/home-skeleton';
 import { Agent } from '@/lib/types';
 
-/**
- * Props for the CompetitionSection component.
- *
- * @property {Agent[] | undefined | null} agents - List of agents to display, or null/undefined if not available.
- * @property {boolean} isLoading - Indicates whether the data is currently loading.
- * @property {Error | null} error - Error object if an error occurred, or null if no error.
- * @property {boolean} isRefetching - Indicates whether data is being refetched.
- * @property {() => Promise<void>} handleRetry - Function to retry fetching data.
- */
+// TypeScript type definitions for the CompetitionSection component props.
 type CompetitionSectionProps = {
   agents: Agent[] | undefined | null;
   isLoading: boolean;
