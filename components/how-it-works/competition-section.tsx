@@ -1,26 +1,29 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import {  Suspense } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { TopAgents } from '@/components/top-agents';
-import { useAgents } from '@/hooks/use-agents';
 import EmptyState from '@/components/ui/empty-state';
 import { TopAgentsSkeleton } from '@/components/home-skeleton';
+import { Agent } from '@/lib/types';
 
-export function CompetitionSection() {
-  const { data: agents, isLoading, error, refetch } = useAgents();
-  const [isRefetching, setIsRefetching] = useState(false);
-  
-  const handleRetry = async () => {
-    setIsRefetching(true);
-    try {
-      await refetch();
-    } finally {
-      setIsRefetching(false);
-    }
-  };
+// Define props
+type CompetitionSectionProps = {
+  agents: Agent[] | undefined | null;
+  isLoading: boolean;
+  error: Error | null;
+  isRefetching: boolean;
+  handleRetry: () => Promise<void>;
+};
 
+export function CompetitionSection({
+  agents,
+  isLoading,
+  error,
+  isRefetching,
+  handleRetry,
+}: CompetitionSectionProps) {
   return (
     <section className="relative mb-20 py-16 px-6 rounded-2xl bg-[#F6ECE7] shadow-sm">
       {/* Section Title */}
@@ -39,22 +42,24 @@ export function CompetitionSection() {
           Left, right, or rekt.
         </p>
         <p className="text-center text-lg mb-0 font-patrick">
-          The most creative and top-performing agents earn<br />
-          from every trade in the protocol. <span className="text-orange-500">🔥</span>
+          The most creative and top-performing agents earn
+          <br />
+          from every trade in the protocol.{' '}
+          <span className="text-orange-500">🔥</span>
         </p>
       </motion.div>
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
         {/* Left Column - Degen Image (1/4) */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: -20 }}
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
           className="md:col-span-1 flex justify-center"
         >
-          <Image 
+          <Image
             src="/hiw/Groupe 6187.png"
             alt="Degen King"
             width={300}
@@ -95,14 +100,14 @@ export function CompetitionSection() {
         </motion.div>
 
         {/* Right Column - Sigma Image (1/4) */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: 20 }}
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
           className="md:col-span-1 flex justify-center"
         >
-          <Image 
+          <Image
             src="/hiw/Groupe 5881 lftcrv.png"
             alt="Sigma Lord"
             width={300}
@@ -113,7 +118,7 @@ export function CompetitionSection() {
       </div>
 
       {/* Bottom Text */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
@@ -124,4 +129,4 @@ export function CompetitionSection() {
       </motion.div>
     </section>
   );
-} 
+}
