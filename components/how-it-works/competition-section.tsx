@@ -1,6 +1,6 @@
 'use client';
 
-import {  Suspense } from 'react';
+import { Suspense } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { TopAgents } from '@/components/top-agents';
@@ -8,7 +8,15 @@ import EmptyState from '@/components/ui/empty-state';
 import { TopAgentsSkeleton } from '@/components/home-skeleton';
 import { Agent } from '@/lib/types';
 
-// Define props
+/**
+ * Props for the CompetitionSection component.
+ *
+ * @property {Agent[] | undefined | null} agents - List of agents to display, or null/undefined if not available.
+ * @property {boolean} isLoading - Indicates whether the data is currently loading.
+ * @property {Error | null} error - Error object if an error occurred, or null if no error.
+ * @property {boolean} isRefetching - Indicates whether data is being refetched.
+ * @property {() => Promise<void>} handleRetry - Function to retry fetching data.
+ */
 type CompetitionSectionProps = {
   agents: Agent[] | undefined | null;
   isLoading: boolean;

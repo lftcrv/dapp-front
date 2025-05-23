@@ -1,13 +1,12 @@
 'use client';
 
-import { Suspense, memo } from 'react';
+import { Suspense, memo, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { HeroSection } from '@/components/how-it-works/hero-section';
 import { BuildAgentsSection } from '@/components/how-it-works/build-agents-section';
 import { CompetitionSection } from '@/components/how-it-works/competition-section';
 import { UnderHoodSection } from '@/components/how-it-works/under-hood-section';
 import { useAgents } from '@/hooks/use-agents';
-import { useState, useCallback } from 'react';
 
 // Memoize imported components to prevent unnecessary re-renders
 const MemoizedHeroSection = memo(HeroSection);
